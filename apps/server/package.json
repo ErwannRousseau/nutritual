@@ -1,7 +1,10 @@
 {
   "name": "server",
   "scripts": {
+    "db:check": "bun run src/check-database.ts",
     "dev": "bun run --hot src/index.ts",
+    "auth:check": "bun run src/check-auth.ts",
+    "test": "bun test",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "oxlint"
   },

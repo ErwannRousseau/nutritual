@@ -1,13 +1,14 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "Nutritual",
+    "slug": "nutritual",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "nutritual",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "bundleIdentifier": "com.erwannrousseau.nutritual",
       "icon": "./assets/expo.icon"
     },
     "android": {

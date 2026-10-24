@@ -8,11 +8,18 @@
   "type": "module",
   "module": "index.ts",
   "scripts": {
-    "dev": "bun run --parallel --filter './apps/*' dev",
+    "dev": "bun --env-file=.env.local run --parallel --filter './apps/*' dev",
+    "db:check": "bun --env-file=.env.local run --filter server db:check",
+    "auth:check": "bun --env-file=.env.local run --filter server auth:check",
     "lint": "bun run --parallel --filter '*' lint",
     "typecheck": "bun run --parallel --filter '*' typecheck",
     "fmt": "oxfmt",
-    "fmt:check": "oxfmt --check"
+    "fmt:check": "oxfmt --check",
+    "test": "bun run --filter server test"
+  },
+  "dependencies": {
+    "@neon/config": "^1.9.3",
+    "@neon/env": "^1.6.4"
   },
   "devDependencies": {
     "@types/bun": "^1.4.4",
