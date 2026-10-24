@@ -11,16 +11,17 @@ history on the phone as defined in
 Use Neon Free for the trial. This decision does not authorize a paid upgrade,
 and pricing and quotas must be checked again before provisioning.
 
-Treat this as a trial, not a validated production decision. Neon Managed Auth
-does not expose MCP OAuth or custom Better Auth plugins and handlers. Better
-Auth's Expo integration requires its Expo client plugin for secure cookie and
-session storage, which the managed client does not accept. The managed service
-can be evaluated for basic email and password sign-in, with public registration
-disabled, but it cannot satisfy the target Expo session-restoration and ChatGPT
-MCP OAuth flows. Use Better Auth in the Bun backend with this Neon Postgres
-database for those flows, and implement the secure CIMD transport described
-below. Provision one account for the first milestone and defer Apple and Google
-sign-in until the end-to-end workflow is proven.
+Start with Neon Managed Auth, powered by Better Auth, for the actual application
+integration. Evaluate email and password sign-in, Expo session restoration, and
+the ChatGPT MCP authorization requirements with the managed service first.
+Compatibility is not yet validated, but a switch to self-hosted Better Auth is
+not a predetermined implementation step. Record any observed limitation and
+its impact on the required workflow before deciding whether a switch is needed.
+Only if the managed integration fails or does not meet the requirements should
+Better Auth in the Bun backend with Neon Postgres be considered. Do not build
+both authentication paths in parallel. Provision one account for the first
+milestone, disable public registration, and defer Apple and Google sign-in until
+the end-to-end workflow is proven.
 
 For the self-hosted fallback, keep Bun. Its documented fetch capabilities allow
 connecting to a chosen IP address while preserving the original HTTP host, SNI,
