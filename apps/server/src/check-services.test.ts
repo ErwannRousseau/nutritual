@@ -39,3 +39,14 @@ test("auth check reports missing configuration without secrets", () => {
   expect(result.stderr).toContain("NEON_AUTH_BASE_URL is not set");
   expect(result.stdout + result.stderr).not.toContain("https://");
 });
+
+test("auth check hides connection details on failure", () => {
+  const result = spawnSync("bun", ["run", authCheck], {
+    encoding: "utf8",
+    env: { ...process.env, NEON_AUTH_BASE_URL: "http://127.0.0.1:1" },
+  });
+
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain("could not reach the configured service");
+  expect(result.stdout + result.stderr).not.toContain("127.0.0.1");
+});
