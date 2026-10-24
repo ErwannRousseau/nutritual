@@ -1,53 +1,76 @@
 # Nutritual
 
-## Install
+## Set up and run
+
+Install the workspace dependencies and start the local apps:
 
 ```sh
-bun install
-```
-
-## Start the local apps
-
-```sh
+bun install --frozen-lockfile
 bun run dev
 ```
 
-The Hono backend runs on `http://localhost:3000`. Neon credentials are kept in
-the ignored `.env.local` file. Run `npx neon deploy` after signing in to Neon to
-provision the services declared in `neon.ts` and pull their environment values.
+The command starts Expo and the Hono API at `http://localhost:3000`.
 
-## Check Neon services
+## Use Neon locally
+
+Local development uses the Neon `development` branch. It is a child of the
+default `production` branch. A new branch starts from its parent's data, then
+keeps later writes separate. Keep production data out of development.
+
+If you are not signed in, run `npx neon login`. Then link this checkout to the
+Neon project and select the development branch:
 
 ```sh
+npx neon link
+npx neon checkout development
+npx neon deploy
+npx neon status
+```
+
+The CLI writes Postgres and Neon Auth settings to the ignored `.env.local`. See
+[.env.example](.env.example) for the variable names. `neon.ts` enables Neon
+Managed Better Auth, which stores managed identity data in the `neon_auth`
+schema. `bun run auth:check` checks that the service responds. It does not test
+sign-in or session restoration.
+
+## Verify
+
+Run the static checks and service checks:
+
+```sh
+bun run typecheck
+bun run test
 bun run db:check
 bun run auth:check
 ```
 
-The Postgres check runs `SELECT 1` to verify database access.
-The Auth check makes an unauthenticated request to the branch's session endpoint
-to verify service reachability. Neither command prints connection details.
-
-## Verify the local foundation
+The Postgres check runs `SELECT 1`. The Auth check requests the branch's session
+endpoint. Both require Internet access and Neon credentials. Local app startup
+and `/health` do not require Neon credentials. Check `/health` with:
 
 ```sh
-bun install --frozen-lockfile
-bun run typecheck
-bun run test
+curl --fail http://localhost:3000/health
 ```
 
-`bun run dev` starts the Expo bundler and Hono server together. Starting the
-local apps does not require Neon credentials.
+Expected response: `{"status":"ok"}`.
 
-## Install the iPhone development build
+On 2026-10-24, both Neon checks succeeded on `development`. This records
+connectivity only, not an end-user authentication flow.
 
-On a Mac with Xcode installed, connect the iPhone by USB, enable Developer Mode,
-and install the app once:
+## Neon Free plan
+
+As checked on 2026-10-24, Neon Free includes 100 projects per account, 1 GB of
+Postgres storage, 100 CU-hours per project each month, autoscaling up to 2 CU,
+and 10 branches per project. Managed Better Auth supports up to 60,000 monthly
+active users on Free.
+[Check Neon's current limits](https://neon.com/blog/neon-free-plan-1-gb-per-project)
+before relying on them. Confirm the project stays on Free in the Neon Console.
+This setup does not authorize a paid upgrade.
+
+## Run on an iPhone
+
+On a Mac with Xcode:
 
 ```sh
-bun run --filter mobile ios:device
+bun run --filter mobile ios:device <device-name>
 ```
-
-The local iOS build requires a unique bundle identifier and Apple signing for
-the connected device. After installation, stop the build command if it is still
-running, start `bun run dev`, then open Nutritual on the iPhone and scan the
-Expo QR code with its camera. Keep the phone and Mac on the same network.
