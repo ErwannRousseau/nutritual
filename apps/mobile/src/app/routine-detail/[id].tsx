@@ -1,0 +1,155 @@
+import { Column } from "@expo/ui";
+import { Stack, router, useLocalSearchParams } from "expo-router";
+import { useState } from "react";
+import { Alert, StyleSheet, useWindowDimensions } from "react-native";
+import ActionRow from "../../components/routine-detail/ActionRow";
+import { AppText, ProductBadge, Screen, usePalette } from "../../components/ui";
+import { frequencyLabel, reminderLabel, timeLabel } from "../../routines/display";
+import { useRoutineStore } from "../../routines/RoutinesProvider";
+
+export default function RoutineDetailScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { routines, reminders, busy, error, pause, remove } = useRoutineStore();
+  const colors = usePalette();
+  const { width } = useWindowDimensions();
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const routine = routines.find((item) => item.id === id);
+  const reminder = reminders.find((item) => item.routineId === id);
+  const contentWidth = width - 40;
+  const cardWidth = contentWidth - 36;
+
+  const schedule = routine
+    ? routine.frequency.kind === "as-needed"
+      ? frequencyLabel(routine.frequency)
+      : `${timeLabel(new Date(`2000-01-01T${routine.time}:00`))} · ${frequencyLabel(routine.frequency)}`
+    : "";
+
+  const styles = StyleSheet.create({
+    content: { width: contentWidth },
+    title: { width: contentWidth },
+    card: { backgroundColor: colors.surface, borderRadius: 20, padding: 18, width: contentWidth },
+    separator: {
+      width: cardWidth,
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.separator,
+    },
+    centeredText: { textAlign: "center" },
+  });
+
+  async function togglePause() {
+    if (!routine || busy) return;
+    setFeedback(null);
+
+    try {
+      if (!(await pause(routine.id)))
+        setFeedback(error ?? "Impossible de modifier la routine. Réessayez.");
+    } catch {
+      setFeedback("Impossible de modifier la routine. Réessayez.");
+    }
+  }
+
+  async function deleteRoutine() {
+    if (!routine || busy) return;
+    setFeedback(null);
+
+    try {
+      if (await remove(routine.id)) router.back();
+      else setFeedback(error ?? "Impossible de supprimer la routine. Réessayez.");
+    } catch {
+      setFeedback("Impossible de supprimer la routine. Réessayez.");
+    }
+  }
+
+  function confirmDelete() {
+    if (!routine) return;
+    Alert.alert(
+      "Supprimer cette routine ?",
+      `${routine.productName} ne figurera plus dans votre planning.`,
+      [
+        { text: "Annuler", style: "cancel" },
+        { text: "Supprimer", style: "destructive", onPress: () => void deleteRoutine() },
+      ],
+    );
+  }
+
+  return (
+    <>
+      <Stack.Screen options={{ title: "Complément", headerShown: true }} />
+      {!routine ? (
+        <Screen grouped>
+          <AppText color={error ? colors.danger : colors.text}>
+            {busy ? "Chargement de la routine…" : (error ?? "Routine introuvable.")}
+          </AppText>
+        </Screen>
+      ) : (
+        <Screen grouped>
+          <Column alignment="center" spacing={12} style={styles.content}>
+            <ProductBadge size={96} />
+            <AppText variant="largeTitle" style={styles.title} textStyle={styles.centeredText}>
+              {routine.productName}
+            </AppText>
+            <AppText
+              color={colors.secondary}
+              style={styles.content}
+              textStyle={styles.centeredText}
+            >
+              {routine.paused ? "En pause" : schedule}
+            </AppText>
+          </Column>
+          <Column spacing={12} style={styles.card}>
+            <Column spacing={4}>
+              <AppText variant="footnote" color={colors.secondary}>
+                Rythme
+              </AppText>
+              <AppText variant="subhead">{schedule}</AppText>
+            </Column>
+            <Column spacing={4}>
+              <AppText variant="footnote" color={colors.secondary}>
+                Rappel
+              </AppText>
+              <AppText variant="subhead">{reminderLabel(reminder)}</AppText>
+            </Column>
+          </Column>
+          {feedback || error ? (
+            <AppText variant="subhead" color={colors.danger}>
+              {feedback ?? error ?? ""}
+            </AppText>
+          ) : null}
+          <AppText variant="footnote" color={colors.secondary}>
+            GESTION
+          </AppText>
+          <Column spacing={0} style={styles.card}>
+            <ActionRow
+              label="Modifier"
+              icon="ellipsis"
+              disabled={busy}
+              onPress={() => router.push(`/routine/${routine.id}`)}
+            />
+            <Column style={styles.separator} />
+            <ActionRow
+              label="Enregistrer une prise"
+              icon="checkmark"
+              disabled={busy}
+              onPress={() => router.push(`/record/${routine.id}`)}
+            />
+            <Column style={styles.separator} />
+            <ActionRow
+              label={routine.paused ? "Reprendre la routine" : "Mettre en pause"}
+              icon="pause"
+              disabled={busy}
+              onPress={() => void togglePause()}
+            />
+            <Column style={styles.separator} />
+            <ActionRow
+              label="Supprimer la routine"
+              icon="xmark"
+              destructive
+              disabled={busy}
+              onPress={confirmDelete}
+            />
+          </Column>
+        </Screen>
+      )}
+    </>
+  );
+}

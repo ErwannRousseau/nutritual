@@ -36,11 +36,26 @@ or Android support.
 
 ## Visual inspection
 
-Inspected agent-device screenshots of the daily overview, creation form and intake
-sheet at normal and larger text sizes. The overview uses wide cyan cards, prominent
-times, a separate neutral history section and blue actions. Intake recording uses
-a rounded native sheet. The supplied GitHub image URLs returned 404 during this
-session, so an exact comparison with the original images was unavailable.
+Inspected the supplied local reference images and used agent-device to explore
+Apple Health's medication flow: name, type, strength, schedule, native time picker
+and review. Cancelled that flow without saving a medication.
+
+Rechecked Nutritual's rebuilt overview, intake sheet, routine details and three-step
+creation flow against those references. The shared UI kit uses named StyleSheets,
+wide cyan upcoming cards, a neutral recorded-intake group, native navigation and
+date/time controls. Creation now separates name, frequency and review.
+
+Verified empty-name and invalid-interval errors, changing an interval's anchor date,
+weekday selection, pause, as-needed creation, intake recording and undo. Confirmed
+that cancelling an edit returns to its detail screen and saving returns to the
+correct destination without a discard alert. Back navigation within the form
+preserves its draft. Confirmed discard closes the form, while continuing preserves
+the draft.
+
+Inspected dark mode and Larger Accessibility Sizes at 73% in the overview,
+frequency form, detail actions and history, including a long product name. Text
+wraps and actions remain reachable by scrolling. Restored normal text size and
+light appearance. Removed the additional QA routines and undid their intakes.
 
 ## Static and build checks
 
