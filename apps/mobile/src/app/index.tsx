@@ -1,31 +1,23 @@
-import { StyleSheet, Text } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import RoutineScreen from "../components/RoutineScreen";
+import { useRoutines } from "../routines/useRoutines";
 
 export default function HomeScreen() {
+  const { routines, intakes, reminders, busy, error, save, remove, pause, record, undo, reload } =
+    useRoutines();
+
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Nutritual</Text>
-      <Text style={styles.subtitle}>Votre compagnon nutrition.</Text>
-    </SafeAreaView>
+    <RoutineScreen
+      routines={routines}
+      intakes={intakes}
+      reminders={reminders}
+      busy={busy}
+      error={error}
+      onSave={save}
+      onDelete={remove}
+      onPause={pause}
+      onRecord={record}
+      onUndo={undo}
+      onRetry={reload}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-    backgroundColor: "#f7f8f5",
-  },
-  title: {
-    color: "#1f3d32",
-    fontSize: 36,
-    fontWeight: "700",
-  },
-  subtitle: {
-    marginTop: 12,
-    color: "#56665d",
-    fontSize: 16,
-  },
-});

@@ -35,7 +35,15 @@ embed an AI model.
 Pausing a routine cancels its upcoming reminders and preserves its schedule.
 Resuming uses the original schedule without catching up. For example, a routine
 scheduled for the 25th, 28th, and 31st resumes on the 31st if reactivated on the
-29th. A reminder missed while the phone is off is not replayed when it starts.
+29th. The app never schedules past occurrences as catch-up reminders. iOS
+controls delivery after a phone shutdown, so suppression of overdue system
+notifications cannot be guaranteed.
+
+Every-N-calendar-day reminders use a finite queue of future local calendar
+dates. The app displays the last covered date and renews the queue when opened
+or brought to the foreground. This limit is accepted for the local milestone.
+Weekly and daily reminders use native repeating calendar schedules. Operating
+system queue limits or notification failures do not erase a saved routine.
 
 Every routine supports recording an intake through a "Taken" action, viewing
 the dated intake history, and undoing an accidental entry. A notification alone
