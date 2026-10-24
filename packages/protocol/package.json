@@ -2,7 +2,8 @@
   "name": "@nutritual/protocol",
   "private": true,
   "scripts": {
-    "lint": "oxlint --no-error-on-unmatched-pattern"
+    "lint": "oxlint --no-error-on-unmatched-pattern",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
     "@nutritual/oxlint-config": "workspace:*",

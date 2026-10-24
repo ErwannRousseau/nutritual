@@ -6,6 +6,9 @@
     ".": "./src/index.ts",
     "./anti-slop": "./src/anti-slop/index.ts"
   },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
   "dependencies": {
     "@oxlint/plugins": "catalog:tooling"
   }

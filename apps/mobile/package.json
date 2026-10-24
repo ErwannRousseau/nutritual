@@ -9,7 +9,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "oxlint --react-plugin"
+    "lint": "oxlint --react-plugin",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@expo/ui": "~58.0.23",
