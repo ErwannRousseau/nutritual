@@ -7,6 +7,9 @@
     "packages/*",
     "apps/*"
   ],
+  "scripts": {
+    "dev": "bun run --parallel --filter './apps/*' dev"
+  },
   "devDependencies": {
     "@types/bun": "^1.4.4"
   },
