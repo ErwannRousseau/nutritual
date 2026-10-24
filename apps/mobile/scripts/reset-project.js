@@ -16,6 +16,7 @@ const oldDirs = ["src", "scripts"];
 const exampleDir = "example";
 const newAppDir = "src/app";
 const exampleDirPath = path.join(root, exampleDir);
+
 // Demo images and folders used only by the files in /src
 const exampleAssets = [
   "expo-badge.png",
@@ -72,6 +73,7 @@ const moveDirectories = async (userInput) => {
     // Move old directories to new app-example directory or delete them
     for (const dir of oldDirs) {
       const oldDirPath = path.join(root, dir);
+
       if (fs.existsSync(oldDirPath)) {
         if (userInput === "y") {
           const newDirPath = path.join(root, exampleDir, dir);
@@ -89,13 +91,12 @@ const moveDirectories = async (userInput) => {
     // Move demo assets to /example or delete them
     for (const asset of exampleAssets) {
       const assetPath = path.join(root, "assets/images", asset);
+
       if (fs.existsSync(assetPath)) {
         if (userInput === "y") {
           const newAssetPath = path.join(exampleDirPath, "assets/images", asset);
           await fs.promises.rename(assetPath, newAssetPath);
-          console.log(
-            `➡️ /assets/images/${asset} moved to /${exampleDir}/assets/images/${asset}.`
-          );
+          console.log(`➡️ /assets/images/${asset} moved to /${exampleDir}/assets/images/${asset}.`);
         } else {
           await fs.promises.rm(assetPath, { recursive: true, force: true });
           console.log(`❌ /assets/images/${asset} deleted.`);
@@ -124,7 +125,7 @@ const moveDirectories = async (userInput) => {
         userInput === "y"
           ? `\n4. Delete the /${exampleDir} directory when you're done referencing it.`
           : ""
-      }`
+      }`,
     );
   } catch (error) {
     console.error(`❌ Error during script execution: ${error.message}`);
@@ -135,11 +136,12 @@ rl.question(
   "Do you want to move existing files to /example instead of deleting them? (Y/n): ",
   (answer) => {
     const userInput = answer.trim().toLowerCase() || "y";
+
     if (userInput === "y" || userInput === "n") {
       moveDirectories(userInput).finally(() => rl.close());
     } else {
       console.log("❌ Invalid input. Please enter 'Y' or 'N'.");
       rl.close();
     }
-  }
+  },
 );

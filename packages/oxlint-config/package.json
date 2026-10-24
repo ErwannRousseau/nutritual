@@ -1,0 +1,12 @@
+{
+  "name": "@nutritual/oxlint-config",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./anti-slop": "./src/anti-slop/index.ts"
+  },
+  "dependencies": {
+    "@oxlint/plugins": "catalog:tooling"
+  }
+}

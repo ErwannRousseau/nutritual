@@ -1,4 +1,11 @@
 {
   "name": "@nutritual/protocol",
-  "private": true
+  "private": true,
+  "scripts": {
+    "lint": "oxlint --no-error-on-unmatched-pattern"
+  },
+  "devDependencies": {
+    "@nutritual/oxlint-config": "workspace:*",
+    "oxlint": "catalog:tooling"
+  }
 }

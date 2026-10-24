@@ -1,19 +1,31 @@
 {
   "name": "nutritual",
-  "module": "index.ts",
-  "type": "module",
   "private": true,
   "workspaces": [
     "packages/*",
     "apps/*"
   ],
+  "type": "module",
+  "module": "index.ts",
   "scripts": {
-    "dev": "bun run --parallel --filter './apps/*' dev"
+    "dev": "bun run --parallel --filter './apps/*' dev",
+    "lint": "bun run --parallel --filter '*' lint",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check"
   },
   "devDependencies": {
-    "@types/bun": "^1.4.4"
+    "@types/bun": "^1.4.4",
+    "oxfmt": "catalog:tooling"
   },
   "peerDependencies": {
     "typescript": "^7"
+  },
+  "catalogs": {
+    "tooling": {
+      "@oxlint/plugins": "1.89.0",
+      "oxfmt": "^0.74.0",
+      "oxlint": "1.89.0",
+      "oxlint-plugin-react-doctor": "^0.9.18"
+    }
   }
 }
