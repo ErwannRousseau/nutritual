@@ -7,9 +7,18 @@ Nutritual organizes dietary supplement intake routines and their reminders.
 **Product**: A dietary supplement the user wants to include in their intake
 routines.
 
-**Intake routine**: A recurring schedule for taking a product at a given local
-time, following the user's current time zone. An intake routine can be paused.
+**Intake routine**: A plan for taking a product on selected weekdays, every N
+days from a chosen start date, or as needed. Scheduled times follow the user's
+current time zone. An intake routine can be paused.
 _Avoid_: Program, reminder
+
+**Intake**: A recorded occurrence of taking a product as part of an intake
+routine, with the date and time it was recorded. Receiving a reminder does not
+count as an intake.
+
+**Paused routine**: An intake routine whose reminders are suspended while its
+schedule is preserved. Resuming it uses the original schedule without catching
+up on missed reminders.
 
 **Reminder**: A notification scheduled to signal an intake as part of an intake
 routine. _Avoid_: Routine
