@@ -4,11 +4,33 @@ Use TypeScript, Bun, Hono, and the official MCP SDK for the backend. Keep MCP
 and the phone's authenticated WebSocket connection in the same process on one
 instance, avoiding a separate relay service and coordination between instances.
 
-Start with one MCP tool, `create_intake_routine`, combining the product and its
-daily schedule in one operation. The phone validates the command, saves the
-routine locally, schedules its notification, and returns the actual outcome. It
-remembers operation identifiers to prevent duplicate creations when a command is
-retried after a lost acknowledgment. A restart can interrupt an exchange, and
+Build and validate the device relay before integrating ChatGPT. In this local
+increment, an HTTP request from the developer's terminal triggers creation on
+the open phone app. Verify the returned outcome, an unavailable phone, and a
+retry without duplicate creation. Authentication, pairing, and the development
+tunnel belong to the following ChatGPT integration increment.
+The implementation specification is [issue #5](https://github.com/ErwannRousseau/nutritual/issues/5).
+
+The local increment connects one phone to the server over the local network,
+using a server address supplied in development configuration, without a new
+connection screen.
+
+Creation accepts the app's three frequency modes: selected weekdays, every N
+calendar days from a chosen start date, and as needed. Reuse the app's creation
+rules. The phone validates the command, saves the routine locally, schedules any
+applicable reminder, and returns the actual outcome. It persists operation
+identifiers locally so retrying the same operation does not create another
+routine, including after an app or server restart. Two intentional creations
+use distinct identifiers even when their contents are identical.
+
+An operation identifier is bound to its original creation request. Reusing it
+with different contents is rejected. Retrying a processed operation is a no-op
+reported as already processed, even if the routine was subsequently edited or
+deleted. Keep enough local operation information after deletion to recognize
+these retries without recreating a routine or rescheduling reminders.
+
+The following ChatGPT increment exposes the same creation behavior through one
+MCP tool, `create_intake_routine`. A restart can interrupt an exchange, and
 multiple backend instances would require a different routing strategy.
 
 Validate the complete workflow locally before evaluating hosting. Run the
