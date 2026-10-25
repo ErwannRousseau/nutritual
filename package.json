@@ -15,7 +15,7 @@
     "typecheck": "bun run --parallel --filter '*' typecheck",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
-    "test": "bun run --filter server test"
+    "test": "bun run --filter server test && bun run --filter mobile test"
   },
   "dependencies": {
     "@neon/config": "^1.9.3",

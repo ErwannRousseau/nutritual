@@ -26,50 +26,92 @@ export function connectToDeviceRelay(
   url.search = "";
   url.hash = "";
 
-  const socket = new WebSocket(url.toString());
   let disposed = false;
+  let retryDelay = 1_000;
+  let retryTimer: ReturnType<typeof setTimeout> | undefined;
+  let socket: WebSocket | undefined;
 
-  socket.onmessage = (event) => {
-    let message: unknown;
+  function scheduleReconnect() {
+    if (disposed || retryTimer !== undefined) return;
+
+    retryTimer = setTimeout(() => {
+      retryTimer = undefined;
+      connect();
+    }, retryDelay);
+    retryDelay = Math.min(retryDelay * 2, 30_000);
+  }
+
+  function connect() {
+    let nextSocket: WebSocket;
 
     try {
-      message = JSON.parse(event.data);
+      nextSocket = new WebSocket(url.toString());
     } catch {
+      scheduleReconnect();
+
       return;
     }
 
-    if (!isCreateRoutineCommandMessage(message)) return;
-
-    const sendResult = (result: CreateRoutineResult) => {
-      if (disposed || socket.readyState !== WebSocket.OPEN) return;
-
-      const response: CreateRoutineResultMessage = {
-        type: "create_routine_result",
-        requestId: message.requestId,
-        result,
-      };
-
-      try {
-        socket.send(JSON.stringify(response));
-      } catch {
-        // The server reports an unconfirmed result when the phone disconnects before this ack.
-      }
+    socket = nextSocket;
+    nextSocket.onopen = () => {
+      retryDelay = 1_000;
     };
 
-    void createRoutine(message.command)
-      .then(sendResult)
-      .catch(() => {
-        sendResult({
-          status: CreateRoutineStatus.failed,
-          operationId: message.command.operationId,
-          message: "Impossible d’enregistrer la routine sur ce téléphone.",
+    nextSocket.onclose = scheduleReconnect;
+    nextSocket.onerror = () => nextSocket.close();
+
+    nextSocket.onmessage = (event) => {
+      let message: unknown;
+
+      try {
+        message = JSON.parse(event.data);
+      } catch {
+        return;
+      }
+
+      if (!isCreateRoutineCommandMessage(message)) return;
+
+      const sendResult = (result: CreateRoutineResult) => {
+        if (disposed || nextSocket.readyState !== WebSocket.OPEN) return;
+
+        const response: CreateRoutineResultMessage = {
+          type: "create_routine_result",
+          requestId: message.requestId,
+          result,
+        };
+
+        try {
+          nextSocket.send(JSON.stringify(response));
+        } catch {
+          // The server reports an unconfirmed result when the phone disconnects before this ack.
+        }
+      };
+
+      void createRoutine(message.command)
+        .then(sendResult)
+        .catch(() => {
+          sendResult({
+            status: CreateRoutineStatus.failed,
+            operationId: message.command.operationId,
+            message: "Impossible d’enregistrer la routine sur ce téléphone.",
+          });
         });
-      });
-  };
+    };
+  }
+
+  connect();
 
   return () => {
     disposed = true;
-    socket.onmessage = null;
-    socket.close();
+
+    if (retryTimer !== undefined) clearTimeout(retryTimer);
+
+    if (socket) {
+      socket.onmessage = null;
+      socket.onopen = null;
+      socket.onclose = null;
+      socket.onerror = null;
+      socket.close();
+    }
   };
 }

@@ -9,6 +9,7 @@
     "ios": "expo run:ios",
     "ios:device": "expo run:ios --device",
     "web": "expo start --web",
+    "test": "bun test",
     "lint": "oxlint --react-plugin",
     "typecheck": "tsc --noEmit"
   },
@@ -43,6 +44,7 @@
   },
   "devDependencies": {
     "@nutritual/oxlint-config": "workspace:*",
+    "@types/bun": "^1.4.4",
     "@types/react": "~19.3.0",
     "eslint-plugin-expo": "^1.2.1",
     "oxlint": "catalog:tooling",

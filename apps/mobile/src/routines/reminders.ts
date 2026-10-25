@@ -8,6 +8,17 @@ import { nextOccurrence } from "@/routines/model";
 const identifierPrefix = "nutritual:";
 const maxIntervalReminders = 16;
 const iosPendingLimit = 64;
+let pendingReminderWork: Promise<unknown> = Promise.resolve();
+
+function serializeReminderWork<T>(work: () => Promise<T>): Promise<T> {
+  const result = pendingReminderWork.then(work, work);
+  pendingReminderWork = result.then(
+    () => undefined,
+    () => undefined,
+  );
+
+  return result;
+}
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -65,7 +76,7 @@ function intervalOccurrences(routine: Routine, count: number): Date[] {
   return occurrences;
 }
 
-export async function updateReminder(
+async function updateReminderOnce(
   routine: Routine,
   requestPermission: boolean,
 ): Promise<ReminderState> {
@@ -192,11 +203,22 @@ export async function updateReminder(
   }
 }
 
-export async function removeReminders(routineId: string): Promise<void> {
+export function updateReminder(
+  routine: Routine,
+  requestPermission: boolean,
+): Promise<ReminderState> {
+  return serializeReminderWork(() => updateReminderOnce(routine, requestPermission));
+}
+
+async function removeRemindersOnce(routineId: string): Promise<void> {
   await cancelScheduled(await ownScheduled(routinePrefix(routineId)));
 }
 
-export async function removeOrphanReminders(routineIds: string[]): Promise<void> {
+export function removeReminders(routineId: string): Promise<void> {
+  return serializeReminderWork(() => removeRemindersOnce(routineId));
+}
+
+async function removeOrphanRemindersOnce(routineIds: string[]): Promise<void> {
   const activePrefixes = routineIds.map(routinePrefix);
 
   const orphaned = (await Notifications.getAllScheduledNotificationsAsync()).filter(
@@ -206,4 +228,19 @@ export async function removeOrphanReminders(routineIds: string[]): Promise<void>
   );
 
   await cancelScheduled(orphaned);
+}
+
+export function removeOrphanReminders(routineIds: string[]): Promise<void> {
+  return serializeReminderWork(() => removeOrphanRemindersOnce(routineIds));
+}
+
+export function restoreReminders(routines: Routine[]): Promise<ReminderState[]> {
+  return serializeReminderWork(async () => {
+    await removeOrphanRemindersOnce(routines.map((routine) => routine.id));
+    const results: ReminderState[] = [];
+
+    for (const routine of routines) results.push(await updateReminderOnce(routine, false));
+
+    return results;
+  });
 }
