@@ -1,6 +1,12 @@
 import { randomUUID } from "expo-crypto";
 import { useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
+import {
+  validateRoutineInput,
+  type CreateRoutineRequest,
+  type CreateRoutineResult,
+  type ReminderOutcome,
+} from "@nutritual/protocol";
 import type { Intake, ReminderState, Routine, RoutineDraft } from "@/routines/model";
 import { validateRoutine } from "@/routines/model";
 import * as storage from "@/routines/storage";
@@ -13,9 +19,14 @@ export function useRoutines() {
   });
 
   const [busy, setBusy] = useState(true);
+  const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reminders, setReminders] = useState<ReminderState[]>([]);
   const locked = useRef(true);
+
+  const relayOperations = useRef(
+    new Map<string, { requestJson: string; promise: Promise<CreateRoutineResult> }>(),
+  );
 
   async function run(action: () => Promise<void>): Promise<boolean> {
     if (locked.current) return false;
@@ -64,6 +75,7 @@ export function useRoutines() {
         if (active) {
           locked.current = false;
           setBusy(false);
+          setReady(true);
         }
       });
 
@@ -107,6 +119,109 @@ export function useRoutines() {
     });
   }
 
+  async function createRoutineFromRelayOnce(
+    request: CreateRoutineRequest,
+  ): Promise<CreateRoutineResult> {
+    const validation = validateRoutineInput(request);
+
+    if (validation) {
+      return { status: "invalid", operationId: request.operationId, message: validation };
+    }
+
+    const routine: Routine = {
+      id: randomUUID(),
+      productName: request.productName.trim(),
+      frequency: request.frequency,
+      time: request.time,
+      paused: false,
+    };
+
+    try {
+      const operation = await storage.createRoutineOperation(request, routine);
+
+      if (operation.status === "conflict") {
+        return {
+          status: "conflict",
+          operationId: request.operationId,
+          message: "Cet identifiant a déjà été utilisé avec une autre routine.",
+        };
+      }
+
+      if (operation.status === "already_processed") {
+        return {
+          status: "already_processed",
+          operationId: request.operationId,
+          routineId: operation.routineId,
+          reminder: operation.reminder,
+        };
+      }
+
+      const reminderState = await updateReminder(operation.routine, true);
+
+      let reminder: ReminderOutcome =
+        reminderState.status === "paused" ? "failed" : reminderState.status;
+
+      try {
+        await storage.updateRoutineOperationReminder(request.operationId, reminder);
+      } catch {
+        reminder = "unconfirmed";
+      }
+
+      setReminders((current) => [
+        ...current.filter((item) => item.routineId !== operation.routine.id),
+        reminderState,
+      ]);
+
+      try {
+        setData(await storage.loadData());
+      } catch {
+        setError("Impossible de lire les données sur ce téléphone. Réessayez.");
+      }
+
+      return {
+        status: "created",
+        operationId: request.operationId,
+        routineId: operation.routine.id,
+        reminder,
+      };
+    } catch {
+      return {
+        status: "failed",
+        operationId: request.operationId,
+        message: "Impossible d’enregistrer la routine sur ce téléphone.",
+      };
+    }
+  }
+
+  function createRoutineFromRelay(request: CreateRoutineRequest): Promise<CreateRoutineResult> {
+    const requestJson = storage.createRoutineRequestJson(request);
+    const existing = relayOperations.current.get(request.operationId);
+
+    if (existing) {
+      if (existing.requestJson !== requestJson) {
+        return Promise.resolve({
+          status: "conflict",
+          operationId: request.operationId,
+          message: "Cet identifiant a déjà été utilisé avec une autre routine.",
+        });
+      }
+
+      return existing.promise.then((result) =>
+        result.status === "created" ? { ...result, status: "already_processed" } : result,
+      );
+    }
+
+    const promise = createRoutineFromRelayOnce(request).finally(() => {
+      if (relayOperations.current.get(request.operationId)?.promise === promise) {
+        relayOperations.current.delete(request.operationId);
+      }
+    });
+
+    relayOperations.current.set(request.operationId, { requestJson, promise });
+
+    return promise;
+  }
+
   async function remove(id: string): Promise<boolean> {
     return run(async () => {
       await removeReminders(id);
@@ -148,7 +263,20 @@ export function useRoutines() {
     return run(() => storage.deleteIntake(id));
   }
 
-  return { ...data, reminders, busy, error, save, remove, pause, record, undo, reload };
+  return {
+    ...data,
+    reminders,
+    busy,
+    ready,
+    error,
+    save,
+    createRoutineFromRelay,
+    remove,
+    pause,
+    record,
+    undo,
+    reload,
+  };
 }
 
 async function restoreReminders(routines: Routine[]): Promise<ReminderState[]> {

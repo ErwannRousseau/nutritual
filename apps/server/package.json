@@ -9,6 +9,8 @@
     "lint": "oxlint"
   },
   "dependencies": {
+    "@hono/bun": "^1.0.1",
+    "@nutritual/protocol": "workspace:*",
     "hono": "^4.13.13"
   },
   "devDependencies": {

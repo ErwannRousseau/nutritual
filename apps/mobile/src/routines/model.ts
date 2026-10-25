@@ -1,7 +1,6 @@
-export type Frequency =
-  | { kind: "weekdays"; days: number[] }
-  | { kind: "interval"; every: number; startDate: string }
-  | { kind: "as-needed" };
+import { validateRoutineInput, type Frequency, type RoutineInput } from "@nutritual/protocol";
+
+export type { Frequency } from "@nutritual/protocol";
 
 export type Routine = {
   id: string;
@@ -24,7 +23,7 @@ export type ReminderState = {
   message: string;
 };
 
-export type RoutineDraft = Omit<Routine, "id" | "paused">;
+export type RoutineDraft = RoutineInput;
 
 const weekdayNames = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
 const maxIntervalDays = 36_500;
@@ -77,36 +76,7 @@ export function localDate(date: Date): string {
 }
 
 export function validateRoutine(draft: RoutineDraft): string | null {
-  if (!draft.productName.trim()) return "Le nom du produit est obligatoire.";
-
-  const frequency = draft.frequency;
-
-  if (frequency.kind !== "as-needed" && !/^([01]\d|2[0-3]):[0-5]\d$/.test(draft.time))
-    return "Choisissez une heure valide au format HH:mm.";
-
-  if (frequency.kind === "weekdays") {
-    if (
-      frequency.days.length === 0 ||
-      frequency.days.some((day) => !Number.isInteger(day) || day < 0 || day > 6) ||
-      new Set(frequency.days).size !== frequency.days.length
-    ) {
-      return "Choisissez au moins un jour de la semaine, sans doublon.";
-    }
-  } else if (frequency.kind === "interval") {
-    if (
-      !Number.isInteger(frequency.every) ||
-      frequency.every < 1 ||
-      frequency.every > maxIntervalDays
-    ) {
-      return `L’intervalle doit être compris entre 1 et ${maxIntervalDays} jours.`;
-    }
-
-    if (!validDateString(frequency.startDate)) return "Choisissez une date de début valide.";
-  } else if (frequency.kind !== "as-needed") {
-    return "Choisissez une fréquence valide.";
-  }
-
-  return null;
+  return validateRoutineInput(draft);
 }
 
 export function isDueOn(routine: Routine, date: Date): boolean {

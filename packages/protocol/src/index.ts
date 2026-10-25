@@ -1,0 +1,184 @@
+export type Frequency =
+  | { kind: "weekdays"; days: number[] }
+  | { kind: "interval"; every: number; startDate: string }
+  | { kind: "as-needed" };
+
+export type RoutineInput = {
+  productName: string;
+  frequency: Frequency;
+  time: string;
+};
+
+export type CreateRoutineRequest = RoutineInput & { operationId: string };
+
+export type ReminderOutcome = "scheduled" | "denied" | "failed" | "none" | "unconfirmed";
+
+export type CreateRoutineResult =
+  | {
+      status: "created" | "already_processed";
+      operationId: string;
+      routineId: string;
+      reminder: ReminderOutcome;
+    }
+  | { status: "conflict"; operationId: string; message: string }
+  | { status: "invalid" | "failed"; operationId?: string; message: string };
+
+export type CreateRoutineCommandMessage = {
+  type: "create_routine";
+  requestId: string;
+  command: CreateRoutineRequest;
+};
+
+export type CreateRoutineResultMessage = {
+  type: "create_routine_result";
+  requestId: string;
+  result: CreateRoutineResult;
+};
+
+const maxIntervalDays = 36_500;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isFrequency(value: unknown): value is Frequency {
+  if (!isRecord(value)) return false;
+
+  switch (value.kind) {
+    case "weekdays":
+      return Array.isArray(value.days) && value.days.every(Number.isInteger);
+    case "interval":
+      return Number.isInteger(value.every) && typeof value.startDate === "string";
+    case "as-needed":
+      return true;
+    default:
+      return false;
+  }
+}
+
+function validDateString(value: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(0);
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCFullYear(year, month - 1, day);
+
+  return (
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+  );
+}
+
+export function validateRoutineInput(input: RoutineInput): string | null {
+  if (!input.productName.trim()) return "Le nom du produit est obligatoire.";
+
+  const frequency = input.frequency;
+
+  if (frequency.kind !== "as-needed" && !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.time))
+    return "Choisissez une heure valide au format HH:mm.";
+
+  if (frequency.kind === "weekdays") {
+    if (
+      frequency.days.length === 0 ||
+      frequency.days.some((day) => !Number.isInteger(day) || day < 0 || day > 6) ||
+      new Set(frequency.days).size !== frequency.days.length
+    ) {
+      return "Choisissez au moins un jour de la semaine, sans doublon.";
+    }
+  } else if (frequency.kind === "interval") {
+    if (
+      !Number.isInteger(frequency.every) ||
+      frequency.every < 1 ||
+      frequency.every > maxIntervalDays
+    ) {
+      return `L’intervalle doit être compris entre 1 et ${maxIntervalDays} jours.`;
+    }
+
+    if (!validDateString(frequency.startDate)) return "Choisissez une date de début valide.";
+  } else if (frequency.kind !== "as-needed") {
+    return "Choisissez une fréquence valide.";
+  }
+
+  return null;
+}
+
+export function isCreateRoutineRequest(value: unknown): value is CreateRoutineRequest {
+  if (
+    !isRecord(value) ||
+    typeof value.operationId !== "string" ||
+    !value.operationId.trim() ||
+    typeof value.productName !== "string" ||
+    typeof value.time !== "string" ||
+    !isFrequency(value.frequency)
+  ) {
+    return false;
+  }
+
+  return (
+    validateRoutineInput({
+      productName: value.productName,
+      frequency: value.frequency,
+      time: value.time,
+    }) === null
+  );
+}
+
+export function isCreateRoutineCommandMessage(
+  value: unknown,
+): value is CreateRoutineCommandMessage {
+  return (
+    isRecord(value) &&
+    value.type === "create_routine" &&
+    typeof value.requestId === "string" &&
+    !!value.requestId &&
+    isCreateRoutineRequest(value.command)
+  );
+}
+
+function isReminderOutcome(value: unknown): value is ReminderOutcome {
+  return (
+    value === "scheduled" ||
+    value === "denied" ||
+    value === "failed" ||
+    value === "none" ||
+    value === "unconfirmed"
+  );
+}
+
+function isCreateRoutineResult(value: unknown): value is CreateRoutineResult {
+  if (!isRecord(value)) return false;
+
+  if (value.status === "created" || value.status === "already_processed") {
+    return (
+      typeof value.operationId === "string" &&
+      typeof value.routineId === "string" &&
+      isReminderOutcome(value.reminder)
+    );
+  }
+
+  if (value.status === "conflict") {
+    return typeof value.operationId === "string" && typeof value.message === "string";
+  }
+
+  if (value.status === "invalid" || value.status === "failed") {
+    return (
+      (value.operationId === undefined || typeof value.operationId === "string") &&
+      typeof value.message === "string"
+    );
+  }
+
+  return false;
+}
+
+export function isCreateRoutineResultMessage(value: unknown): value is CreateRoutineResultMessage {
+  return (
+    isRecord(value) &&
+    value.type === "create_routine_result" &&
+    typeof value.requestId === "string" &&
+    !!value.requestId &&
+    isCreateRoutineResult(value.result)
+  );
+}

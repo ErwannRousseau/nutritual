@@ -1,4 +1,5 @@
 import * as SQLite from "expo-sqlite";
+import type { CreateRoutineRequest, ReminderOutcome } from "@nutritual/protocol";
 import type { Intake, Routine } from "@/routines/model";
 import { validateRoutine } from "@/routines/model";
 
@@ -19,6 +20,17 @@ type IntakeRow = {
   product_name: string;
   recorded_at: string;
 };
+
+type RoutineOperationRow = {
+  request_json: string;
+  routine_id: string;
+  reminder_outcome: string | null;
+};
+
+export type RoutineOperationResult =
+  | { status: "created"; routine: Routine }
+  | { status: "already_processed"; routineId: string; reminder: ReminderOutcome }
+  | { status: "conflict" };
 
 let databasePromise: Promise<SQLite.SQLiteDatabase> | undefined;
 
@@ -48,6 +60,12 @@ function getDatabase(): Promise<SQLite.SQLiteDatabase> {
         product_name TEXT NOT NULL,
         recorded_at TEXT NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS routine_operations (
+        operation_id TEXT PRIMARY KEY NOT NULL,
+        request_json TEXT NOT NULL,
+        routine_id TEXT NOT NULL,
+        reminder_outcome TEXT CHECK (reminder_outcome IN ('scheduled', 'denied', 'failed', 'none', 'unconfirmed'))
+      );
     `);
 
       return database;
@@ -58,6 +76,35 @@ function getDatabase(): Promise<SQLite.SQLiteDatabase> {
     });
 
   return databasePromise;
+}
+
+export function createRoutineRequestJson(request: CreateRoutineRequest): string {
+  const { frequency } = request;
+
+  const canonicalFrequency =
+    frequency.kind === "weekdays"
+      ? { kind: frequency.kind, days: frequency.days }
+      : frequency.kind === "interval"
+        ? { kind: frequency.kind, every: frequency.every, startDate: frequency.startDate }
+        : { kind: frequency.kind };
+
+  return JSON.stringify({
+    productName: request.productName,
+    frequency: canonicalFrequency,
+    time: request.time,
+  });
+}
+
+function isReminderOutcome(value: string): value is ReminderOutcome {
+  return ["scheduled", "denied", "failed", "none", "unconfirmed"].includes(value);
+}
+
+function reminderOutcome(value: string | null): ReminderOutcome {
+  if (value === null) return "unconfirmed";
+
+  if (!isReminderOutcome(value)) throw new Error("Unreadable routine operation.");
+
+  return value;
 }
 
 function routineFromRow(row: RoutineRow): Routine {
@@ -181,6 +228,59 @@ export async function saveRoutine(routine: Routine): Promise<void> {
   await database.runAsync(
     "INSERT INTO routines (id, product_name, frequency_kind, weekday_mask, interval_days, start_date, time, paused) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET product_name = excluded.product_name, frequency_kind = excluded.frequency_kind, weekday_mask = excluded.weekday_mask, interval_days = excluded.interval_days, start_date = excluded.start_date, time = excluded.time, paused = excluded.paused",
     routineValues(routine),
+  );
+}
+
+export async function createRoutineOperation(
+  request: CreateRoutineRequest,
+  routine: Routine,
+): Promise<RoutineOperationResult> {
+  const database = await getDatabase();
+  const requestJson = createRoutineRequestJson(request);
+  let result: RoutineOperationResult = { status: "conflict" };
+
+  await database.withExclusiveTransactionAsync(async (transaction) => {
+    const existing = await transaction.getFirstAsync<RoutineOperationRow>(
+      "SELECT request_json, routine_id, reminder_outcome FROM routine_operations WHERE operation_id = ?",
+      request.operationId,
+    );
+
+    if (existing) {
+      result =
+        existing.request_json === requestJson
+          ? {
+              status: "already_processed",
+              routineId: existing.routine_id,
+              reminder: reminderOutcome(existing.reminder_outcome),
+            }
+          : { status: "conflict" };
+
+      return;
+    }
+
+    await transaction.runAsync(
+      "INSERT INTO routines (id, product_name, frequency_kind, weekday_mask, interval_days, start_date, time, paused) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      routineValues(routine),
+    );
+    await transaction.runAsync(
+      "INSERT INTO routine_operations (operation_id, request_json, routine_id, reminder_outcome) VALUES (?, ?, ?, NULL)",
+      [request.operationId, requestJson, routine.id],
+    );
+
+    result = { status: "created", routine };
+  });
+
+  return result;
+}
+
+export async function updateRoutineOperationReminder(
+  operationId: string,
+  reminder: ReminderOutcome,
+): Promise<void> {
+  const database = await getDatabase();
+  await database.runAsync(
+    "UPDATE routine_operations SET reminder_outcome = ? WHERE operation_id = ?",
+    [reminder, operationId],
   );
 }
 
