@@ -1,5 +1,6 @@
 import { upgradeWebSocket, websocket } from "@hono/bun";
 import {
+  createRoutineStatus,
   isCreateRoutineRequest,
   isCreateRoutineResultMessage,
   type CreateRoutineRequest,
@@ -106,14 +107,14 @@ function deliverToPhone(phone: ConnectedPhone, command: CreateRoutineRequest): P
 
 function httpStatus(result: CreateRoutineResult): 200 | 400 | 409 | 502 {
   switch (result.status) {
-    case "created":
-    case "already_processed":
+    case createRoutineStatus.created:
+    case createRoutineStatus.alreadyProcessed:
       return 200;
-    case "conflict":
+    case createRoutineStatus.conflict:
       return 409;
-    case "invalid":
+    case createRoutineStatus.invalid:
       return 400;
-    case "failed":
+    case createRoutineStatus.failed:
       return 502;
   }
 }

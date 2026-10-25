@@ -1,4 +1,9 @@
-import { validateRoutineInput, type Frequency, type RoutineInput } from "@nutritual/protocol";
+import {
+  isValidDateString,
+  validateRoutineInput,
+  type Frequency,
+  type RoutineInput,
+} from "@nutritual/protocol";
 
 export type { Frequency } from "@nutritual/protocol";
 
@@ -28,22 +33,6 @@ export type RoutineDraft = RoutineInput;
 const weekdayNames = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
 const maxIntervalDays = 36_500;
 
-function validDateString(value: string): boolean {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-
-  if (!match) return false;
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const date = new Date(0);
-  date.setUTCHours(0, 0, 0, 0);
-  date.setUTCFullYear(year, month - 1, day);
-
-  return (
-    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
-  );
-}
-
 function dayOrdinal(year: number, month: number, day: number): number {
   const date = new Date(0);
   date.setUTCHours(0, 0, 0, 0);
@@ -61,7 +50,7 @@ function localCalendarDate(year: number, month: number, day: number, hours = 0, 
 }
 
 function dateParts(value: string): [number, number, number] | null {
-  if (!validDateString(value)) return null;
+  if (!isValidDateString(value)) return null;
   const [year, month, day] = value.split("-").map(Number);
 
   return [year, month - 1, day];

@@ -2,6 +2,7 @@ import { randomUUID } from "expo-crypto";
 import { useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import {
+  createRoutineStatus,
   validateRoutineInput,
   type CreateRoutineRequest,
   type CreateRoutineResult,
@@ -125,7 +126,11 @@ export function useRoutines() {
     const validation = validateRoutineInput(request);
 
     if (validation) {
-      return { status: "invalid", operationId: request.operationId, message: validation };
+      return {
+        status: createRoutineStatus.invalid,
+        operationId: request.operationId,
+        message: validation,
+      };
     }
 
     const routine: Routine = {
@@ -139,17 +144,17 @@ export function useRoutines() {
     try {
       const operation = await storage.createRoutineOperation(request, routine);
 
-      if (operation.status === "conflict") {
+      if (operation.status === createRoutineStatus.conflict) {
         return {
-          status: "conflict",
+          status: createRoutineStatus.conflict,
           operationId: request.operationId,
           message: "Cet identifiant a déjà été utilisé avec une autre routine.",
         };
       }
 
-      if (operation.status === "already_processed") {
+      if (operation.status === createRoutineStatus.alreadyProcessed) {
         return {
-          status: "already_processed",
+          status: createRoutineStatus.alreadyProcessed,
           operationId: request.operationId,
           routineId: operation.routineId,
           reminder: operation.reminder,
@@ -179,14 +184,14 @@ export function useRoutines() {
       }
 
       return {
-        status: "created",
+        status: createRoutineStatus.created,
         operationId: request.operationId,
         routineId: operation.routine.id,
         reminder,
       };
     } catch {
       return {
-        status: "failed",
+        status: createRoutineStatus.failed,
         operationId: request.operationId,
         message: "Impossible d’enregistrer la routine sur ce téléphone.",
       };
@@ -200,14 +205,16 @@ export function useRoutines() {
     if (existing) {
       if (existing.requestJson !== requestJson) {
         return Promise.resolve({
-          status: "conflict",
+          status: createRoutineStatus.conflict,
           operationId: request.operationId,
           message: "Cet identifiant a déjà été utilisé avec une autre routine.",
         });
       }
 
       return existing.promise.then((result) =>
-        result.status === "created" ? { ...result, status: "already_processed" } : result,
+        result.status === createRoutineStatus.created
+          ? { ...result, status: createRoutineStatus.alreadyProcessed }
+          : result,
       );
     }
 

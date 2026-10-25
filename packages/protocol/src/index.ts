@@ -11,17 +11,29 @@ export type RoutineInput = {
 
 export type CreateRoutineRequest = RoutineInput & { operationId: string };
 
+export const createRoutineStatus = {
+  created: "created",
+  alreadyProcessed: "already_processed",
+  conflict: "conflict",
+  invalid: "invalid",
+  failed: "failed",
+} as const;
+
 export type ReminderOutcome = "scheduled" | "denied" | "failed" | "none" | "unconfirmed";
 
 export type CreateRoutineResult =
   | {
-      status: "created" | "already_processed";
+      status: typeof createRoutineStatus.created | typeof createRoutineStatus.alreadyProcessed;
       operationId: string;
       routineId: string;
       reminder: ReminderOutcome;
     }
-  | { status: "conflict"; operationId: string; message: string }
-  | { status: "invalid" | "failed"; operationId?: string; message: string };
+  | { status: typeof createRoutineStatus.conflict; operationId: string; message: string }
+  | {
+      status: typeof createRoutineStatus.invalid | typeof createRoutineStatus.failed;
+      operationId?: string;
+      message: string;
+    };
 
 export type CreateRoutineCommandMessage = {
   type: "create_routine";
@@ -56,7 +68,7 @@ function isFrequency(value: unknown): value is Frequency {
   }
 }
 
-function validDateString(value: string): boolean {
+export function isValidDateString(value: string): boolean {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
 
   if (!match) return false;
@@ -97,7 +109,7 @@ export function validateRoutineInput(input: RoutineInput): string | null {
       return `L’intervalle doit être compris entre 1 et ${maxIntervalDays} jours.`;
     }
 
-    if (!validDateString(frequency.startDate)) return "Choisissez une date de début valide.";
+    if (!isValidDateString(frequency.startDate)) return "Choisissez une date de début valide.";
   } else if (frequency.kind !== "as-needed") {
     return "Choisissez une fréquence valide.";
   }
@@ -138,7 +150,7 @@ export function isCreateRoutineCommandMessage(
   );
 }
 
-function isReminderOutcome(value: unknown): value is ReminderOutcome {
+export function isReminderOutcome(value: unknown): value is ReminderOutcome {
   return (
     value === "scheduled" ||
     value === "denied" ||
@@ -151,7 +163,10 @@ function isReminderOutcome(value: unknown): value is ReminderOutcome {
 function isCreateRoutineResult(value: unknown): value is CreateRoutineResult {
   if (!isRecord(value)) return false;
 
-  if (value.status === "created" || value.status === "already_processed") {
+  if (
+    value.status === createRoutineStatus.created ||
+    value.status === createRoutineStatus.alreadyProcessed
+  ) {
     return (
       typeof value.operationId === "string" &&
       typeof value.routineId === "string" &&
@@ -159,11 +174,11 @@ function isCreateRoutineResult(value: unknown): value is CreateRoutineResult {
     );
   }
 
-  if (value.status === "conflict") {
+  if (value.status === createRoutineStatus.conflict) {
     return typeof value.operationId === "string" && typeof value.message === "string";
   }
 
-  if (value.status === "invalid" || value.status === "failed") {
+  if (value.status === createRoutineStatus.invalid || value.status === createRoutineStatus.failed) {
     return (
       (value.operationId === undefined || typeof value.operationId === "string") &&
       typeof value.message === "string"

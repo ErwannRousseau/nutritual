@@ -1,5 +1,10 @@
 import * as SQLite from "expo-sqlite";
-import type { CreateRoutineRequest, ReminderOutcome } from "@nutritual/protocol";
+import {
+  createRoutineStatus,
+  isReminderOutcome,
+  type CreateRoutineRequest,
+  type ReminderOutcome,
+} from "@nutritual/protocol";
 import type { Intake, Routine } from "@/routines/model";
 import { validateRoutine } from "@/routines/model";
 
@@ -28,9 +33,13 @@ type RoutineOperationRow = {
 };
 
 export type RoutineOperationResult =
-  | { status: "created"; routine: Routine }
-  | { status: "already_processed"; routineId: string; reminder: ReminderOutcome }
-  | { status: "conflict" };
+  | { status: typeof createRoutineStatus.created; routine: Routine }
+  | {
+      status: typeof createRoutineStatus.alreadyProcessed;
+      routineId: string;
+      reminder: ReminderOutcome;
+    }
+  | { status: typeof createRoutineStatus.conflict };
 
 let databasePromise: Promise<SQLite.SQLiteDatabase> | undefined;
 
@@ -93,10 +102,6 @@ export function createRoutineRequestJson(request: CreateRoutineRequest): string 
     frequency: canonicalFrequency,
     time: request.time,
   });
-}
-
-function isReminderOutcome(value: string): value is ReminderOutcome {
-  return ["scheduled", "denied", "failed", "none", "unconfirmed"].includes(value);
 }
 
 function reminderOutcome(value: string | null): ReminderOutcome {
@@ -237,7 +242,7 @@ export async function createRoutineOperation(
 ): Promise<RoutineOperationResult> {
   const database = await getDatabase();
   const requestJson = createRoutineRequestJson(request);
-  let result: RoutineOperationResult = { status: "conflict" };
+  let result: RoutineOperationResult = { status: createRoutineStatus.conflict };
 
   await database.withExclusiveTransactionAsync(async (transaction) => {
     const existing = await transaction.getFirstAsync<RoutineOperationRow>(
@@ -249,11 +254,11 @@ export async function createRoutineOperation(
       result =
         existing.request_json === requestJson
           ? {
-              status: "already_processed",
+              status: createRoutineStatus.alreadyProcessed,
               routineId: existing.routine_id,
               reminder: reminderOutcome(existing.reminder_outcome),
             }
-          : { status: "conflict" };
+          : { status: createRoutineStatus.conflict };
 
       return;
     }
@@ -267,7 +272,7 @@ export async function createRoutineOperation(
       [request.operationId, requestJson, routine.id],
     );
 
-    result = { status: "created", routine };
+    result = { status: createRoutineStatus.created, routine };
   });
 
   return result;
