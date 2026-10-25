@@ -37,9 +37,6 @@ export default function SignInScreen() {
       if (result.error) {
         password.set("");
         setMessage("Adresse e-mail ou mot de passe incorrect.");
-      } else {
-        email.set("");
-        password.set("");
       }
     } catch {
       password.set("");
