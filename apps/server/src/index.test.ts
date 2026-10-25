@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { afterAll, expect, test } from "bun:test";
 
 import { isCreateRoutineCommandMessage } from "@nutritual/protocol";
 import type {
@@ -7,7 +7,22 @@ import type {
   CreateRoutineResult,
   CreateRoutineResultMessage,
 } from "@nutritual/protocol";
-import serverConfig from "./index.ts";
+
+process.env.DATABASE_URL = "postgres://test:test@127.0.0.1:1/test";
+
+process.env.BETTER_AUTH_URL = "http://localhost:3000";
+
+process.env.BETTER_AUTH_SECRET = "test-only-secret-with-at-least-32-characters";
+
+process.env.NODE_ENV = "test";
+
+const { default: serverConfig } = await import("./index.ts");
+
+const { app } = await import("./app.ts");
+
+const { database } = await import("./auth.ts");
+
+afterAll(() => database.end());
 
 type RunningServer = ReturnType<typeof Bun.serve>;
 
@@ -86,6 +101,21 @@ test("GET /health keeps its successful health response", async () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ status: "ok" });
   });
+});
+
+test("POST /api/auth/sign-up/email rejects public account creation", async () => {
+  const response = await app.request("/api/auth/sign-up/email", {
+    method: "POST",
+    headers: { "content-type": "application/json", origin: "nutritual://" },
+    body: JSON.stringify({
+      email: "signup@example.invalid",
+      password: "unused-test-password",
+      name: "Test user",
+    }),
+  });
+
+  expect(response.status).toBe(400);
+  expect(await response.json()).toMatchObject({ code: "EMAIL_PASSWORD_SIGN_UP_DISABLED" });
 });
 
 test("POST /intake-routines rejects invalid routine input before delivery", async () => {

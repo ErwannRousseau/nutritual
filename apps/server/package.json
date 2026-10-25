@@ -1,21 +1,28 @@
 {
   "name": "server",
+  "type": "module",
   "scripts": {
     "db:check": "bun run src/check-database.ts",
     "dev": "bun run --hot src/index.ts",
     "auth:check": "bun run src/check-auth.ts",
+    "auth:migrate": "bunx auth@1.7.13 migrate --config ./src/auth.ts",
+    "auth:provision": "bun run src/provision-auth.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "oxlint"
   },
   "dependencies": {
+    "@better-auth/expo": "^1.7.13",
     "@hono/bun": "^1.0.1",
     "@nutritual/protocol": "workspace:*",
-    "hono": "^4.13.13"
+    "better-auth": "^1.7.13",
+    "hono": "^4.13.13",
+    "pg": "^8.23.1"
   },
   "devDependencies": {
     "@nutritual/oxlint-config": "workspace:*",
     "@types/bun": "latest",
+    "@types/pg": "^8.23.1",
     "oxlint": "catalog:tooling"
   }
 }

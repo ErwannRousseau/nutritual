@@ -17,7 +17,7 @@ Local development uses the Neon `development` branch. It is a child of the
 default `production` branch. A new branch starts from its parent's data, then
 keeps later writes separate. Keep production data out of development.
 
-If you are not signed in, run `npx neon login`. Then link this checkout to the
+If you are not signed in, run `bunx neon login`. Then link this checkout to the
 Neon project and select the development branch:
 
 ```sh
@@ -27,45 +27,53 @@ npx neon deploy
 npx neon status
 ```
 
-The CLI writes Postgres and Neon Auth settings to the ignored `.env.local`. See
-[.env.example](.env.example) for the variable names. `neon.ts` enables Neon
-Managed Better Auth, which stores managed identity data in the `neon_auth`
-schema. `bun run auth:check` checks that the service responds. It does not test
-sign-in or session restoration.
+The CLI writes the Postgres connection strings to the ignored root `.env.local`.
+Add `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`, and `EXPO_PUBLIC_SERVER_URL` to
+that same file. See [.env.example](.env.example) for variable names and use a
+private generated secret. `BETTER_AUTH_URL` is the server's own origin. Set
+`EXPO_PUBLIC_SERVER_URL` to an address the phone can reach, such as the Mac's
+LAN address during device testing. `localhost` only works when the app and API
+run on the same device.
+
+Better Auth stores its tables in the selected Neon Postgres branch. Apply the
+schema with `bun run auth:migrate`, then check connectivity with
+`bun run auth:check`. Both commands load the ignored root `.env.local`.
+
+Public sign-up is disabled on the serving auth instance. To create the single
+account, put `AUTH_PROVISION_EMAIL` and `AUTH_PROVISION_PASSWORD` in the ignored
+root `.env.local` using a local editor, run `bun run auth:provision`, then remove
+both temporary entries.
+The command creates the account directly and does not start an HTTP server.
+
+The Expo client stores the session in SecureStore. Routine routes stay locked
+while the session is restored and after its expiry, including offline. A valid
+cached session keeps local routines available without a server request on each
+launch. Locking the app does not clear local products, routines, intake history,
+durable operation records, or scheduled reminders.
 
 ## Verify
 
-Run the static checks and service checks:
+Run the workspace checks and service checks:
 
 ```sh
 bun run typecheck
 bun run test
+bun run lint
+bun run fmt:check
 bun run db:check
 bun run auth:check
 ```
 
-The Postgres check runs `SELECT 1`. The Auth check requests the branch's session
-endpoint. Both require Internet access and Neon credentials. Local app startup
-and `/health` do not require Neon credentials. Check `/health` with:
+The Postgres check runs `SELECT 1`. The Auth check verifies the configured
+server handler and database. These checks require Internet access and Neon
+credentials. Local app startup and `/health` do not require Neon credentials.
+Check `/health` with:
 
 ```sh
 curl --fail http://localhost:3000/health
 ```
 
 Expected response: `{"status":"ok"}`.
-
-On 2026-10-24, both Neon checks succeeded on `development`. This records
-connectivity only, not an end-user authentication flow.
-
-## Neon Free plan
-
-As checked on 2026-10-24, Neon Free includes 100 projects per account, 1 GB of
-Postgres storage, 100 CU-hours per project each month, autoscaling up to 2 CU,
-and 10 branches per project. Managed Better Auth supports up to 60,000 monthly
-active users on Free.
-[Check Neon's current limits](https://neon.com/blog/neon-free-plan-1-gb-per-project)
-before relying on them. Confirm the project stays on Free in the Neon Console.
-This setup does not authorize a paid upgrade.
 
 ## Run on an iPhone
 

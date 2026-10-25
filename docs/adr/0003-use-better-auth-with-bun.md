@@ -56,3 +56,21 @@ Sources:
 [Better Auth Expo integration](https://better-auth.com/docs/integrations/expo),
 [Better Auth CIMD](https://better-auth.com/docs/plugins/cimd),
 [Bun Fetch](https://bun.sh/docs/runtime/networking/fetch).
+
+## Expo integration evaluation (2026-10-25)
+
+Neon Managed Auth does not document Expo or React Native clients. Its roadmap
+states that separate frontends and backends are not supported because Managed
+Auth relies on HTTP-only cookies. Better Auth's Expo integration requires the
+`@better-auth/expo` server plugin to pair with its native client, and Neon Managed
+Auth does not allow that plugin. This documented limitation prevents the native
+session persistence required by issue #9 from being supported by Managed Auth.
+
+Use the existing self-hosted fallback in the Bun server with Neon Postgres for
+the mobile email/password flow. Do not keep a Neon Managed Auth client alongside
+it. No Neon Auth configuration changes are needed for this path.
+
+Sources:
+[Neon Auth roadmap](https://neon.com/docs/auth/roadmap),
+[Neon Auth plugin support](https://neon.com/docs/auth/guides/plugins),
+[Better Auth Expo integration](https://better-auth.com/docs/integrations/expo).

@@ -11,6 +11,8 @@
     "dev": "bun --env-file=.env.local run --parallel --filter './apps/*' dev",
     "db:check": "bun --env-file=.env.local run --filter server db:check",
     "auth:check": "bun --env-file=.env.local run --filter server auth:check",
+    "auth:migrate": "bun --env-file=.env.local run --filter server auth:migrate",
+    "auth:provision": "bun --env-file=.env.local run --filter server auth:provision",
     "lint": "bun run --parallel --filter '*' lint",
     "typecheck": "bun run --parallel --filter '*' typecheck",
     "fmt": "oxfmt",

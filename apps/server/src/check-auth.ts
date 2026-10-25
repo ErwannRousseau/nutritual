@@ -1,28 +1,33 @@
 export {};
 
-export {};
+const requiredConfiguration = [
+  process.env.DATABASE_URL,
+  process.env.BETTER_AUTH_URL,
+  process.env.BETTER_AUTH_SECRET,
+];
 
-const authBaseUrl = process.env.NEON_AUTH_BASE_URL;
-
-if (!authBaseUrl) {
-  console.error("Neon Auth check failed: NEON_AUTH_BASE_URL is not set.");
+if (requiredConfiguration.some((value) => !value)) {
+  console.error("Better Auth check failed: required configuration is not set.");
   process.exitCode = 1;
 } else {
+  const { auth, database } = await import("./auth.ts");
+
   try {
-    const endpoint = new URL("get-session", `${authBaseUrl.replace(/\/+$/, "")}/`);
+    await database.query("SELECT 1");
 
-    const response = await fetch(endpoint, {
-      redirect: "error",
-      signal: AbortSignal.timeout(10_000),
-    });
+    const response = await auth.handler(
+      new Request(new URL("/api/auth/get-session", process.env.BETTER_AUTH_URL)),
+    );
 
-    if (!response.ok) {
-      throw new Error("Auth service returned an unsuccessful response.");
-    }
+    if (!response.ok) throw new Error();
 
-    console.log("Neon Auth endpoint is reachable.");
+    console.log("Better Auth handler and Postgres are reachable.");
   } catch {
-    console.error("Neon Auth check failed: could not reach the configured service.");
+    console.error("Better Auth check failed: could not reach the configured service or database.");
     process.exitCode = 1;
+  } finally {
+    await database.end().catch(() => {
+      process.exitCode = 1;
+    });
   }
 }

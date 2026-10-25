@@ -20,6 +20,8 @@ It selects each platform's native picker without separate application screens.
 Bridge it and `expo-symbols` through `RNHostView`. The icon-only close control
 uses an accessible React Native `Pressable` through the same bridge because the
 universal button does not expose an accessibility label for custom content.
-Keep layout, text, forms, lists and other actions on the universal root API.
+Dynamic error alerts use an accessible React Native `Text` through the bridge
+because universal `Text` does not expose an alert role or live region. Keep
+layout, text, forms, lists and other actions on the universal root API.
 
 Reference: [Expo UI universal components](https://docs.expo.dev/versions/latest/sdk/ui/universal/).
