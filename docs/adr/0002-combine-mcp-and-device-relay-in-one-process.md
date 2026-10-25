@@ -32,6 +32,8 @@ these retries without recreating a routine or rescheduling reminders.
 The following ChatGPT increment exposes the same creation behavior through one
 MCP tool, `create_intake_routine`. A restart can interrupt an exchange, and
 multiple backend instances would require a different routing strategy.
+The authenticated ChatGPT increment is specified in
+[issue #8](https://github.com/ErwannRousseau/nutritual/issues/8).
 
 Use the authorization journey documented by
 [HealthSync's ChatGPT connection guide](https://gethealthsync.ai/connect/chatgpt/)
