@@ -1,10 +1,17 @@
 import { expect, test } from "bun:test";
-import { hasActiveSession } from "./session";
+import { hasActiveSession } from "./session-model";
 
-test("local routine access ends when the persisted session expires", () => {
+test("the local session remains usable until its refresh token expires", () => {
   const now = Date.parse("2026-10-25T12:00:00.000Z");
 
-  expect(hasActiveSession({ session: { expiresAt: "2026-10-25T12:00:01.000Z" } }, now)).toBe(true);
-  expect(hasActiveSession({ session: { expiresAt: "2026-10-25T12:00:00.000Z" } }, now)).toBe(false);
-  expect(hasActiveSession({ session: { expiresAt: "invalid" } }, now)).toBe(false);
+  const session = (refreshTokenExpiresAt: number) => ({
+    accessToken: "a",
+    refreshToken: "r",
+    accessTokenExpiresAt: now - 1,
+    refreshTokenExpiresAt,
+  });
+
+  expect(hasActiveSession(session(now + 1), now)).toBe(true);
+  expect(hasActiveSession(session(now), now)).toBe(false);
+  expect(hasActiveSession(null, now)).toBe(false);
 });

@@ -1,61 +1,66 @@
-# Nutritual development relay
+# Nutritual server
 
-This Bun server relays routine creation requests from a development client to
-the one connected phone. It keeps no queue or routine data. Run it only on a
-trusted development network. It has no authentication and is not suitable for
-production or an untrusted LAN.
+The Bun/Hono server hosts the Neon OAuth pages, browser-to-phone pairing, the
+authenticated phone API, the MCP endpoint, and the live phone relay. Routine
+data stays on the phone. The server stores only pairing metadata, device
+credentials as hashes, short-lived tickets, and rate-limit counters.
 
-## Run on the development LAN
+## Configuration
 
-1. Start the server from the repository root with `bun run --filter server dev`.
-   It listens on `0.0.0.0:3000` by default. Set `PORT` to change the port.
-2. Find the development computer's LAN IP address and verify that the phone can
-   reach `http://<computer-lan-ip>:3000/health` on the same network.
-3. Put this in `apps/mobile/.env.local`, replacing the example IP:
+Set these variables in the server environment:
 
-   ```dotenv
-   EXPO_PUBLIC_SERVER_URL=http://192.168.1.20:3000
-   ```
-
-4. Restart Expo so it reads the environment variable, then open the app on the
-   phone. Keep the app active while creating a routine. The phone connects to
-   `ws://<computer-lan-ip>:3000/device` and receives requests only while
-   connected.
-
-The server returns `503 unavailable` immediately when no phone is connected.
-It never stores requests for later delivery. An acknowledgment must arrive
-within 10 seconds. A disconnect or missing acknowledgment returns `504
-unconfirmed`; retry with the same `operationId` so the phone can safely
-deduplicate a request that may already have completed.
-
-## HTTP results
-
-- `200 created`: the phone created the routine. `reminder` reports `scheduled`,
-  `denied`, `failed`, `none`, or `unconfirmed` for reminder setup.
-- `200 already_processed`: this `operationId` was already handled. The response
-  includes the original `routineId` and reminder outcome.
-- `400 invalid`: the request is malformed or fails routine validation.
-- `409 conflict`: the phone has already associated this `operationId` with
-  different routine input.
-- `502 failed`: the phone definitively failed to create the routine.
-- `503 unavailable`: no phone was connected when the request arrived. Nothing
-  was delivered.
-- `504 unconfirmed`: delivery or completion could not be confirmed, including
-  a phone disconnect or an acknowledgment timeout. The routine may have been
-  created, so retry with the same `operationId`.
-
-## Retry an operation
-
-Use a stable UUID for one user action and reuse that UUID unchanged for retries.
-Only generate a new UUID for a new routine action.
-
-```sh
-SERVER_URL=http://127.0.0.1:3000
-curl --fail-with-body -i "$SERVER_URL/intake-routines" \
-  -H 'content-type: application/json' \
-  -d '{"operationId":"6aa886cc-0c3d-4e16-b667-183d238a2f01","productName":"Magnesium","frequency":{"kind":"weekdays","days":[1,2,3,4,5]},"time":"08:30"}'
+```dotenv
+DATABASE_URL=
+NEON_AUTH_BASE_URL=
+PUBLIC_BASE_URL=
+MOBILE_OAUTH_CLIENT_ID=
+PORT=3000
 ```
 
-Repeat that exact command after `504 unconfirmed`. The server correlates every
-HTTP request to a fresh WebSocket `requestId`; the phone uses the stable
-`operationId` for idempotency.
+- `DATABASE_URL` is a Neon Postgres connection string. The server creates its
+  pairing tables on first use. Keep this separate from phone routine data.
+- `NEON_AUTH_BASE_URL` is the Managed Better Auth issuer base URL.
+- `PUBLIC_BASE_URL` is the public HTTPS origin serving this app, with no path.
+  The MCP resource is `${PUBLIC_BASE_URL}/mcp` and is also the phone API token
+  audience.
+- `MOBILE_OAUTH_CLIENT_ID` is the configured ID of the first-party public
+  mobile OAuth client. That client receives explicit OAuth consent after sign-in. Other
+  clients use the phone approval page.
+
+Configure Neon Managed Auth with the server's public trusted origin, the custom
+login page `${PUBLIC_BASE_URL}/oauth/login`, and the custom consent page
+`${PUBLIC_BASE_URL}/oauth/consent`. Configure the mobile client's redirect URI
+as `${PUBLIC_BASE_URL}/oauth/mobile/callback`. That route redirects the original
+OAuth callback query unchanged to `com.erwannrousseau.nutritual:/oauth/callback`.
+Register the MCP resource `${PUBLIC_BASE_URL}/mcp` with the OAuth provider.
+
+## Run locally
+
+From the repository root:
+
+```sh
+bun --env-file=.env.local run --filter server dev
+```
+
+The server listens on `0.0.0.0:3000` by default. `/health` returns
+`{"status":"ok"}`. Do not expose it publicly until Neon Auth custom pages,
+trusted origins, the mobile redirect URI, and the MCP resource are configured.
+
+## Pairing and relay behavior
+
+Browser pairing challenges expire after five minutes and store hashes of the
+short code, poll token, and signed OAuth query. The authenticated phone binds
+the challenge to its Neon subject and device only after explicit approval. The
+browser sends the exact OAuth query back to Managed Auth only after phone
+approval or decline. A challenge's terminal result can be consumed once.
+Rate limits and pairing records persist in Postgres. The phone obtains a
+one-time WebSocket ticket that expires after 60 seconds.
+
+The server relays `create_intake_routine` only to the phone paired to the
+authenticated Neon user. There is no command queue. A request without a live
+phone returns `unavailable`; a missing acknowledgment within 10 seconds or a
+disconnect returns `unconfirmed`. Retry with the same `operationId` so the
+phone can deduplicate a request whose outcome was not confirmed.
+
+The only MCP tool is `create_intake_routine`. It creates an as-needed routine
+and accepts `productName` and a caller-supplied stable `operationId`.

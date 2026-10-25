@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "nutritual",
+    "scheme": "com.erwannrousseau.nutritual",
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.erwannrousseau.nutritual",

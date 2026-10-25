@@ -3,20 +3,33 @@ import { useEffect, useMemo, useState } from "react";
 import { AppState, StyleSheet, useColorScheme } from "react-native";
 import { RoutinesProvider } from "@/routines/RoutinesProvider";
 import { usePalette } from "@/components/ui/palette";
-import { authClient } from "@/auth/auth-client";
+import { AuthProvider, useAuth } from "@/auth/AuthProvider";
 import { hasActiveSession, sessionExpiryTime } from "@/auth/session";
+import * as Linking from "expo-linking";
+import * as SecureStore from "expo-secure-store";
+import { router, useRootNavigationState } from "expo-router";
+import { normalizePairCode } from "@/auth/parse";
 
 export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <AuthenticatedLayout />
+    </AuthProvider>
+  );
+}
+
+function AuthenticatedLayout() {
   const colors = usePalette();
   const scheme = useColorScheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { data: session, isPending } = authClient.useSession();
+  const { tokens: session, restoring } = useAuth();
+  const navigationState = useRootNavigationState();
   const [now, setNow] = useState(Date.now);
   const expiresAt = sessionExpiryTime(session);
 
   const status = hasActiveSession(session, now)
     ? "authenticated"
-    : session || !isPending
+    : !restoring
       ? "signed-out"
       : "restoring";
 
@@ -36,6 +49,46 @@ export default function RootLayout() {
       if (expiryTimer !== undefined) clearTimeout(expiryTimer);
     };
   }, [expiresAt]);
+
+  useEffect(() => {
+    const handleUrl = async (url: string) => {
+      let parsedUrl: URL;
+
+      try {
+        parsedUrl = new URL(url);
+      } catch {
+        return;
+      }
+
+      if (parsedUrl.pathname !== "/pair") return;
+      const code = normalizePairCode(parsedUrl.searchParams.get("code"));
+
+      if (!code) return;
+      await SecureStore.setItemAsync("nutritual.pending-pair-code", code);
+
+      if (navigationState?.key)
+        router.replace(
+          status === "authenticated" ? { pathname: "/pair", params: { code } } : "/sign-in",
+        );
+    };
+
+    const sub = Linking.addEventListener("url", ({ url }) => {
+      void handleUrl(url);
+    });
+
+    void Linking.getInitialURL().then((url) => {
+      if (url) void handleUrl(url);
+    });
+
+    return () => sub.remove();
+  }, [navigationState?.key, status]);
+
+  useEffect(() => {
+    if (status !== "authenticated" || !navigationState?.key) return;
+    void SecureStore.getItemAsync("nutritual.pending-pair-code").then((code) => {
+      if (code) router.replace({ pathname: "/pair", params: { code } });
+    });
+  }, [navigationState?.key, status]);
 
   const stack = (
     <Stack
@@ -59,6 +112,8 @@ export default function RootLayout() {
         <Stack.Screen name="routine-detail/[id]" options={{ title: "Complément" }} />
         <Stack.Screen name="as-needed" options={{ title: "À la demande" }} />
         <Stack.Screen name="history" options={{ title: "Historique" }} />
+        <Stack.Screen name="settings" options={{ title: "ChatGPT et jumelage" }} />
+        <Stack.Screen name="pair" options={{ title: "Jumeler ChatGPT" }} />
       </Stack.Protected>
       <Stack.Protected
         guard={status === "restoring"}

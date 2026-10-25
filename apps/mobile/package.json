@@ -14,11 +14,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@better-auth/expo": "^1.7.13",
     "@expo/ui": "~58.0.23",
     "@nutritual/protocol": "workspace:*",
-    "better-auth": "^1.7.13",
     "expo": "~58.0.19",
+    "expo-auth-session": "~58.0.14",
     "expo-constants": "~58.0.13",
     "expo-crypto": "~58.0.7",
     "expo-device": "~58.0.5",

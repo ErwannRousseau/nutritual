@@ -5,26 +5,18 @@ import {
   type CreateRoutineResult,
   type CreateRoutineResultMessage,
 } from "@nutritual/protocol";
+import { getDeviceCredentials } from "@/auth/AuthProvider";
+import { phoneRequest, phoneResponses, deviceWebSocketUrl } from "@/auth/phone-api";
 
 export function connectToDeviceRelay(
   serverUrl: string,
   createRoutine: (request: CreateRoutineRequest) => Promise<CreateRoutineResult>,
 ): () => void {
-  let url: URL;
-
   try {
-    url = new URL(serverUrl);
+    new URL(serverUrl);
   } catch {
     return () => {};
   }
-
-  if (url.protocol === "http:") url.protocol = "ws:";
-  else if (url.protocol === "https:") url.protocol = "wss:";
-  else return () => {};
-
-  url.pathname = "/device";
-  url.search = "";
-  url.hash = "";
 
   let disposed = false;
   let retryDelay = 1_000;
@@ -33,7 +25,6 @@ export function connectToDeviceRelay(
 
   function scheduleReconnect() {
     if (disposed || retryTimer !== undefined) return;
-
     retryTimer = setTimeout(() => {
       retryTimer = undefined;
       connect();
@@ -41,65 +32,68 @@ export function connectToDeviceRelay(
     retryDelay = Math.min(retryDelay * 2, 30_000);
   }
 
-  function connect() {
-    let nextSocket: WebSocket;
-
+  async function connect() {
     try {
-      nextSocket = new WebSocket(url.toString());
-    } catch {
-      scheduleReconnect();
+      const device = await getDeviceCredentials();
 
-      return;
-    }
+      const { ticket } = await phoneRequest(
+        "/api/phone/device-ticket",
+        device,
+        phoneResponses.ticket,
+      );
 
-    socket = nextSocket;
-    nextSocket.onopen = () => {
-      retryDelay = 1_000;
-    };
-
-    nextSocket.onclose = scheduleReconnect;
-    nextSocket.onerror = () => nextSocket.close();
-
-    nextSocket.onmessage = (event) => {
-      let message: unknown;
-
-      try {
-        message = JSON.parse(event.data);
-      } catch {
-        return;
-      }
-
-      if (!isCreateRoutineCommandMessage(message)) return;
-
-      const sendResult = (result: CreateRoutineResult) => {
-        if (disposed || nextSocket.readyState !== WebSocket.OPEN) return;
-
-        const response: CreateRoutineResultMessage = {
-          type: "create_routine_result",
-          requestId: message.requestId,
-          result,
-        };
-
-        try {
-          nextSocket.send(JSON.stringify(response));
-        } catch {
-          // The server reports an unconfirmed result when the phone disconnects before this ack.
-        }
+      if (disposed) return;
+      const nextSocket = new WebSocket(deviceWebSocketUrl(serverUrl, ticket));
+      socket = nextSocket;
+      nextSocket.onopen = () => {
+        retryDelay = 1_000;
       };
 
-      void createRoutine(message.command)
-        .then(sendResult)
-        .catch(() => {
-          sendResult({
-            status: CreateRoutineStatus.failed,
-            operationId: message.command.operationId,
-            message: "Impossible d’enregistrer la routine sur ce téléphone.",
-          });
-        });
-    };
+      nextSocket.onclose = scheduleReconnect;
+      nextSocket.onerror = () => nextSocket.close();
+      nextSocket.onmessage = (event) => {
+        let message: unknown;
+
+        try {
+          message = JSON.parse(event.data);
+        } catch {
+          return;
+        }
+
+        if (!isCreateRoutineCommandMessage(message)) return;
+
+        const sendResult = (result: CreateRoutineResult) => {
+          if (disposed || nextSocket.readyState !== WebSocket.OPEN) return;
+
+          const response: CreateRoutineResultMessage = {
+            type: "create_routine_result",
+            requestId: message.requestId,
+            result,
+          };
+
+          try {
+            nextSocket.send(JSON.stringify(response));
+          } catch {
+            /* Unacknowledged operations remain retryable server-side. */
+          }
+        };
+
+        void createRoutine(message.command)
+          .then(sendResult)
+          .catch(() =>
+            sendResult({
+              status: CreateRoutineStatus.failed,
+              operationId: message.command.operationId,
+              message: "Impossible d’enregistrer la routine sur ce téléphone.",
+            }),
+          );
+      };
+    } catch {
+      scheduleReconnect();
+    }
   }
 
-  connect();
+  void connect();
 
   return () => {
     disposed = true;

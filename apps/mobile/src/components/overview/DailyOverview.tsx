@@ -54,6 +54,9 @@ export default function DailyOverview() {
   return (
     <>
       <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button tintColor={colors.blue} onPress={() => router.push("/settings")}>
+          Jumelage
+        </Stack.Toolbar.Button>
         <Stack.Toolbar.Button tintColor={colors.blue} onPress={() => router.push("/routine/new")}>
           Ajouter
         </Stack.Toolbar.Button>

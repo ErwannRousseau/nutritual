@@ -11,7 +11,6 @@ import {
   ReminderOutcomes,
   type CreateRoutineRequest,
 } from "@nutritual/protocol";
-import { connectToDeviceRelay } from "./relay";
 
 type TestBinding = SQLQueryBindings | SQLQueryBindings[];
 
@@ -212,6 +211,23 @@ test("relay creation deduplicates on SQLite and serializes reminder restoration"
 });
 
 test("device relay reconnects after the server closes its socket", async () => {
+  let ticketRequests = 0;
+  mock.module("expo-secure-store", () => ({
+    getItemAsync: async () => null,
+    setItemAsync: async () => undefined,
+    deleteItemAsync: async () => undefined,
+  }));
+  mock.module("@/auth/AuthProvider", () => ({
+    getDeviceCredentials: async () => ({ deviceId: "phone-test", deviceSecret: "secret-test" }),
+  }));
+  mock.module("@/auth/phone-api", () => ({
+    phoneResponses: { ticket: () => true },
+    phoneRequest: async () => ({ ticket: `ticket-${++ticketRequests}` }),
+    deviceWebSocketUrl: (serverUrl: string, ticket: string) =>
+      `${serverUrl}/device?ticket=${ticket}`,
+  }));
+  const { connectToDeviceRelay } = await import("./relay");
+
   class FakeWebSocket {
     static OPEN = 1;
     static instances: FakeWebSocket[] = [];
@@ -221,8 +237,10 @@ test("device relay reconnects after the server closes its socket", async () => {
     onmessage: ((event: { data: string }) => void) | null = null;
     onclose: (() => void) | null = null;
     onerror: (() => void) | null = null;
+    url: string;
 
-    constructor(_url: string) {
+    constructor(url: string) {
+      this.url = url;
       FakeWebSocket.instances.push(this);
     }
 
@@ -251,6 +269,7 @@ test("device relay reconnects after the server closes its socket", async () => {
       message: "unused",
     }));
 
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
     const [firstSocket] = FakeWebSocket.instances;
 
     if (!firstSocket) throw new Error("Initial socket was not opened.");
@@ -258,8 +277,14 @@ test("device relay reconnects after the server closes its socket", async () => {
     firstSocket.onopen?.();
     firstSocket.drop();
     await new Promise<void>((resolve) => setTimeout(resolve, 1_100));
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
 
     expect(FakeWebSocket.instances).toHaveLength(2);
+    expect(ticketRequests).toBe(2);
+    expect(FakeWebSocket.instances.map((socket) => socket.url)).toEqual([
+      "http://localhost:3000/device?ticket=ticket-1",
+      "http://localhost:3000/device?ticket=ticket-2",
+    ]);
   } finally {
     disconnect?.();
 
