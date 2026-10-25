@@ -1,5 +1,6 @@
 import * as Notifications from "expo-notifications";
 import { randomUUID } from "expo-crypto";
+import { frequencyKind, reminderOutcomes } from "@nutritual/protocol";
 import type { NotificationRequestInput } from "expo-notifications";
 import type { ReminderState, Routine } from "@/routines/model";
 import { nextOccurrence } from "@/routines/model";
@@ -74,8 +75,12 @@ export async function updateReminder(
 
     if (routine.paused) return state(routine.id, "paused", "Routine en pause. Aucun rappel actif.");
 
-    if (routine.frequency.kind === "as-needed")
-      return state(routine.id, "none", "Routine à la demande. Aucun rappel programmé.");
+    if (routine.frequency.kind === frequencyKind.asNeeded)
+      return state(
+        routine.id,
+        reminderOutcomes.none,
+        "Routine à la demande. Aucun rappel programmé.",
+      );
 
     let permissions = await Notifications.getPermissionsAsync();
 
@@ -93,7 +98,7 @@ export async function updateReminder(
     if (!hasPermission(permissions))
       return state(
         routine.id,
-        "denied",
+        reminderOutcomes.denied,
         "Autorisez les notifications dans les réglages pour activer les rappels.",
       );
 
@@ -110,7 +115,7 @@ export async function updateReminder(
     const minute = Number(time[2]);
     let lastIntervalDate: Date | null = null;
 
-    if (routine.frequency.kind === "weekdays") {
+    if (routine.frequency.kind === frequencyKind.weekdays) {
       if (routine.frequency.days.length === 7) {
         requests.push(
           notification(routine, `${batchPrefix}daily`, {
@@ -175,13 +180,13 @@ export async function updateReminder(
       ? `Rappels programmés jusqu’au ${lastIntervalDate.toLocaleDateString("fr-FR")}. Ouvrez Nutritual avant cette date pour les renouveler.`
       : `Rappel programmé à ${routine.time}.`;
 
-    return state(routine.id, "scheduled", message);
+    return state(routine.id, reminderOutcomes.scheduled, message);
   } catch (error) {
     const detail = error instanceof Error ? error.message : "Réessayez plus tard.";
 
     return state(
       routine.id,
-      "failed",
+      reminderOutcomes.failed,
       `Routine enregistrée. L’état du rappel n’est pas confirmé. ${detail}`,
     );
   }

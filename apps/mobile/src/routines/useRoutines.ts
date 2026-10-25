@@ -2,6 +2,7 @@ import { randomUUID } from "expo-crypto";
 import { useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import {
+  reminderOutcomes,
   createRoutineStatus,
   validateRoutineInput,
   type CreateRoutineRequest,
@@ -164,12 +165,12 @@ export function useRoutines() {
       const reminderState = await updateReminder(operation.routine, true);
 
       let reminder: ReminderOutcome =
-        reminderState.status === "paused" ? "failed" : reminderState.status;
+        reminderState.status === "paused" ? reminderOutcomes.failed : reminderState.status;
 
       try {
         await storage.updateRoutineOperationReminder(request.operationId, reminder);
       } catch {
-        reminder = "unconfirmed";
+        reminder = reminderOutcomes.unconfirmed;
       }
 
       setReminders((current) => [

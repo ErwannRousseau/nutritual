@@ -4,6 +4,7 @@ import { router, useLocalSearchParams, usePreventRemove } from "expo-router";
 import { Alert } from "react-native";
 import type { RoutineDraft } from "@/routines/model";
 import { useRoutineStore } from "@/routines/RoutinesProvider";
+import { frequencyKind } from "@nutritual/protocol";
 
 type RoutineDraftValue = {
   draft: RoutineDraft | null;
@@ -49,7 +50,7 @@ export function RoutineDraftProvider({ children }: { children: ReactNode }) {
     if (id === "new") {
       return {
         productName: "",
-        frequency: { kind: "weekdays", days: [0, 1, 2, 3, 4, 5, 6] },
+        frequency: { kind: frequencyKind.weekdays, days: [0, 1, 2, 3, 4, 5, 6] },
         time: "08:00",
       };
     }

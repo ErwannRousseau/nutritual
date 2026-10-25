@@ -1,7 +1,9 @@
 import * as SQLite from "expo-sqlite";
 import {
   createRoutineStatus,
+  frequencyKind,
   isReminderOutcome,
+  reminderOutcomes,
   type CreateRoutineRequest,
   type ReminderOutcome,
 } from "@nutritual/protocol";
@@ -51,16 +53,37 @@ function getDatabase(): Promise<SQLite.SQLiteDatabase> {
       CREATE TABLE IF NOT EXISTS routines (
         id TEXT PRIMARY KEY NOT NULL,
         product_name TEXT NOT NULL,
-        frequency_kind TEXT NOT NULL CHECK (frequency_kind IN ('weekdays', 'interval', 'as-needed')),
+        frequency_kind TEXT NOT NULL CHECK (
+          frequency_kind IN (
+            '${frequencyKind.weekdays}',
+            '${frequencyKind.interval}',
+            '${frequencyKind.asNeeded}'
+          )
+        ),
         weekday_mask INTEGER,
         interval_days INTEGER,
         start_date TEXT,
         time TEXT NOT NULL,
         paused INTEGER NOT NULL CHECK (paused IN (0, 1)),
         CHECK (
-          (frequency_kind = 'weekdays' AND weekday_mask BETWEEN 1 AND 127 AND interval_days IS NULL AND start_date IS NULL) OR
-          (frequency_kind = 'interval' AND weekday_mask IS NULL AND interval_days BETWEEN 1 AND 36500 AND start_date IS NOT NULL) OR
-          (frequency_kind = 'as-needed' AND weekday_mask IS NULL AND interval_days IS NULL AND start_date IS NULL)
+          (
+            frequency_kind = '${frequencyKind.weekdays}' AND
+            weekday_mask BETWEEN 1 AND 127 AND
+            interval_days IS NULL AND
+            start_date IS NULL
+          ) OR
+          (
+            frequency_kind = '${frequencyKind.interval}' AND
+            weekday_mask IS NULL AND
+            interval_days BETWEEN 1 AND 36500 AND
+            start_date IS NOT NULL
+          ) OR
+          (
+            frequency_kind = '${frequencyKind.asNeeded}' AND
+            weekday_mask IS NULL AND
+            interval_days IS NULL AND
+            start_date IS NULL
+          )
         )
       );
       CREATE TABLE IF NOT EXISTS intakes (
@@ -73,7 +96,15 @@ function getDatabase(): Promise<SQLite.SQLiteDatabase> {
         operation_id TEXT PRIMARY KEY NOT NULL,
         request_json TEXT NOT NULL,
         routine_id TEXT NOT NULL,
-        reminder_outcome TEXT CHECK (reminder_outcome IN ('scheduled', 'denied', 'failed', 'none', 'unconfirmed'))
+        reminder_outcome TEXT CHECK (
+          reminder_outcome IN (
+            '${reminderOutcomes.scheduled}',
+            '${reminderOutcomes.denied}',
+            '${reminderOutcomes.failed}',
+            '${reminderOutcomes.none}',
+            '${reminderOutcomes.unconfirmed}'
+          )
+        )
       );
     `);
 
@@ -91,9 +122,9 @@ export function createRoutineRequestJson(request: CreateRoutineRequest): string 
   const { frequency } = request;
 
   const canonicalFrequency =
-    frequency.kind === "weekdays"
+    frequency.kind === frequencyKind.weekdays
       ? { kind: frequency.kind, days: frequency.days }
-      : frequency.kind === "interval"
+      : frequency.kind === frequencyKind.interval
         ? { kind: frequency.kind, every: frequency.every, startDate: frequency.startDate }
         : { kind: frequency.kind };
 
@@ -104,8 +135,8 @@ export function createRoutineRequestJson(request: CreateRoutineRequest): string 
   });
 }
 
-function reminderOutcome(value: string | null): ReminderOutcome {
-  if (value === null) return "unconfirmed";
+function parseReminderOutcome(value: string | null): ReminderOutcome {
+  if (value === null) return reminderOutcomes.unconfirmed;
 
   if (!isReminderOutcome(value)) throw new Error("Unreadable routine operation.");
 
@@ -116,7 +147,7 @@ function routineFromRow(row: RoutineRow): Routine {
   let frequency: Routine["frequency"];
 
   switch (row.frequency_kind) {
-    case "weekdays": {
+    case frequencyKind.weekdays: {
       const mask = row.weekday_mask;
 
       if (mask === null) {
@@ -124,21 +155,25 @@ function routineFromRow(row: RoutineRow): Routine {
       }
 
       frequency = {
-        kind: "weekdays",
+        kind: frequencyKind.weekdays,
         days: [0, 1, 2, 3, 4, 5, 6].filter((day) => (mask & (1 << day)) !== 0),
       };
       break;
     }
 
-    case "interval":
+    case frequencyKind.interval:
       if (row.interval_days === null || row.start_date === null) {
         throw new Error(`Unreadable routine frequency: ${row.id}`);
       }
 
-      frequency = { kind: "interval", every: row.interval_days, startDate: row.start_date };
+      frequency = {
+        kind: frequencyKind.interval,
+        every: row.interval_days,
+        startDate: row.start_date,
+      };
       break;
-    case "as-needed":
-      frequency = { kind: "as-needed" };
+    case frequencyKind.asNeeded:
+      frequency = { kind: frequencyKind.asNeeded };
       break;
     default:
       throw new Error(`Unreadable routine frequency: ${row.id}`);
@@ -170,7 +205,7 @@ function routineValues(
 
   const { frequency } = routine;
 
-  if (frequency.kind === "weekdays") {
+  if (frequency.kind === frequencyKind.weekdays) {
     return [
       routine.id,
       routine.productName,
@@ -183,7 +218,7 @@ function routineValues(
     ];
   }
 
-  if (frequency.kind === "interval") {
+  if (frequency.kind === frequencyKind.interval) {
     return [
       routine.id,
       routine.productName,
@@ -256,7 +291,7 @@ export async function createRoutineOperation(
           ? {
               status: createRoutineStatus.alreadyProcessed,
               routineId: existing.routine_id,
-              reminder: reminderOutcome(existing.reminder_outcome),
+              reminder: parseReminderOutcome(existing.reminder_outcome),
             }
           : { status: createRoutineStatus.conflict };
 

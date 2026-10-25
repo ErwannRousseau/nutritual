@@ -13,6 +13,7 @@ import {
 } from "@/components/ui";
 import { frequencyLabel, reminderLabel, timeLabel } from "@/routines/display";
 import { useRoutineStore } from "@/routines/RoutinesProvider";
+import { frequencyKind } from "@nutritual/protocol";
 
 export default function RoutineDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,7 +25,7 @@ export default function RoutineDetailScreen() {
   const errorMessage = feedback ?? error;
 
   const schedule = routine
-    ? routine.frequency.kind === "as-needed"
+    ? routine.frequency.kind === frequencyKind.asNeeded
       ? frequencyLabel(routine.frequency)
       : `${timeLabel(new Date(`2000-01-01T${routine.time}:00`))} · ${frequencyLabel(routine.frequency)}`
     : "";

@@ -10,6 +10,7 @@ import ProductBadge from "@/components/ui/ProductBadge";
 import Screen from "@/components/ui/Screen";
 import { fillAvailableWidth, fillParent } from "@/components/ui/layout";
 import { usePalette } from "@/components/ui/palette";
+import { frequencyKind } from "@nutritual/protocol";
 import UpcomingCard from "@/components/overview/UpcomingCard";
 import IntakeRow from "@/components/overview/IntakeRow";
 import RoutineRow from "@/components/overview/RoutineRow";
@@ -47,7 +48,7 @@ export default function DailyOverview() {
     .sort((a, b) => a.time.localeCompare(b.time));
 
   const asNeeded = routines.some(
-    (routine) => !routine.paused && routine.frequency.kind === "as-needed",
+    (routine) => !routine.paused && routine.frequency.kind === frequencyKind.asNeeded,
   );
 
   return (

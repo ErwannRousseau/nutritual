@@ -16,6 +16,7 @@ import {
 } from "@/components/ui";
 import { useRoutineStore } from "@/routines/RoutinesProvider";
 import { dateLabel, frequencyLabel, timeLabel } from "@/routines/display";
+import { frequencyKind } from "@nutritual/protocol";
 
 export default function RecordScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -30,7 +31,7 @@ export default function RecordScreen() {
   const errorMessage = feedback ?? error;
 
   const schedule = routine
-    ? routine.frequency.kind === "as-needed"
+    ? routine.frequency.kind === frequencyKind.asNeeded
       ? frequencyLabel(routine.frequency)
       : `${timeLabel(new Date(`2000-01-01T${routine.time}:00`))} · ${frequencyLabel(routine.frequency)}`
     : "";
@@ -85,7 +86,7 @@ export default function RecordScreen() {
             variant="largeTitle"
             textStyle={styles.centeredText}
           >
-            {routine.frequency.kind === "as-needed"
+            {routine.frequency.kind === frequencyKind.asNeeded
               ? "À la demande"
               : `Prise de ${schedule.split(" · ")[0]}`}
           </AppText>

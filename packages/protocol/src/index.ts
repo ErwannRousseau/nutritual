@@ -1,7 +1,13 @@
+export const frequencyKind = {
+  weekdays: "weekdays",
+  interval: "interval",
+  asNeeded: "as-needed",
+} as const;
+
 export type Frequency =
-  | { kind: "weekdays"; days: number[] }
-  | { kind: "interval"; every: number; startDate: string }
-  | { kind: "as-needed" };
+  | { kind: typeof frequencyKind.weekdays; days: number[] }
+  | { kind: typeof frequencyKind.interval; every: number; startDate: string }
+  | { kind: typeof frequencyKind.asNeeded };
 
 export type RoutineInput = {
   productName: string;
@@ -19,7 +25,15 @@ export const createRoutineStatus = {
   failed: "failed",
 } as const;
 
-export type ReminderOutcome = "scheduled" | "denied" | "failed" | "none" | "unconfirmed";
+export const reminderOutcomes = {
+  scheduled: "scheduled",
+  denied: "denied",
+  failed: "failed",
+  none: "none",
+  unconfirmed: "unconfirmed",
+} as const;
+
+export type ReminderOutcome = (typeof reminderOutcomes)[keyof typeof reminderOutcomes];
 
 export type CreateRoutineResult =
   | {
@@ -57,11 +71,11 @@ function isFrequency(value: unknown): value is Frequency {
   if (!isRecord(value)) return false;
 
   switch (value.kind) {
-    case "weekdays":
+    case frequencyKind.weekdays:
       return Array.isArray(value.days) && value.days.every(Number.isInteger);
-    case "interval":
+    case frequencyKind.interval:
       return Number.isInteger(value.every) && typeof value.startDate === "string";
-    case "as-needed":
+    case frequencyKind.asNeeded:
       return true;
     default:
       return false;
@@ -89,10 +103,10 @@ export function validateRoutineInput(input: RoutineInput): string | null {
 
   const frequency = input.frequency;
 
-  if (frequency.kind !== "as-needed" && !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.time))
+  if (frequency.kind !== frequencyKind.asNeeded && !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.time))
     return "Choisissez une heure valide au format HH:mm.";
 
-  if (frequency.kind === "weekdays") {
+  if (frequency.kind === frequencyKind.weekdays) {
     if (
       frequency.days.length === 0 ||
       frequency.days.some((day) => !Number.isInteger(day) || day < 0 || day > 6) ||
@@ -100,7 +114,7 @@ export function validateRoutineInput(input: RoutineInput): string | null {
     ) {
       return "Choisissez au moins un jour de la semaine, sans doublon.";
     }
-  } else if (frequency.kind === "interval") {
+  } else if (frequency.kind === frequencyKind.interval) {
     if (
       !Number.isInteger(frequency.every) ||
       frequency.every < 1 ||
@@ -110,7 +124,7 @@ export function validateRoutineInput(input: RoutineInput): string | null {
     }
 
     if (!isValidDateString(frequency.startDate)) return "Choisissez une date de début valide.";
-  } else if (frequency.kind !== "as-needed") {
+  } else if (frequency.kind !== frequencyKind.asNeeded) {
     return "Choisissez une fréquence valide.";
   }
 
@@ -151,13 +165,7 @@ export function isCreateRoutineCommandMessage(
 }
 
 export function isReminderOutcome(value: unknown): value is ReminderOutcome {
-  return (
-    value === "scheduled" ||
-    value === "denied" ||
-    value === "failed" ||
-    value === "none" ||
-    value === "unconfirmed"
-  );
+  return Object.values(reminderOutcomes).some((outcome) => outcome === value);
 }
 
 function isCreateRoutineResult(value: unknown): value is CreateRoutineResult {

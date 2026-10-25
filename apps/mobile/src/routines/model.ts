@@ -1,7 +1,10 @@
 import {
+  frequencyKind,
+  reminderOutcomes,
   isValidDateString,
   validateRoutineInput,
   type Frequency,
+  type ReminderOutcome,
   type RoutineInput,
 } from "@nutritual/protocol";
 
@@ -24,7 +27,7 @@ export type Intake = {
 
 export type ReminderState = {
   routineId: string;
-  status: "scheduled" | "denied" | "failed" | "paused" | "none";
+  status: Exclude<ReminderOutcome, typeof reminderOutcomes.unconfirmed> | "paused";
   message: string;
 };
 
@@ -72,9 +75,9 @@ export function isDueOn(routine: Routine, date: Date): boolean {
   if (routine.paused || Number.isNaN(date.getTime())) return false;
   const frequency = routine.frequency;
 
-  if (frequency.kind === "as-needed") return false;
+  if (frequency.kind === frequencyKind.asNeeded) return false;
 
-  if (frequency.kind === "weekdays") return frequency.days.includes(date.getDay());
+  if (frequency.kind === frequencyKind.weekdays) return frequency.days.includes(date.getDay());
 
   const start = dateParts(frequency.startDate);
 
@@ -92,7 +95,11 @@ export function isDueOn(routine: Routine, date: Date): boolean {
 }
 
 export function nextOccurrence(routine: Routine, after: Date): Date | null {
-  if (routine.paused || Number.isNaN(after.getTime()) || routine.frequency.kind === "as-needed")
+  if (
+    routine.paused ||
+    Number.isNaN(after.getTime()) ||
+    routine.frequency.kind === frequencyKind.asNeeded
+  )
     return null;
   const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(routine.time);
 
@@ -100,10 +107,10 @@ export function nextOccurrence(routine: Routine, after: Date): Date | null {
   const hours = Number(match[1]);
   const minutes = Number(match[2]);
   const frequency = routine.frequency;
-  const start = frequency.kind === "interval" ? dateParts(frequency.startDate) : null;
+  const start = frequency.kind === frequencyKind.interval ? dateParts(frequency.startDate) : null;
 
   if (
-    frequency.kind === "interval" &&
+    frequency.kind === frequencyKind.interval &&
     (!start ||
       !Number.isInteger(frequency.every) ||
       frequency.every < 1 ||
@@ -113,7 +120,7 @@ export function nextOccurrence(routine: Routine, after: Date): Date | null {
 
   const afterDay = localCalendarDate(after.getFullYear(), after.getMonth(), after.getDate());
 
-  if (frequency.kind === "interval" && start) {
+  if (frequency.kind === frequencyKind.interval && start) {
     const startOrdinal = dayOrdinal(start[0], start[1], start[2]);
 
     const afterOrdinal = dayOrdinal(
@@ -190,9 +197,9 @@ export function nextOccurrence(routine: Routine, after: Date): Date | null {
 }
 
 export function describeFrequency(frequency: Frequency): string {
-  if (frequency.kind === "as-needed") return "À la demande";
+  if (frequency.kind === frequencyKind.asNeeded) return "À la demande";
 
-  if (frequency.kind === "interval")
+  if (frequency.kind === frequencyKind.interval)
     return `Tous les ${frequency.every} jours à partir du ${frequency.startDate}`;
 
   if (frequency.days.length === 7) return "Tous les jours";

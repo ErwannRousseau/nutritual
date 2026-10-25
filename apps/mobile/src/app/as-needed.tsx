@@ -5,13 +5,14 @@ import UpcomingCard from "@/components/overview/UpcomingCard";
 import AppText from "@/components/ui/AppText";
 import Screen from "@/components/ui/Screen";
 import { usePalette } from "@/components/ui/palette";
+import { frequencyKind } from "@nutritual/protocol";
 
 export default function AsNeededScreen() {
   const { routines } = useRoutineStore();
   const colors = usePalette();
 
   const asNeeded = routines.filter(
-    (routine) => !routine.paused && routine.frequency.kind === "as-needed",
+    (routine) => !routine.paused && routine.frequency.kind === frequencyKind.asNeeded,
   );
 
   return (

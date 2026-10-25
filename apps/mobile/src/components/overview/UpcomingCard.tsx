@@ -7,6 +7,7 @@ import AppSymbol from "@/components/ui/AppSymbol";
 import ProductBadge from "@/components/ui/ProductBadge";
 import { fillAvailableWidth, fillParent } from "@/components/ui/layout";
 import { usePalette } from "@/components/ui/palette";
+import { frequencyKind, reminderOutcomes } from "@nutritual/protocol";
 
 export default function UpcomingCard({
   routine,
@@ -20,14 +21,15 @@ export default function UpcomingCard({
   const colors = usePalette();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const warning = reminder?.status === "denied" || reminder?.status === "failed";
+  const warning =
+    reminder?.status === reminderOutcomes.denied || reminder?.status === reminderOutcomes.failed;
 
   return (
     <Button style={styles.button} variant="text" onPress={onPress} testID={`record-${routine.id}`}>
       <Column modifiers={fillAvailableWidth} spacing={10} style={styles.card}>
         <Row modifiers={fillAvailableWidth} alignment="center">
           <AppText textStyle={styles.time}>
-            {routine.frequency.kind === "as-needed" ? "À la demande" : routine.time}
+            {routine.frequency.kind === frequencyKind.asNeeded ? "À la demande" : routine.time}
           </AppText>
           <Spacer />
           <AppSymbol name="plus" size={24} color={colors.blue} />
