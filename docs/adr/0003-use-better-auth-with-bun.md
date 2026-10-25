@@ -23,6 +23,23 @@ both authentication paths in parallel. Provision one account for the first
 milestone, disable public registration, and defer Apple and Google sign-in until
 the end-to-end workflow is proven.
 
+Authentication is required to access Nutritual, including its local routine
+features, to keep a single application access path. This does not move products,
+intake routines, or intake history off the phone.
+Persist the session across app launches and allow local routine features without
+internet access while that session remains valid. Keep email and password for
+the MVP, with Apple and Google sign-in deferred to a later improvement.
+Track that improvement in [issue #7](https://github.com/ErwannRousseau/nutritual/issues/7).
+
+When the session expires, require sign-in again before accessing local routines,
+including while offline. Preserve local data and leave already scheduled
+reminders active while access to the app is locked.
+
+Nutritual provides a "Disconnect ChatGPT" action that revokes ChatGPT's
+authorization and removes the phone pairing while preserving local routines and
+intake history. Connecting ChatGPT again requires a new QR authorization flow.
+Replacing a paired phone and transferring its local data are outside the MVP.
+
 For the self-hosted fallback, keep Bun. Its documented fetch capabilities allow
 connecting to a chosen IP address while preserving the original HTTP host, SNI,
 and TLS certificate verification. Resolve each hostname once, reject the request

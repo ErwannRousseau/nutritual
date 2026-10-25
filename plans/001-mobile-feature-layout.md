@@ -6,12 +6,11 @@
 > it without improvising.
 >
 > **Drift check (run first)**: Run
-> `git diff --stat deebcb1..HEAD -- apps/mobile/src` and
-> `git status --short -- apps/mobile/src`. This plan was written at commit
-> `deebcb1` while the mobile source already had many uncommitted edits. A clean
-> executor worktree from the commit alone will not contain those edits. Do not
-> discard, stash, or commit the user's changes. Stop until the exact working
-> state being refactored is safely available in the executor's worktree.
+> `git diff --stat 1af7558..HEAD -- apps/mobile/src` and
+> `git status --short -- apps/mobile/src`. The mobile source state this plan
+> was written against is now committed as `1af7558` (`feat: add routine
+> history and improve intake tracking`). Start the executor worktree from that
+> commit or a later reviewed state.
 
 ## Status
 
@@ -20,7 +19,7 @@
 - **Risk**: MED
 - **Depends on**: none
 - **Category**: tech-debt
-- **Planned at**: commit `deebcb1`, 2026-10-25
+- **Planned at**: commit `1af7558`, 2026-10-25
 
 ## Why this matters
 
@@ -236,9 +235,8 @@ and confirm changes are limited to `apps/mobile/src` plus the plan status row.
 
 ## STOP conditions
 
-- The current source modifications recorded as dirty at plan time are missing
-  from the executor's worktree. Preserve them first. Never reset, stash, or
-  commit user changes on their behalf.
+- The executor worktree does not include commit `1af7558` or a later reviewed
+  state containing it.
 - A route path, URL, dynamic parameter, or route registration would need to
   change to complete the move.
 - A screen cannot move without changing routine/intake behavior or splitting

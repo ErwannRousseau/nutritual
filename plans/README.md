@@ -7,12 +7,12 @@ mobile layout with Expo Router paths kept stable.
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 001 | Group mobile code by feature and remove the UI barrel | P2 | M | — | TODO |
+| 001 | Group mobile code by feature and remove the UI barrel | P2 | M | — | DONE |
 
 ## Dependency notes
 
-- Plan 001 has no plan dependency. Execution does depend on preserving the
-  mobile source changes that were uncommitted when the plan was written.
+- Plan 001 has no plan dependency. Its baseline mobile source state is now
+  committed as `1af7558` and must be included in the executor worktree.
 
 ## Findings reported but not planned here
 

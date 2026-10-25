@@ -33,12 +33,33 @@ The following ChatGPT increment exposes the same creation behavior through one
 MCP tool, `create_intake_routine`. A restart can interrupt an exchange, and
 multiple backend instances would require a different routing strategy.
 
+Use the authorization journey documented by
+[HealthSync's ChatGPT connection guide](https://gethealthsync.ai/connect/chatgpt/)
+as the pairing reference. After starting OAuth authorization from ChatGPT on the
+desktop, show a web page with a QR code and a short code valid for five minutes.
+The user scans the QR code with the iPhone camera or enters the short code from
+Nutritual's settings. Nutritual displays the permission to create intake routines
+on this phone and asks for explicit approval. Approval completes the connection
+in ChatGPT. This connection authorization remains separate from confirming each
+routine creation. The reference determines the pairing journey, not Nutritual's
+sign-in provider.
+
 Validate the complete workflow locally before evaluating hosting. Run the
 backend on the developer's Mac and the real Expo app on the iPhone, connected
 over the local network. Connect ChatGPT to the local MCP server through a
 development tunnel. ChatGPT remains an online service, and tunnel access must
 be verified for the user's account. Local validation includes authentication,
 pairing, routine creation, and an observed reminder.
+
+Use ngrok's free development HTTPS endpoint for both MCP requests and the
+browser-facing QR authorization pages, forwarding to the same local backend.
+This keeps one tunnel for the complete cross-device workflow. OpenAI's Secure
+MCP Tunnel does not automatically expose browser-facing authorization pages.
+The free ngrok browser interstitial is acceptable for development validation.
+Verify account setup and plan limits, disable command-payload inspection, and
+authenticate the relay and creation endpoints before exposing the backend.
+See [ngrok's free plan limits](https://ngrok.com/docs/pricing-limits/free-plan-limits)
+and [OpenAI's tunnel documentation](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels).
 
 After local validation, try Vercel to use the user's existing plan without an
 additional hosting subscription. Consider Railway if a Vercel limitation blocks
