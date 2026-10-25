@@ -1,7 +1,8 @@
 import { Button, Column, Row, Spacer } from "@expo/ui";
-import { StyleSheet, useWindowDimensions } from "react-native";
-import { AppSymbol, AppText, usePalette } from "../ui";
-import type { AppSymbolName } from "../ui";
+import { useMemo } from "react";
+import { StyleSheet } from "react-native";
+import { AppSymbol, AppText, fillAvailableWidth, fillParent, usePalette } from "@/components/ui";
+import type { AppSymbolName } from "@/components/ui";
 
 type Props = {
   label: string;
@@ -19,19 +20,19 @@ export default function ActionRow({
   disabled = false,
 }: Props) {
   const colors = usePalette();
-  const { width } = useWindowDimensions();
-  const contentWidth = width - 76;
-
-  const styles = StyleSheet.create({
-    row: { backgroundColor: colors.surface, paddingVertical: 14, width: contentWidth },
-    label: { width: contentWidth - 76 },
-  });
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
-    <Button disabled={disabled} onPress={onPress} testID={`routine-action-${icon}`} variant="text">
-      <Row alignment="center" spacing={12} style={styles.row}>
+    <Button
+      disabled={disabled}
+      style={styles.button}
+      onPress={onPress}
+      testID={`routine-action-${icon}`}
+      variant="text"
+    >
+      <Row alignment="center" modifiers={fillAvailableWidth} spacing={12} style={styles.row}>
         <AppSymbol name={icon} color={destructive ? colors.danger : colors.blue} />
-        <Column alignment="start" style={styles.label}>
+        <Column alignment="start">
           <AppText variant="body" color={destructive ? colors.danger : colors.text}>
             {label}
           </AppText>
@@ -41,4 +42,11 @@ export default function ActionRow({
       </Row>
     </Button>
   );
+}
+
+function createStyles(colors: ReturnType<typeof usePalette>) {
+  return StyleSheet.create({
+    button: { width: fillParent },
+    row: { backgroundColor: colors.surface, paddingVertical: 14 },
+  });
 }

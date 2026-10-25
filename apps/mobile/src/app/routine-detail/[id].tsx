@@ -1,22 +1,27 @@
-import { Column } from "@expo/ui";
+import { Column, Row, Spacer } from "@expo/ui";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import { Alert, StyleSheet, useWindowDimensions } from "react-native";
-import ActionRow from "../../components/routine-detail/ActionRow";
-import { AppText, ProductBadge, Screen, usePalette } from "../../components/ui";
-import { frequencyLabel, reminderLabel, timeLabel } from "../../routines/display";
-import { useRoutineStore } from "../../routines/RoutinesProvider";
+import { useMemo, useState } from "react";
+import { Alert, StyleSheet } from "react-native";
+import ActionRow from "@/components/routine-detail/ActionRow";
+import {
+  AppText,
+  centerAvailableWidth,
+  fillParent,
+  ProductBadge,
+  Screen,
+  usePalette,
+} from "@/components/ui";
+import { frequencyLabel, reminderLabel, timeLabel } from "@/routines/display";
+import { useRoutineStore } from "@/routines/RoutinesProvider";
 
 export default function RoutineDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { routines, reminders, busy, error, pause, remove } = useRoutineStore();
   const colors = usePalette();
-  const { width } = useWindowDimensions();
   const [feedback, setFeedback] = useState<string | null>(null);
   const routine = routines.find((item) => item.id === id);
   const reminder = reminders.find((item) => item.routineId === id);
-  const contentWidth = width - 40;
-  const cardWidth = contentWidth - 36;
+  const errorMessage = feedback ?? error;
 
   const schedule = routine
     ? routine.frequency.kind === "as-needed"
@@ -24,25 +29,14 @@ export default function RoutineDetailScreen() {
       : `${timeLabel(new Date(`2000-01-01T${routine.time}:00`))} · ${frequencyLabel(routine.frequency)}`
     : "";
 
-  const styles = StyleSheet.create({
-    content: { width: contentWidth },
-    title: { width: contentWidth },
-    card: { backgroundColor: colors.surface, borderRadius: 20, padding: 18, width: contentWidth },
-    separator: {
-      width: cardWidth,
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: colors.separator,
-    },
-    centeredText: { textAlign: "center" },
-  });
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   async function togglePause() {
     if (!routine || busy) return;
     setFeedback(null);
 
     try {
-      if (!(await pause(routine.id)))
-        setFeedback(error ?? "Impossible de modifier la routine. Réessayez.");
+      if (!(await pause(routine.id))) setFeedback("Impossible de modifier la routine. Réessayez.");
     } catch {
       setFeedback("Impossible de modifier la routine. Réessayez.");
     }
@@ -54,7 +48,7 @@ export default function RoutineDetailScreen() {
 
     try {
       if (await remove(routine.id)) router.back();
-      else setFeedback(error ?? "Impossible de supprimer la routine. Réessayez.");
+      else setFeedback("Impossible de supprimer la routine. Réessayez.");
     } catch {
       setFeedback("Impossible de supprimer la routine. Réessayez.");
     }
@@ -83,73 +77,110 @@ export default function RoutineDetailScreen() {
         </Screen>
       ) : (
         <Screen grouped>
-          <Column alignment="center" spacing={12} style={styles.content}>
-            <ProductBadge size={96} />
-            <AppText variant="largeTitle" style={styles.title} textStyle={styles.centeredText}>
-              {routine.productName}
-            </AppText>
-            <AppText
-              color={colors.secondary}
-              style={styles.content}
-              textStyle={styles.centeredText}
-            >
-              {routine.paused ? "En pause" : schedule}
-            </AppText>
-          </Column>
-          <Column spacing={12} style={styles.card}>
-            <Column spacing={4}>
-              <AppText variant="footnote" color={colors.secondary}>
-                Rythme
+          <Row alignment="center">
+            <Column alignment="center" spacing={12} style={styles.content}>
+              <ProductBadge size={96} />
+              <AppText
+                modifiers={centerAvailableWidth}
+                variant="largeTitle"
+                textStyle={styles.centeredText}
+              >
+                {routine.productName}
               </AppText>
-              <AppText variant="subhead">{schedule}</AppText>
-            </Column>
-            <Column spacing={4}>
-              <AppText variant="footnote" color={colors.secondary}>
-                Rappel
+              <AppText
+                color={colors.secondary}
+                modifiers={centerAvailableWidth}
+                textStyle={styles.centeredText}
+              >
+                {routine.paused ? "En pause" : schedule}
               </AppText>
-              <AppText variant="subhead">{reminderLabel(reminder)}</AppText>
             </Column>
-          </Column>
-          {feedback || error ? (
+            <Spacer />
+          </Row>
+          <Row alignment="center">
+            <Column spacing={12} style={styles.card}>
+              <Row alignment="center">
+                <Column spacing={4}>
+                  <AppText variant="footnote" color={colors.secondary}>
+                    Rythme
+                  </AppText>
+                  <AppText variant="subhead">{schedule}</AppText>
+                </Column>
+                <Spacer />
+              </Row>
+              <Row alignment="center">
+                <Column spacing={4}>
+                  <AppText variant="footnote" color={colors.secondary}>
+                    Rappel
+                  </AppText>
+                  <AppText variant="subhead">{reminderLabel(reminder)}</AppText>
+                </Column>
+                <Spacer />
+              </Row>
+            </Column>
+            <Spacer />
+          </Row>
+          {errorMessage ? (
             <AppText variant="subhead" color={colors.danger}>
-              {feedback ?? error ?? ""}
+              {errorMessage}
             </AppText>
           ) : null}
           <AppText variant="footnote" color={colors.secondary}>
             GESTION
           </AppText>
-          <Column spacing={0} style={styles.card}>
-            <ActionRow
-              label="Modifier"
-              icon="ellipsis"
-              disabled={busy}
-              onPress={() => router.push(`/routine/${routine.id}`)}
-            />
-            <Column style={styles.separator} />
-            <ActionRow
-              label="Enregistrer une prise"
-              icon="checkmark"
-              disabled={busy}
-              onPress={() => router.push(`/record/${routine.id}`)}
-            />
-            <Column style={styles.separator} />
-            <ActionRow
-              label={routine.paused ? "Reprendre la routine" : "Mettre en pause"}
-              icon="pause"
-              disabled={busy}
-              onPress={() => void togglePause()}
-            />
-            <Column style={styles.separator} />
-            <ActionRow
-              label="Supprimer la routine"
-              icon="xmark"
-              destructive
-              disabled={busy}
-              onPress={confirmDelete}
-            />
-          </Column>
+          <Row alignment="center">
+            <Column spacing={0} style={styles.card}>
+              <ActionRow
+                label="Modifier"
+                icon="ellipsis"
+                disabled={busy}
+                onPress={() => router.push(`/routine/${routine.id}`)}
+              />
+              <Column style={styles.separator} />
+              <ActionRow
+                label="Enregistrer une prise"
+                icon="checkmark"
+                disabled={busy}
+                onPress={() => router.push(`/record/${routine.id}`)}
+              />
+              <Column style={styles.separator} />
+              <ActionRow
+                label={routine.paused ? "Reprendre la routine" : "Mettre en pause"}
+                icon="pause"
+                disabled={busy}
+                onPress={() => void togglePause()}
+              />
+              <Column style={styles.separator} />
+              <ActionRow
+                label="Supprimer la routine"
+                icon="xmark"
+                destructive
+                disabled={busy}
+                onPress={confirmDelete}
+              />
+            </Column>
+            <Spacer />
+          </Row>
         </Screen>
       )}
     </>
   );
+}
+
+function createStyles(colors: ReturnType<typeof usePalette>) {
+  return StyleSheet.create({
+    content: { width: fillParent },
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 20,
+      padding: 18,
+      width: fillParent,
+    },
+    separator: {
+      width: fillParent,
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.separator,
+    },
+    centeredText: { textAlign: "center" },
+  });
 }

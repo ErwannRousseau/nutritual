@@ -1,14 +1,21 @@
-import { useState } from "react";
-import { Column, Row, TextInput } from "@expo/ui";
+import { useMemo, useState } from "react";
+import { Column, Row, Spacer, TextInput } from "@expo/ui";
 import { router, useLocalSearchParams } from "expo-router";
 import { StyleSheet, useWindowDimensions } from "react-native";
-import { ActionButton, AppText, Screen, usePalette } from "../../../components/ui";
-import DateField from "../../../components/ui/DateField";
-import ChoiceRow from "../../../components/routine-form/ChoiceRow";
-import { useRoutineDraft } from "../../../components/routine-form/RoutineDraftProvider";
-import { localDate, validateRoutine } from "../../../routines/model";
-import type { Frequency } from "../../../routines/model";
-import { useRoutineStore } from "../../../routines/RoutinesProvider";
+import {
+  ActionButton,
+  AppText,
+  DateField,
+  fillAvailableWidth,
+  fillParent,
+  Screen,
+  usePalette,
+} from "@/components/ui";
+import ChoiceRow from "@/components/routine-form/ChoiceRow";
+import { useRoutineDraft } from "@/components/routine-form/RoutineDraftProvider";
+import { localDate, validateRoutine } from "@/routines/model";
+import type { Frequency } from "@/routines/model";
+import { useRoutineStore } from "@/routines/RoutinesProvider";
 
 const week = [
   ["Lundi", 1],
@@ -27,34 +34,12 @@ export default function RoutineScheduleScreen() {
   const { draft, setDraft, ready, missing } = useRoutineDraft();
   const { error, reload } = useRoutineStore();
   const colors = usePalette();
-  const { width, fontScale } = useWindowDimensions();
+  const { fontScale } = useWindowDimensions();
   const [today] = useState(() => new Date());
   const [validationError, setValidationError] = useState<string | null>(null);
   const [interval, setInterval] = useState({ every: 2, startDate: localDate(today) });
 
-  const styles = StyleSheet.create({
-    group: {
-      width: width - 40,
-      paddingHorizontal: 16,
-      paddingVertical: 4,
-      borderRadius: 26,
-      backgroundColor: colors.grouped,
-    },
-    separator: {
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: colors.separator,
-      width: width - 72,
-    },
-    numberRow: {
-      width: width - 40,
-      padding: 16,
-      backgroundColor: colors.grouped,
-      borderRadius: 24,
-    },
-    numberLabel: { width: width - 174 },
-    input: { width: 86, padding: 8, backgroundColor: colors.surface, borderRadius: 12 },
-    numberText: { color: colors.blue, fontSize: 20 * fontScale, textAlign: "center" },
-  });
+  const styles = useMemo(() => createStyles(colors, fontScale), [colors, fontScale]);
 
   if (!ready || !draft)
     return (
@@ -108,7 +93,7 @@ export default function RoutineScheduleScreen() {
       }
     >
       <AppText variant="largeTitle">À quel rythme ?</AppText>
-      <Column spacing={12}>
+      <Column modifiers={fillAvailableWidth} spacing={12}>
         <AppText variant="headline">Fréquence</AppText>
         <Column spacing={0} style={styles.group}>
           <ChoiceRow
@@ -144,7 +129,7 @@ export default function RoutineScheduleScreen() {
       </Column>
 
       {frequency.kind === "weekdays" && !daily && (
-        <Column spacing={12}>
+        <Column modifiers={fillAvailableWidth} spacing={12}>
           <AppText variant="headline">Jours de prise</AppText>
           <Column spacing={0} style={styles.group}>
             {week.map(([name, day], index) => (
@@ -169,12 +154,13 @@ export default function RoutineScheduleScreen() {
       )}
 
       {frequency.kind === "interval" && (
-        <Column spacing={12}>
+        <Column modifiers={fillAvailableWidth} spacing={12}>
           <AppText variant="headline">Intervalle</AppText>
           <Row spacing={12} alignment="center" style={styles.numberRow}>
-            <Column alignment="start" style={styles.numberLabel}>
+            <Column alignment="start">
               <AppText>Nombre de jours</AppText>
             </Column>
+            <Spacer />
             <TextInput
               defaultValue={String(every)}
               onChangeText={(value) => choose({ ...frequency, every: Number(value) })}
@@ -197,7 +183,7 @@ export default function RoutineScheduleScreen() {
       )}
 
       {frequency.kind !== "as-needed" && (
-        <Column spacing={12}>
+        <Column modifiers={fillAvailableWidth} spacing={12}>
           <AppText variant="headline">Heure de prise</AppText>
           <DateField
             label="Prendre à"
@@ -228,4 +214,29 @@ function dateWithTime(dateValue: string, timeValue: string): Date {
   date.setHours(hours, minutes, 0, 0);
 
   return date;
+}
+
+function createStyles(colors: ReturnType<typeof usePalette>, fontScale: number) {
+  return StyleSheet.create({
+    group: {
+      width: fillParent,
+      paddingHorizontal: 16,
+      paddingVertical: 4,
+      borderRadius: 26,
+      backgroundColor: colors.grouped,
+    },
+    separator: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.separator,
+      width: fillParent,
+    },
+    numberRow: {
+      width: fillParent,
+      padding: 16,
+      backgroundColor: colors.grouped,
+      borderRadius: 24,
+    },
+    input: { width: 86, padding: 8, backgroundColor: colors.surface, borderRadius: 12 },
+    numberText: { color: colors.blue, fontSize: 20 * fontScale, textAlign: "center" },
+  });
 }

@@ -1,17 +1,13 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
+import { useMemo } from "react";
 import { StyleSheet, useColorScheme } from "react-native";
-import { RoutinesProvider } from "../routines/RoutinesProvider";
-import { usePalette } from "../components/ui/palette";
+import { RoutinesProvider } from "@/routines/RoutinesProvider";
+import { usePalette } from "@/components/ui/palette";
 
 export default function RootLayout() {
   const colors = usePalette();
   const scheme = useColorScheme();
-
-  const styles = StyleSheet.create({
-    header: { backgroundColor: colors.background },
-    content: { backgroundColor: colors.background },
-    title: { color: colors.text },
-  });
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
     <ThemeProvider value={scheme === "dark" ? DarkTheme : DefaultTheme}>
@@ -46,4 +42,12 @@ export default function RootLayout() {
       </RoutinesProvider>
     </ThemeProvider>
   );
+}
+
+function createStyles(colors: ReturnType<typeof usePalette>) {
+  return StyleSheet.create({
+    header: { backgroundColor: colors.background },
+    content: { backgroundColor: colors.background },
+    title: { color: colors.text },
+  });
 }

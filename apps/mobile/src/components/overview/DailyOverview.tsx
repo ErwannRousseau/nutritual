@@ -1,38 +1,24 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, Column, Row, Spacer } from "@expo/ui";
 import { router, Stack } from "expo-router";
-import { AppState, StyleSheet, useWindowDimensions } from "react-native";
-import { useRoutineStore } from "../../routines/RoutinesProvider";
-import { isDueOn, localDate } from "../../routines/model";
-import AppText from "../ui/AppText";
-import AppSymbol from "../ui/AppSymbol";
-import ProductBadge from "../ui/ProductBadge";
-import Screen from "../ui/Screen";
-import { usePalette } from "../ui/palette";
-import UpcomingCard from "./UpcomingCard";
-import IntakeRow from "./IntakeRow";
-import RoutineRow from "./RoutineRow";
+import { AppState, StyleSheet } from "react-native";
+import { useRoutineStore } from "@/routines/RoutinesProvider";
+import { isDueOn, localDate } from "@/routines/model";
+import AppText from "@/components/ui/AppText";
+import AppSymbol from "@/components/ui/AppSymbol";
+import ProductBadge from "@/components/ui/ProductBadge";
+import Screen from "@/components/ui/Screen";
+import { fillAvailableWidth, fillParent } from "@/components/ui/layout";
+import { usePalette } from "@/components/ui/palette";
+import UpcomingCard from "@/components/overview/UpcomingCard";
+import IntakeRow from "@/components/overview/IntakeRow";
+import RoutineRow from "@/components/overview/RoutineRow";
 
 export default function DailyOverview() {
   const { routines, intakes, reminders, busy, error, reload } = useRoutineStore();
   const [now, setNow] = useState(() => new Date());
-  const { width } = useWindowDimensions();
   const colors = usePalette();
-
-  const styles = StyleSheet.create({
-    date: { paddingTop: 16, paddingBottom: 12, width: width - 40 },
-    centered: { textAlign: "center" },
-    group: { backgroundColor: colors.grouped, borderRadius: 28, padding: 16, width: width - 40 },
-    groupRow: { width: width - 72, backgroundColor: colors.grouped },
-    needed: { backgroundColor: colors.upcoming, padding: 16, borderRadius: 28, width: width - 40 },
-    neededLabel: { width: width - 122 },
-    separator: {
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: colors.separator,
-      width: width - 72,
-    },
-    error: { backgroundColor: colors.grouped, borderRadius: 20, padding: 16, width: width - 40 },
-  });
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   useEffect(() => {
     const refresh = () => setNow(new Date());
@@ -97,7 +83,7 @@ export default function DailyOverview() {
           <AppText color={colors.secondary}>Chargement des routines…</AppText>
         ) : (
           <>
-            <Column spacing={12}>
+            <Column modifiers={fillAvailableWidth} spacing={12}>
               <AppText variant="title">À prendre</AppText>
               {upcoming.map((routine) => (
                 <UpcomingCard
@@ -131,9 +117,18 @@ export default function DailyOverview() {
                 </Column>
               )}
               {asNeeded && (
-                <Button variant="text" onPress={() => router.push("/as-needed")}>
-                  <Row alignment="center" spacing={12} style={styles.needed}>
-                    <AppText style={styles.neededLabel}>À la demande</AppText>
+                <Button
+                  style={styles.fullWidthButton}
+                  variant="text"
+                  onPress={() => router.push("/as-needed")}
+                >
+                  <Row
+                    modifiers={fillAvailableWidth}
+                    alignment="center"
+                    spacing={12}
+                    style={styles.needed}
+                  >
+                    <AppText>À la demande</AppText>
                     <Spacer />
                     <AppSymbol name="plus" size={24} color={colors.blue} />
                   </Row>
@@ -142,7 +137,7 @@ export default function DailyOverview() {
             </Column>
 
             <Column spacing={4} style={styles.group}>
-              <Row alignment="center" style={styles.groupRow}>
+              <Row alignment="center">
                 <AppText variant="title">Prises du jour</AppText>
               </Row>
               {logged.length > 0 ? (
@@ -159,8 +154,12 @@ export default function DailyOverview() {
                 <AppText color={colors.secondary}>Aucune prise enregistrée aujourd’hui.</AppText>
               )}
               <Column style={styles.separator} />
-              <Button variant="text" onPress={() => router.push("/history")}>
-                <Row alignment="center" style={styles.groupRow}>
+              <Button
+                style={styles.fullWidthButton}
+                variant="text"
+                onPress={() => router.push("/history")}
+              >
+                <Row modifiers={fillAvailableWidth} alignment="center">
                   <AppText color={colors.blue}>Voir l’historique</AppText>
                   <Spacer />
                   <AppSymbol name="chevron.right" size={14} color={colors.blue} />
@@ -195,4 +194,34 @@ export default function DailyOverview() {
       </Screen>
     </>
   );
+}
+
+function createStyles(colors: ReturnType<typeof usePalette>) {
+  return StyleSheet.create({
+    date: { paddingTop: 16, paddingBottom: 12, width: fillParent },
+    centered: { textAlign: "center" },
+    fullWidthButton: { width: fillParent },
+    group: {
+      backgroundColor: colors.grouped,
+      borderRadius: 28,
+      padding: 16,
+      width: fillParent,
+    },
+    needed: {
+      backgroundColor: colors.upcoming,
+      padding: 16,
+      borderRadius: 28,
+    },
+    separator: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.separator,
+      width: fillParent,
+    },
+    error: {
+      backgroundColor: colors.grouped,
+      borderRadius: 20,
+      padding: 16,
+      width: fillParent,
+    },
+  });
 }

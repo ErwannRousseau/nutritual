@@ -1,7 +1,7 @@
 import { Text as UniversalText } from "@expo/ui";
 import type { TextProps as UniversalTextProps, UniversalTextStyle } from "@expo/ui";
 import { useWindowDimensions, StyleSheet } from "react-native";
-import { usePalette } from "./palette";
+import { usePalette } from "@/components/ui/palette";
 
 export type TextVariant = "largeTitle" | "title" | "headline" | "body" | "subhead" | "footnote";
 

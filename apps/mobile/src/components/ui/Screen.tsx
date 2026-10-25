@@ -1,16 +1,11 @@
 import { Column, Host, ScrollView } from "@expo/ui";
+import { useMemo } from "react";
 import type { ReactNode } from "react";
 import { useHeaderHeight } from "expo-router/react-navigation";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  StyleSheet,
-  useColorScheme,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { KeyboardAvoidingView, Platform, StyleSheet, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { usePalette } from "./palette";
+import { fillParent } from "@/components/ui/layout";
+import { usePalette } from "@/components/ui/palette";
 
 type Props = {
   children: ReactNode;
@@ -19,28 +14,11 @@ type Props = {
 };
 
 export default function Screen({ children, footer, grouped = false }: Props) {
-  const { width } = useWindowDimensions();
   const colors = usePalette();
   const colorScheme = useColorScheme() ?? "light";
   const backgroundColor = grouped ? colors.grouped : colors.background;
   const headerHeight = useHeaderHeight();
-
-  const styles = StyleSheet.create({
-    root: { backgroundColor, flex: 1 },
-    keyboard: { flex: 1 },
-    host: { backgroundColor, flex: 1 },
-    scroll: { width, height: "100%" as const },
-    content: { paddingHorizontal: 20, paddingBottom: 24, paddingTop: 20, width },
-    footer: {
-      backgroundColor: colors.surface,
-      borderTopColor: colors.separator,
-      borderTopWidth: StyleSheet.hairlineWidth,
-      paddingHorizontal: 20,
-      paddingTop: 12,
-    },
-    footerHost: { backgroundColor: colors.surface },
-    footerContent: { width: width - 40, paddingBottom: 12 },
-  });
+  const styles = useMemo(() => createStyles(colors, backgroundColor), [backgroundColor, colors]);
 
   return (
     <SafeAreaView edges={["bottom", "left", "right"]} style={styles.root}>
@@ -49,18 +27,21 @@ export default function Screen({ children, footer, grouped = false }: Props) {
         keyboardVerticalOffset={headerHeight}
         style={styles.keyboard}
       >
-        <Host
-          colorScheme={colorScheme}
-          seedColor={colors.blue}
-          style={styles.host}
-          ignoreSafeArea="keyboard"
-        >
-          <ScrollView showsIndicators={false} style={styles.scroll}>
-            <Column spacing={24} style={styles.content}>
-              {children}
-            </Column>
-          </ScrollView>
-        </Host>
+        <View style={styles.main}>
+          <Host
+            colorScheme={colorScheme}
+            seedColor={colors.blue}
+            style={styles.host}
+            ignoreSafeArea="keyboard"
+            useViewportSizeMeasurement
+          >
+            <ScrollView showsIndicators={false} style={styles.scroll}>
+              <Column spacing={24} style={styles.content}>
+                {children}
+              </Column>
+            </ScrollView>
+          </Host>
+        </View>
         {footer ? (
           <View style={styles.footer}>
             <Host
@@ -77,4 +58,28 @@ export default function Screen({ children, footer, grouped = false }: Props) {
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
+}
+
+function createStyles(colors: ReturnType<typeof usePalette>, backgroundColor: string) {
+  return StyleSheet.create({
+    root: { backgroundColor, flex: 1 },
+    keyboard: { flex: 1 },
+    main: { backgroundColor, flex: 1, paddingHorizontal: 20, width: fillParent },
+    host: { backgroundColor, flex: 1, width: fillParent },
+    scroll: { width: fillParent, height: fillParent },
+    content: { paddingBottom: 24, paddingTop: 20, width: fillParent },
+    footer: {
+      backgroundColor: colors.surface,
+      borderTopColor: colors.separator,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      paddingHorizontal: 20,
+      paddingTop: 12,
+    },
+    footerHost: {
+      alignSelf: "stretch",
+      backgroundColor: colors.surface,
+      width: fillParent,
+    },
+    footerContent: { width: fillParent, paddingBottom: 12 },
+  });
 }

@@ -1,28 +1,25 @@
 import { Button, Column, Row, Spacer } from "@expo/ui";
+import { useMemo } from "react";
 import { StyleSheet, useWindowDimensions } from "react-native";
-import type { Intake } from "../../routines/model";
-import { timeLabel } from "../../routines/display";
-import AppText from "../ui/AppText";
-import AppSymbol from "../ui/AppSymbol";
-import { usePalette } from "../ui/palette";
+import type { Intake } from "@/routines/model";
+import { timeLabel } from "@/routines/display";
+import AppText from "@/components/ui/AppText";
+import AppSymbol from "@/components/ui/AppSymbol";
+import { fillAvailableWidth, fillParent } from "@/components/ui/layout";
+import { usePalette } from "@/components/ui/palette";
 
 export default function IntakeRow({ intake, onPress }: { intake: Intake; onPress: () => void }) {
   const colors = usePalette();
-  const { width, fontScale } = useWindowDimensions();
-
-  const styles = StyleSheet.create({
-    row: { paddingVertical: 12, width: width - 72, backgroundColor: colors.grouped },
-    name: { width: width - (fontScale > 1.3 ? 136 : 200) },
-    mark: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.cyan },
-  });
+  const { fontScale } = useWindowDimensions();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
-    <Button variant="text" onPress={onPress}>
-      <Row alignment="center" spacing={12} style={styles.row}>
+    <Button style={styles.button} variant="text" onPress={onPress}>
+      <Row alignment="center" modifiers={fillAvailableWidth} spacing={12} style={styles.row}>
         <Column alignment="center" style={styles.mark}>
           <AppSymbol name="checkmark" size={14} color={colors.background} />
         </Column>
-        <Column spacing={2} style={styles.name}>
+        <Column spacing={2}>
           <AppText>{intake.productName}</AppText>
           {fontScale > 1.3 && (
             <AppText variant="subhead" color={colors.secondary}>
@@ -40,4 +37,12 @@ export default function IntakeRow({ intake, onPress }: { intake: Intake; onPress
       </Row>
     </Button>
   );
+}
+
+function createStyles(colors: ReturnType<typeof usePalette>) {
+  return StyleSheet.create({
+    button: { width: fillParent },
+    row: { paddingVertical: 12, backgroundColor: colors.grouped },
+    mark: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.cyan },
+  });
 }

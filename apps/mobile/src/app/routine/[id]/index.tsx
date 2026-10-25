@@ -1,11 +1,20 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Column } from "@expo/ui";
 import { TextInput } from "@expo/ui";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { StyleSheet, useWindowDimensions } from "react-native";
-import { ActionButton, AppText, ProductBadge, Screen, usePalette } from "../../../components/ui";
-import { useRoutineDraft } from "../../../components/routine-form/RoutineDraftProvider";
-import { useRoutineStore } from "../../../routines/RoutinesProvider";
+import {
+  ActionButton,
+  AppText,
+  fillAvailableWidth,
+  fillContainerWidth,
+  fillParent,
+  ProductBadge,
+  Screen,
+  usePalette,
+} from "@/components/ui";
+import { useRoutineDraft } from "@/components/routine-form/RoutineDraftProvider";
+import { useRoutineStore } from "@/routines/RoutinesProvider";
 
 export default function RoutineNameScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -16,18 +25,7 @@ export default function RoutineNameScreen() {
   const editedName = useRef<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  const styles = StyleSheet.create({
-    hero: { width: "100%" as const, paddingTop: 12 },
-    section: { width: "100%" as const },
-    input: {
-      width: "100%" as const,
-      padding: 16,
-      borderRadius: 28,
-      backgroundColor: colors.grouped,
-    },
-    inputText: { color: colors.text, fontSize: 17 * fontScale },
-    error: { color: colors.danger },
-  });
+  const styles = useMemo(() => createStyles(colors, fontScale), [colors, fontScale]);
 
   const continueToSchedule = () => {
     if (!draft) return;
@@ -91,7 +89,11 @@ export default function RoutineNameScreen() {
           <ProductBadge size={96} />
         </Column>
         <AppText variant="largeTitle">Quel complément ?</AppText>
-        <Column spacing={8} style={styles.section}>
+        <Column
+          spacing={8}
+          style={styles.section}
+          modifiers={fillContainerWidth}
+        >
           <AppText variant="headline">Nom du complément</AppText>
           <TextInput
             selectTextOnFocus
@@ -108,6 +110,7 @@ export default function RoutineNameScreen() {
             returnKeyType="done"
             style={styles.input}
             textStyle={styles.inputText}
+            modifiers={fillAvailableWidth}
             testID="product-name"
           />
           {validationError ? (
@@ -124,4 +127,18 @@ export default function RoutineNameScreen() {
       </Screen>
     </>
   );
+}
+
+function createStyles(colors: ReturnType<typeof usePalette>, fontScale: number) {
+  return StyleSheet.create({
+    hero: { width: fillParent, paddingTop: 12 },
+    section: { width: fillParent },
+    input: {
+      padding: 16,
+      borderRadius: 28,
+      backgroundColor: colors.grouped,
+    },
+    inputText: { color: colors.text, fontSize: 17 * fontScale },
+    error: { color: colors.danger },
+  });
 }

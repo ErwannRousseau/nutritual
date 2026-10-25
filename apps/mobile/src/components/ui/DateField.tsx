@@ -1,8 +1,10 @@
 import DateTimePicker from "@expo/ui/community/datetime-picker";
 import { Column, RNHostView, Row, Spacer } from "@expo/ui";
+import { useMemo } from "react";
 import { StyleSheet, useColorScheme, useWindowDimensions } from "react-native";
-import AppText from "./AppText";
-import { usePalette } from "./palette";
+import AppText from "@/components/ui/AppText";
+import { fillParent } from "@/components/ui/layout";
+import { usePalette } from "@/components/ui/palette";
 
 export default function DateField({
   label,
@@ -19,12 +21,9 @@ export default function DateField({
 }) {
   const colors = usePalette();
   const scheme = useColorScheme() ?? "light";
-  const { width, fontScale } = useWindowDimensions();
-
-  const styles = StyleSheet.create({
-    field: { width: width - 40, padding: 16, backgroundColor: colors.grouped, borderRadius: 24 },
-    label: { width: width - (mode === "date" ? 230 : 180) },
-  });
+  const { fontScale } = useWindowDimensions();
+  const largeText = fontScale > 1.3;
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const picker = (
     <RNHostView matchContents>
@@ -43,18 +42,30 @@ export default function DateField({
     </RNHostView>
   );
 
-  return fontScale > 1.3 ? (
+  return largeText ? (
     <Column spacing={12} style={styles.field}>
-      <AppText>{label}</AppText>
+      <Row alignment="center">
+        <AppText>{label}</AppText>
+        <Spacer />
+      </Row>
       {picker}
     </Column>
   ) : (
     <Row alignment="center" spacing={12} style={styles.field}>
-      <Column alignment="start" style={styles.label}>
-        <AppText>{label}</AppText>
-      </Column>
+      <AppText>{label}</AppText>
       <Spacer />
       {picker}
     </Row>
   );
+}
+
+function createStyles(colors: ReturnType<typeof usePalette>) {
+  return StyleSheet.create({
+    field: {
+      width: fillParent,
+      padding: 16,
+      backgroundColor: colors.grouped,
+      borderRadius: 24,
+    },
+  });
 }

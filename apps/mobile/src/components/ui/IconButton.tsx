@@ -1,8 +1,8 @@
 import { RNHostView } from "@expo/ui";
 import { SymbolView } from "expo-symbols";
 import { Pressable, StyleSheet } from "react-native";
-import { platformNames, type AppSymbolName } from "./AppSymbol";
-import { usePalette } from "./palette";
+import { platformNames, type AppSymbolName } from "@/components/ui/AppSymbol";
+import { usePalette } from "@/components/ui/palette";
 
 type Props = {
   name: AppSymbolName;
@@ -13,10 +13,6 @@ type Props = {
 
 export default function IconButton({ name, label, onPress, disabled = false }: Props) {
   const colors = usePalette();
-
-  const styles = StyleSheet.create({
-    icon: { alignItems: "center", height: 44, justifyContent: "center", width: 44 },
-  });
 
   return (
     <RNHostView matchContents>
@@ -32,3 +28,7 @@ export default function IconButton({ name, label, onPress, disabled = false }: P
     </RNHostView>
   );
 }
+
+const styles = StyleSheet.create({
+  icon: { alignItems: "center", height: 44, justifyContent: "center", width: 44 },
+});

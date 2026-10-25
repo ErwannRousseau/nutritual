@@ -1,6 +1,6 @@
 import * as SQLite from "expo-sqlite";
-import type { Intake, Routine } from "./model";
-import { validateRoutine } from "./model";
+import type { Intake, Routine } from "@/routines/model";
+import { validateRoutine } from "@/routines/model";
 
 type RoutineRow = {
   id: string;

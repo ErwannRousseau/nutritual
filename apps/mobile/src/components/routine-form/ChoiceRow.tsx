@@ -1,6 +1,7 @@
 import { Button, Column, Row, Spacer } from "@expo/ui";
-import { StyleSheet, useWindowDimensions } from "react-native";
-import { AppSymbol, AppText, usePalette } from "../ui";
+import { useMemo } from "react";
+import { StyleSheet } from "react-native";
+import { AppSymbol, AppText, fillAvailableWidth, fillParent, usePalette } from "@/components/ui";
 
 export default function ChoiceRow({
   label,
@@ -14,27 +15,16 @@ export default function ChoiceRow({
   detail?: string;
 }) {
   const colors = usePalette();
-  const { width } = useWindowDimensions();
-
-  const styles = StyleSheet.create({
-    row: { width: width - 72, paddingVertical: 12, backgroundColor: colors.grouped },
-    content: { width: width - 118 },
-    mark: { width: 18 },
-  });
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
-    <Button onPress={onPress} variant="text">
-      <Row spacing={12} alignment="center" style={styles.row}>
-        <Column spacing={3} style={styles.content}>
+    <Button style={styles.button} onPress={onPress} variant="text">
+      <Row modifiers={fillAvailableWidth} spacing={12} alignment="center" style={styles.row}>
+        <Column spacing={3}>
           <AppText>{label}</AppText>
           {detail && (
             <AppText variant="footnote" color={colors.secondary}>
               {detail}
-            </AppText>
-          )}
-          {selected && (
-            <AppText variant="footnote" color={colors.blue}>
-              Sélectionné
             </AppText>
           )}
         </Column>
@@ -45,4 +35,12 @@ export default function ChoiceRow({
       </Row>
     </Button>
   );
+}
+
+function createStyles(colors: ReturnType<typeof usePalette>) {
+  return StyleSheet.create({
+    button: { width: fillParent },
+    row: { paddingVertical: 12, backgroundColor: colors.grouped },
+    mark: { width: 18 },
+  });
 }

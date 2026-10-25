@@ -1,10 +1,10 @@
 import { randomUUID } from "expo-crypto";
 import { useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
-import type { Intake, ReminderState, Routine, RoutineDraft } from "./model";
-import { validateRoutine } from "./model";
-import * as storage from "./storage";
-import { removeOrphanReminders, removeReminders, updateReminder } from "./reminders";
+import type { Intake, ReminderState, Routine, RoutineDraft } from "@/routines/model";
+import { validateRoutine } from "@/routines/model";
+import * as storage from "@/routines/storage";
+import { removeOrphanReminders, removeReminders, updateReminder } from "@/routines/reminders";
 
 export function useRoutines() {
   const [data, setData] = useState<{ routines: Routine[]; intakes: Intake[] }>({

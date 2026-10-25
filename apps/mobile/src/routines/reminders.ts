@@ -1,8 +1,8 @@
 import * as Notifications from "expo-notifications";
 import { randomUUID } from "expo-crypto";
 import type { NotificationRequestInput } from "expo-notifications";
-import type { ReminderState, Routine } from "./model";
-import { nextOccurrence } from "./model";
+import type { ReminderState, Routine } from "@/routines/model";
+import { nextOccurrence } from "@/routines/model";
 
 const identifierPrefix = "nutritual:";
 const maxIntervalReminders = 16;

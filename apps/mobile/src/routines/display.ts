@@ -1,5 +1,5 @@
-import type { Frequency, ReminderState } from "./model";
-import { describeFrequency } from "./model";
+import type { Frequency, ReminderState } from "@/routines/model";
+import { describeFrequency } from "@/routines/model";
 
 export function dateLabel(date: Date): string {
   return date.toLocaleDateString("fr-FR", {

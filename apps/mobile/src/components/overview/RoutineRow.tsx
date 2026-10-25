@@ -1,11 +1,13 @@
 import { Button, Column, Row, Spacer } from "@expo/ui";
-import { StyleSheet, useWindowDimensions } from "react-native";
-import type { ReminderState, Routine } from "../../routines/model";
-import { frequencyLabel } from "../../routines/display";
-import AppText from "../ui/AppText";
-import AppSymbol from "../ui/AppSymbol";
-import ProductBadge from "../ui/ProductBadge";
-import { usePalette } from "../ui/palette";
+import { useMemo } from "react";
+import { StyleSheet } from "react-native";
+import type { ReminderState, Routine } from "@/routines/model";
+import { frequencyLabel } from "@/routines/display";
+import AppText from "@/components/ui/AppText";
+import AppSymbol from "@/components/ui/AppSymbol";
+import ProductBadge from "@/components/ui/ProductBadge";
+import { fillAvailableWidth, fillParent } from "@/components/ui/layout";
+import { usePalette } from "@/components/ui/palette";
 
 export default function RoutineRow({
   routine,
@@ -17,18 +19,13 @@ export default function RoutineRow({
   onPress: () => void;
 }) {
   const colors = usePalette();
-  const { width } = useWindowDimensions();
-
-  const styles = StyleSheet.create({
-    row: { width: width - 72, paddingVertical: 14, backgroundColor: colors.grouped },
-    name: { width: width - 174 },
-  });
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
-    <Button variant="text" onPress={onPress}>
-      <Row alignment="center" spacing={12} style={styles.row}>
+    <Button style={styles.button} variant="text" onPress={onPress}>
+      <Row alignment="center" modifiers={fillAvailableWidth} spacing={12} style={styles.row}>
         <ProductBadge />
-        <Column spacing={4} style={styles.name}>
+        <Column spacing={4}>
           <AppText variant="headline">{routine.productName}</AppText>
           <AppText variant="subhead" color={colors.secondary}>
             {routine.frequency.kind === "as-needed"
@@ -51,4 +48,11 @@ export default function RoutineRow({
       </Row>
     </Button>
   );
+}
+
+function createStyles(colors: ReturnType<typeof usePalette>) {
+  return StyleSheet.create({
+    button: { width: fillParent },
+    row: { paddingVertical: 14, backgroundColor: colors.grouped },
+  });
 }

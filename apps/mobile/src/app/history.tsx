@@ -1,20 +1,20 @@
 import { Host, List, ListItem } from "@expo/ui";
 import { router } from "expo-router";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { StyleSheet, useColorScheme } from "react-native";
-import { useRoutineStore } from "../routines/RoutinesProvider";
-import type { Intake } from "../routines/model";
-import { dateLabel, timeLabel } from "../routines/display";
-import AppText from "../components/ui/AppText";
-import AppSymbol from "../components/ui/AppSymbol";
-import Screen from "../components/ui/Screen";
-import { usePalette } from "../components/ui/palette";
+import { useRoutineStore } from "@/routines/RoutinesProvider";
+import type { Intake } from "@/routines/model";
+import { dateLabel, timeLabel } from "@/routines/display";
+import AppText from "@/components/ui/AppText";
+import AppSymbol from "@/components/ui/AppSymbol";
+import Screen from "@/components/ui/Screen";
+import { usePalette } from "@/components/ui/palette";
 
 export default function HistoryScreen() {
   const { intakes } = useRoutineStore();
   const colors = usePalette();
   const scheme = useColorScheme() ?? "light";
-  const styles = StyleSheet.create({ host: { flex: 1, backgroundColor: colors.grouped } });
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const history = [...intakes].sort((a, b) => b.recordedAt.localeCompare(a.recordedAt));
 
   const renderRow = useCallback(
@@ -60,4 +60,8 @@ export default function HistoryScreen() {
       </List>
     </Host>
   );
+}
+
+function createStyles(colors: ReturnType<typeof usePalette>) {
+  return StyleSheet.create({ host: { flex: 1, backgroundColor: colors.grouped } });
 }

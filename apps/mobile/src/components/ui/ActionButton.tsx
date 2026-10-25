@@ -1,7 +1,9 @@
-import { Button as UniversalButton, Column } from "@expo/ui";
-import { StyleSheet, useWindowDimensions } from "react-native";
-import AppText from "./AppText";
-import { usePalette } from "./palette";
+import { Button, Column } from "@expo/ui";
+import { useMemo } from "react";
+import { StyleSheet } from "react-native";
+import AppText from "@/components/ui/AppText";
+import { fillAvailableWidth, fillParent } from "@/components/ui/layout";
+import { usePalette } from "@/components/ui/palette";
 
 type Props = {
   label: string;
@@ -18,39 +20,44 @@ export default function ActionButton({
   testID,
   kind = "primary",
 }: Props) {
-  const { width } = useWindowDimensions();
   const colors = usePalette();
   const foreground = kind === "secondary" ? colors.blue : "#FFFFFF";
 
   const background =
     kind === "secondary" ? colors.grouped : kind === "destructive" ? "#D92D20" : "#006AD8";
 
-  const styles = StyleSheet.create({
-    button: { width: width - 40 },
+  const styles = useMemo(
+    () => createStyles(background, foreground, disabled),
+    [background, disabled, foreground],
+  );
+
+  return (
+    <Button
+      disabled={disabled}
+      modifiers={fillAvailableWidth}
+      onPress={onPress}
+      testID={testID}
+      variant="text"
+    >
+      <Column alignment="center" style={styles.label} modifiers={fillAvailableWidth}>
+        <AppText variant="headline" textStyle={styles.labelText}>
+          {label}
+        </AppText>
+      </Column>
+    </Button>
+  );
+}
+
+function createStyles(background: string, foreground: string, disabled: boolean) {
+  return StyleSheet.create({
     label: {
       backgroundColor: background,
       borderRadius: 26,
       paddingHorizontal: 20,
       paddingVertical: 14,
       opacity: disabled ? 0.45 : 1,
-      width: width - 40,
+      width: fillParent,
     },
     labelText: { color: foreground, fontSize: 17, fontWeight: "600", textAlign: "center" },
   });
-
-  return (
-    <UniversalButton
-      disabled={disabled}
-      onPress={onPress}
-      style={styles.button}
-      testID={testID}
-      variant="text"
-    >
-      <Column alignment="center" style={styles.label}>
-        <AppText variant="headline" textStyle={styles.labelText}>
-          {label}
-        </AppText>
-      </Column>
-    </UniversalButton>
-  );
 }

@@ -1,10 +1,10 @@
 import { Column } from "@expo/ui";
 import { router } from "expo-router";
-import { useRoutineStore } from "../routines/RoutinesProvider";
-import UpcomingCard from "../components/overview/UpcomingCard";
-import AppText from "../components/ui/AppText";
-import Screen from "../components/ui/Screen";
-import { usePalette } from "../components/ui/palette";
+import { useRoutineStore } from "@/routines/RoutinesProvider";
+import UpcomingCard from "@/components/overview/UpcomingCard";
+import AppText from "@/components/ui/AppText";
+import Screen from "@/components/ui/Screen";
+import { usePalette } from "@/components/ui/palette";
 
 export default function AsNeededScreen() {
   const { routines } = useRoutineStore();

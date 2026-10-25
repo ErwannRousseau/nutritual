@@ -2,8 +2,8 @@ import { createContext, useContext, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { router, useLocalSearchParams, usePreventRemove } from "expo-router";
 import { Alert } from "react-native";
-import type { RoutineDraft } from "../../routines/model";
-import { useRoutineStore } from "../../routines/RoutinesProvider";
+import type { RoutineDraft } from "@/routines/model";
+import { useRoutineStore } from "@/routines/RoutinesProvider";
 
 type RoutineDraftValue = {
   draft: RoutineDraft | null;

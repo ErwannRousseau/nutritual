@@ -1,5 +1,5 @@
 import { createContext, useContext, type ReactNode } from "react";
-import { useRoutines } from "./useRoutines";
+import { useRoutines } from "@/routines/useRoutines";
 
 const RoutinesContext = createContext<ReturnType<typeof useRoutines> | null>(null);
 

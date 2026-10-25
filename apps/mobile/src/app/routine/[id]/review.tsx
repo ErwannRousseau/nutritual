@@ -1,12 +1,19 @@
-import { useState } from "react";
-import { Column } from "@expo/ui";
+import { useMemo, useState } from "react";
+import { Column, Row, Spacer } from "@expo/ui";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { StyleSheet } from "react-native";
-import { ActionButton, AppText, ProductBadge, Screen, usePalette } from "../../../components/ui";
-import { useRoutineDraft } from "../../../components/routine-form/RoutineDraftProvider";
-import { useRoutineStore } from "../../../routines/RoutinesProvider";
-import { frequencyLabel, timeLabel } from "../../../routines/display";
-import { localDate, validateRoutine } from "../../../routines/model";
+import {
+  ActionButton,
+  AppText,
+  fillParent,
+  ProductBadge,
+  Screen,
+  usePalette,
+} from "@/components/ui";
+import { useRoutineDraft } from "@/components/routine-form/RoutineDraftProvider";
+import { useRoutineStore } from "@/routines/RoutinesProvider";
+import { frequencyLabel, timeLabel } from "@/routines/display";
+import { localDate, validateRoutine } from "@/routines/model";
 
 export default function RoutineReviewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -17,16 +24,7 @@ export default function RoutineReviewScreen() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const styles = StyleSheet.create({
-    hero: { width: "100%" as const, paddingTop: 12 },
-    summary: {
-      width: "100%" as const,
-      padding: 16,
-      borderRadius: 24,
-      backgroundColor: colors.grouped,
-    },
-    error: { color: colors.danger },
-  });
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   if (!ready || !draft) {
     return (
@@ -95,22 +93,31 @@ export default function RoutineReviewScreen() {
         </Column>
         <AppText variant="largeTitle">Vérifiez votre routine</AppText>
         <Column spacing={4} style={styles.summary}>
-          <AppText variant="subhead" color={colors.secondary}>
-            Complément
-          </AppText>
+          <Row alignment="center">
+            <AppText variant="subhead" color={colors.secondary}>
+              Complément
+            </AppText>
+            <Spacer />
+          </Row>
           <AppText variant="body">{draft.productName.trim()}</AppText>
         </Column>
         <Column spacing={4} style={styles.summary}>
-          <AppText variant="subhead" color={colors.secondary}>
-            Fréquence
-          </AppText>
+          <Row alignment="center">
+            <AppText variant="subhead" color={colors.secondary}>
+              Fréquence
+            </AppText>
+            <Spacer />
+          </Row>
           <AppText variant="body">{frequencyLabel(draft.frequency)}</AppText>
         </Column>
         {!isAsNeeded ? (
           <Column spacing={4} style={styles.summary}>
-            <AppText variant="subhead" color={colors.secondary}>
-              Heure
-            </AppText>
+            <Row alignment="center">
+              <AppText variant="subhead" color={colors.secondary}>
+                Heure
+              </AppText>
+              <Spacer />
+            </Row>
             <AppText variant="body">
               {timeLabel(new Date(`${localDate(today)}T${draft.time}:00`))}
             </AppText>
@@ -132,4 +139,17 @@ export default function RoutineReviewScreen() {
       </Screen>
     </>
   );
+}
+
+function createStyles(colors: ReturnType<typeof usePalette>) {
+  return StyleSheet.create({
+    hero: { width: fillParent, paddingTop: 12 },
+    summary: {
+      width: fillParent,
+      padding: 16,
+      borderRadius: 24,
+      backgroundColor: colors.grouped,
+    },
+    error: { color: colors.danger },
+  });
 }

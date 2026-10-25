@@ -1,10 +1,12 @@
 import { Button, Column, Row, Spacer } from "@expo/ui";
-import { StyleSheet, useWindowDimensions } from "react-native";
-import type { ReminderState, Routine } from "../../routines/model";
-import AppText from "../ui/AppText";
-import AppSymbol from "../ui/AppSymbol";
-import ProductBadge from "../ui/ProductBadge";
-import { usePalette } from "../ui/palette";
+import { useMemo } from "react";
+import { StyleSheet } from "react-native";
+import type { ReminderState, Routine } from "@/routines/model";
+import AppText from "@/components/ui/AppText";
+import AppSymbol from "@/components/ui/AppSymbol";
+import ProductBadge from "@/components/ui/ProductBadge";
+import { fillAvailableWidth, fillParent } from "@/components/ui/layout";
+import { usePalette } from "@/components/ui/palette";
 
 export default function UpcomingCard({
   routine,
@@ -16,30 +18,23 @@ export default function UpcomingCard({
   onPress: () => void;
 }) {
   const colors = usePalette();
-  const { width } = useWindowDimensions();
-
-  const styles = StyleSheet.create({
-    card: { backgroundColor: colors.upcoming, borderRadius: 28, padding: 16, width: width - 40 },
-    row: { width: width - 72 },
-    name: { width: width - 128 },
-    time: { fontSize: 22, fontWeight: "700" },
-  });
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const warning = reminder?.status === "denied" || reminder?.status === "failed";
 
   return (
-    <Button variant="text" onPress={onPress} testID={`record-${routine.id}`}>
-      <Column spacing={10} style={styles.card}>
-        <Row alignment="center" style={styles.row}>
+    <Button style={styles.button} variant="text" onPress={onPress} testID={`record-${routine.id}`}>
+      <Column modifiers={fillAvailableWidth} spacing={10} style={styles.card}>
+        <Row modifiers={fillAvailableWidth} alignment="center">
           <AppText textStyle={styles.time}>
             {routine.frequency.kind === "as-needed" ? "À la demande" : routine.time}
           </AppText>
           <Spacer />
           <AppSymbol name="plus" size={24} color={colors.blue} />
         </Row>
-        <Row alignment="center" spacing={12} style={styles.row}>
+        <Row alignment="center" spacing={12}>
           <ProductBadge />
-          <Column style={styles.name} spacing={4}>
+          <Column spacing={4}>
             <AppText>{routine.productName}</AppText>
             {warning && (
               <AppText variant="footnote" color={colors.danger}>
@@ -51,4 +46,16 @@ export default function UpcomingCard({
       </Column>
     </Button>
   );
+}
+
+function createStyles(colors: ReturnType<typeof usePalette>) {
+  return StyleSheet.create({
+    card: {
+      backgroundColor: colors.upcoming,
+      borderRadius: 28,
+      padding: 16,
+    },
+    button: { width: fillParent },
+    time: { fontSize: 22, fontWeight: "700" },
+  });
 }
