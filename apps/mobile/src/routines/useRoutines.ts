@@ -2,8 +2,8 @@ import { randomUUID } from "expo-crypto";
 import { useEffect, useRef, useState } from "react";
 import { AppState } from "react-native";
 import {
-  reminderOutcomes,
-  createRoutineStatus,
+  ReminderOutcomes,
+  CreateRoutineStatus,
   validateRoutineInput,
   type CreateRoutineRequest,
   type CreateRoutineResult,
@@ -128,7 +128,7 @@ export function useRoutines() {
 
     if (validation) {
       return {
-        status: createRoutineStatus.invalid,
+        status: CreateRoutineStatus.invalid,
         operationId: request.operationId,
         message: validation,
       };
@@ -145,17 +145,17 @@ export function useRoutines() {
     try {
       const operation = await storage.createRoutineOperation(request, routine);
 
-      if (operation.status === createRoutineStatus.conflict) {
+      if (operation.status === CreateRoutineStatus.conflict) {
         return {
-          status: createRoutineStatus.conflict,
+          status: CreateRoutineStatus.conflict,
           operationId: request.operationId,
           message: "Cet identifiant a déjà été utilisé avec une autre routine.",
         };
       }
 
-      if (operation.status === createRoutineStatus.alreadyProcessed) {
+      if (operation.status === CreateRoutineStatus.alreadyProcessed) {
         return {
-          status: createRoutineStatus.alreadyProcessed,
+          status: CreateRoutineStatus.alreadyProcessed,
           operationId: request.operationId,
           routineId: operation.routineId,
           reminder: operation.reminder,
@@ -165,12 +165,12 @@ export function useRoutines() {
       const reminderState = await updateReminder(operation.routine, true);
 
       let reminder: ReminderOutcome =
-        reminderState.status === "paused" ? reminderOutcomes.failed : reminderState.status;
+        reminderState.status === "paused" ? ReminderOutcomes.failed : reminderState.status;
 
       try {
         await storage.updateRoutineOperationReminder(request.operationId, reminder);
       } catch {
-        reminder = reminderOutcomes.unconfirmed;
+        reminder = ReminderOutcomes.unconfirmed;
       }
 
       setReminders((current) => [
@@ -185,14 +185,14 @@ export function useRoutines() {
       }
 
       return {
-        status: createRoutineStatus.created,
+        status: CreateRoutineStatus.created,
         operationId: request.operationId,
         routineId: operation.routine.id,
         reminder,
       };
     } catch {
       return {
-        status: createRoutineStatus.failed,
+        status: CreateRoutineStatus.failed,
         operationId: request.operationId,
         message: "Impossible d’enregistrer la routine sur ce téléphone.",
       };
@@ -206,15 +206,15 @@ export function useRoutines() {
     if (existing) {
       if (existing.requestJson !== requestJson) {
         return Promise.resolve({
-          status: createRoutineStatus.conflict,
+          status: CreateRoutineStatus.conflict,
           operationId: request.operationId,
           message: "Cet identifiant a déjà été utilisé avec une autre routine.",
         });
       }
 
       return existing.promise.then((result) =>
-        result.status === createRoutineStatus.created
-          ? { ...result, status: createRoutineStatus.alreadyProcessed }
+        result.status === CreateRoutineStatus.created
+          ? { ...result, status: CreateRoutineStatus.alreadyProcessed }
           : result,
       );
     }

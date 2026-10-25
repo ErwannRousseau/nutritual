@@ -1,13 +1,13 @@
-export const frequencyKind = {
+export const FrequencyKind = {
   weekdays: "weekdays",
   interval: "interval",
   asNeeded: "as-needed",
 } as const;
 
 export type Frequency =
-  | { kind: typeof frequencyKind.weekdays; days: number[] }
-  | { kind: typeof frequencyKind.interval; every: number; startDate: string }
-  | { kind: typeof frequencyKind.asNeeded };
+  | { kind: typeof FrequencyKind.weekdays; days: number[] }
+  | { kind: typeof FrequencyKind.interval; every: number; startDate: string }
+  | { kind: typeof FrequencyKind.asNeeded };
 
 export type RoutineInput = {
   productName: string;
@@ -17,7 +17,7 @@ export type RoutineInput = {
 
 export type CreateRoutineRequest = RoutineInput & { operationId: string };
 
-export const createRoutineStatus = {
+export const CreateRoutineStatus = {
   created: "created",
   alreadyProcessed: "already_processed",
   conflict: "conflict",
@@ -25,7 +25,7 @@ export const createRoutineStatus = {
   failed: "failed",
 } as const;
 
-export const reminderOutcomes = {
+export const ReminderOutcomes = {
   scheduled: "scheduled",
   denied: "denied",
   failed: "failed",
@@ -33,19 +33,33 @@ export const reminderOutcomes = {
   unconfirmed: "unconfirmed",
 } as const;
 
-export type ReminderOutcome = (typeof reminderOutcomes)[keyof typeof reminderOutcomes];
+export type ReminderOutcome = (typeof ReminderOutcomes)[keyof typeof ReminderOutcomes];
 
 export type CreateRoutineResult =
   | {
-      status: typeof createRoutineStatus.created | typeof createRoutineStatus.alreadyProcessed;
+      status: typeof CreateRoutineStatus.created | typeof CreateRoutineStatus.alreadyProcessed;
       operationId: string;
       routineId: string;
       reminder: ReminderOutcome;
     }
-  | { status: typeof createRoutineStatus.conflict; operationId: string; message: string }
+  | { status: typeof CreateRoutineStatus.conflict; operationId: string; message: string }
   | {
-      status: typeof createRoutineStatus.invalid | typeof createRoutineStatus.failed;
+      status: typeof CreateRoutineStatus.invalid | typeof CreateRoutineStatus.failed;
       operationId?: string;
+      message: string;
+    };
+
+export const CreateRoutineDeliveryStatus = {
+  unavailable: "unavailable",
+  unconfirmed: "unconfirmed",
+} as const;
+
+export type CreateRoutineDeliveryResult =
+  | CreateRoutineResult
+  | { status: typeof CreateRoutineDeliveryStatus.unavailable; message: string }
+  | {
+      status: typeof CreateRoutineDeliveryStatus.unconfirmed;
+      operationId: string;
       message: string;
     };
 
@@ -71,11 +85,11 @@ function isFrequency(value: unknown): value is Frequency {
   if (!isRecord(value)) return false;
 
   switch (value.kind) {
-    case frequencyKind.weekdays:
+    case FrequencyKind.weekdays:
       return Array.isArray(value.days) && value.days.every(Number.isInteger);
-    case frequencyKind.interval:
+    case FrequencyKind.interval:
       return Number.isInteger(value.every) && typeof value.startDate === "string";
-    case frequencyKind.asNeeded:
+    case FrequencyKind.asNeeded:
       return true;
     default:
       return false;
@@ -103,10 +117,10 @@ export function validateRoutineInput(input: RoutineInput): string | null {
 
   const frequency = input.frequency;
 
-  if (frequency.kind !== frequencyKind.asNeeded && !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.time))
+  if (frequency.kind !== FrequencyKind.asNeeded && !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.time))
     return "Choisissez une heure valide au format HH:mm.";
 
-  if (frequency.kind === frequencyKind.weekdays) {
+  if (frequency.kind === FrequencyKind.weekdays) {
     if (
       frequency.days.length === 0 ||
       frequency.days.some((day) => !Number.isInteger(day) || day < 0 || day > 6) ||
@@ -114,7 +128,7 @@ export function validateRoutineInput(input: RoutineInput): string | null {
     ) {
       return "Choisissez au moins un jour de la semaine, sans doublon.";
     }
-  } else if (frequency.kind === frequencyKind.interval) {
+  } else if (frequency.kind === FrequencyKind.interval) {
     if (
       !Number.isInteger(frequency.every) ||
       frequency.every < 1 ||
@@ -124,7 +138,7 @@ export function validateRoutineInput(input: RoutineInput): string | null {
     }
 
     if (!isValidDateString(frequency.startDate)) return "Choisissez une date de début valide.";
-  } else if (frequency.kind !== frequencyKind.asNeeded) {
+  } else if (frequency.kind !== FrequencyKind.asNeeded) {
     return "Choisissez une fréquence valide.";
   }
 
@@ -165,15 +179,15 @@ export function isCreateRoutineCommandMessage(
 }
 
 export function isReminderOutcome(value: unknown): value is ReminderOutcome {
-  return Object.values(reminderOutcomes).some((outcome) => outcome === value);
+  return Object.values(ReminderOutcomes).some((outcome) => outcome === value);
 }
 
 function isCreateRoutineResult(value: unknown): value is CreateRoutineResult {
   if (!isRecord(value)) return false;
 
   if (
-    value.status === createRoutineStatus.created ||
-    value.status === createRoutineStatus.alreadyProcessed
+    value.status === CreateRoutineStatus.created ||
+    value.status === CreateRoutineStatus.alreadyProcessed
   ) {
     return (
       typeof value.operationId === "string" &&
@@ -182,11 +196,11 @@ function isCreateRoutineResult(value: unknown): value is CreateRoutineResult {
     );
   }
 
-  if (value.status === createRoutineStatus.conflict) {
+  if (value.status === CreateRoutineStatus.conflict) {
     return typeof value.operationId === "string" && typeof value.message === "string";
   }
 
-  if (value.status === createRoutineStatus.invalid || value.status === createRoutineStatus.failed) {
+  if (value.status === CreateRoutineStatus.invalid || value.status === CreateRoutineStatus.failed) {
     return (
       (value.operationId === undefined || typeof value.operationId === "string") &&
       typeof value.message === "string"

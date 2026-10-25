@@ -1,5 +1,5 @@
 import type { Frequency, ReminderState } from "@/routines/model";
-import { frequencyKind, reminderOutcomes } from "@nutritual/protocol";
+import { FrequencyKind, ReminderOutcomes } from "@nutritual/protocol";
 import { describeFrequency } from "@/routines/model";
 
 export function dateLabel(date: Date): string {
@@ -15,7 +15,7 @@ export function timeLabel(date: Date): string {
 }
 
 export function frequencyLabel(frequency: Frequency): string {
-  if (frequency.kind !== frequencyKind.interval) return describeFrequency(frequency);
+  if (frequency.kind !== FrequencyKind.interval) return describeFrequency(frequency);
 
   const [year, month, day] = frequency.startDate.split("-").map(Number);
   const date = new Date(0);
@@ -36,15 +36,15 @@ export function reminderLabel(reminder?: ReminderState): string {
   if (reminder.message) return reminder.message;
 
   switch (reminder.status) {
-    case reminderOutcomes.scheduled:
+    case ReminderOutcomes.scheduled:
       return "Rappel programmé";
-    case reminderOutcomes.denied:
+    case ReminderOutcomes.denied:
       return "Notifications désactivées. La routine est enregistrée.";
-    case reminderOutcomes.failed:
+    case ReminderOutcomes.failed:
       return "Routine enregistrée. Le rappel n’a pas pu être programmé.";
     case "paused":
       return "Rappels en pause";
-    case reminderOutcomes.none:
+    case ReminderOutcomes.none:
       return "Sans rappel automatique";
   }
 }

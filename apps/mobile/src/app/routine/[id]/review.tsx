@@ -11,7 +11,7 @@ import {
   usePalette,
 } from "@/components/ui";
 import { useRoutineDraft } from "@/components/routine-form/RoutineDraftProvider";
-import { frequencyKind } from "@nutritual/protocol";
+import { FrequencyKind } from "@nutritual/protocol";
 import { useRoutineStore } from "@/routines/RoutinesProvider";
 import { frequencyLabel, timeLabel } from "@/routines/display";
 import { localDate, validateRoutine } from "@/routines/model";
@@ -74,7 +74,7 @@ export default function RoutineReviewScreen() {
     }
   };
 
-  const isAsNeeded = draft.frequency.kind === frequencyKind.asNeeded;
+  const isAsNeeded = draft.frequency.kind === FrequencyKind.asNeeded;
 
   return (
     <>

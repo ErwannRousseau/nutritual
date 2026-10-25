@@ -12,7 +12,7 @@ import {
   usePalette,
 } from "@/components/ui";
 import ChoiceRow from "@/components/routine-form/ChoiceRow";
-import { frequencyKind } from "@nutritual/protocol";
+import { FrequencyKind } from "@nutritual/protocol";
 import { useRoutineDraft } from "@/components/routine-form/RoutineDraftProvider";
 import { localDate, validateRoutine } from "@/routines/model";
 import type { Frequency } from "@/routines/model";
@@ -54,18 +54,18 @@ export default function RoutineScheduleScreen() {
     );
 
   const frequency = draft.frequency;
-  const days = frequency.kind === frequencyKind.weekdays ? frequency.days : [];
-  const daily = frequency.kind === frequencyKind.weekdays && days.length === 7;
+  const days = frequency.kind === FrequencyKind.weekdays ? frequency.days : [];
+  const daily = frequency.kind === FrequencyKind.weekdays && days.length === 7;
 
   const anchor =
-    frequency.kind === frequencyKind.interval ? frequency.startDate : interval.startDate;
+    frequency.kind === FrequencyKind.interval ? frequency.startDate : interval.startDate;
 
-  const every = frequency.kind === frequencyKind.interval ? frequency.every : interval.every;
+  const every = frequency.kind === FrequencyKind.interval ? frequency.every : interval.every;
 
   function choose(next: Frequency) {
     if (!draft) return;
 
-    if (frequency.kind === frequencyKind.interval)
+    if (frequency.kind === FrequencyKind.interval)
       setInterval({ every: frequency.every, startDate: frequency.startDate });
     setDraft({ ...draft, frequency: next });
     setValidationError(null);
@@ -104,16 +104,16 @@ export default function RoutineScheduleScreen() {
             label="Chaque jour"
             detail="À la même heure, tous les jours"
             selected={daily}
-            onPress={() => choose({ kind: frequencyKind.weekdays, days: allDays })}
+            onPress={() => choose({ kind: FrequencyKind.weekdays, days: allDays })}
           />
           <Column style={styles.separator} />
           <ChoiceRow
             label="Certains jours"
             detail="Les jours de votre choix"
-            selected={frequency.kind === frequencyKind.weekdays && !daily}
+            selected={frequency.kind === FrequencyKind.weekdays && !daily}
             onPress={() =>
               choose({
-                kind: frequencyKind.weekdays,
+                kind: FrequencyKind.weekdays,
                 days: !daily && days.length ? days : [1, 2, 3, 4, 5],
               })
             }
@@ -122,20 +122,20 @@ export default function RoutineScheduleScreen() {
           <ChoiceRow
             label="Tous les N jours"
             detail="Tous les 2 jours, tous les 3 jours…"
-            selected={frequency.kind === frequencyKind.interval}
-            onPress={() => choose({ kind: frequencyKind.interval, every, startDate: anchor })}
+            selected={frequency.kind === FrequencyKind.interval}
+            onPress={() => choose({ kind: FrequencyKind.interval, every, startDate: anchor })}
           />
           <Column style={styles.separator} />
           <ChoiceRow
             label="À la demande"
             detail="Sans rappel automatique"
-            selected={frequency.kind === frequencyKind.asNeeded}
-            onPress={() => choose({ kind: frequencyKind.asNeeded })}
+            selected={frequency.kind === FrequencyKind.asNeeded}
+            onPress={() => choose({ kind: FrequencyKind.asNeeded })}
           />
         </Column>
       </Column>
 
-      {frequency.kind === frequencyKind.weekdays && !daily && (
+      {frequency.kind === FrequencyKind.weekdays && !daily && (
         <Column modifiers={fillAvailableWidth} spacing={12}>
           <AppText variant="headline">Jours de prise</AppText>
           <Column spacing={0} style={styles.group}>
@@ -147,7 +147,7 @@ export default function RoutineScheduleScreen() {
                   selected={days.includes(day)}
                   onPress={() =>
                     choose({
-                      kind: frequencyKind.weekdays,
+                      kind: FrequencyKind.weekdays,
                       days: days.includes(day)
                         ? days.filter((item) => item !== day)
                         : [...days, day].sort(),
@@ -160,7 +160,7 @@ export default function RoutineScheduleScreen() {
         </Column>
       )}
 
-      {frequency.kind === frequencyKind.interval && (
+      {frequency.kind === FrequencyKind.interval && (
         <Column modifiers={fillAvailableWidth} spacing={12}>
           <AppText variant="headline">Intervalle</AppText>
           <Row spacing={12} alignment="center" style={styles.numberRow}>
@@ -189,7 +189,7 @@ export default function RoutineScheduleScreen() {
         </Column>
       )}
 
-      {frequency.kind !== frequencyKind.asNeeded && (
+      {frequency.kind !== FrequencyKind.asNeeded && (
         <Column modifiers={fillAvailableWidth} spacing={12}>
           <AppText variant="headline">Heure de prise</AppText>
           <DateField

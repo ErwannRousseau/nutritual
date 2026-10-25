@@ -8,7 +8,7 @@ import AppSymbol from "@/components/ui/AppSymbol";
 import ProductBadge from "@/components/ui/ProductBadge";
 import { fillAvailableWidth, fillParent } from "@/components/ui/layout";
 import { usePalette } from "@/components/ui/palette";
-import { frequencyKind, reminderOutcomes } from "@nutritual/protocol";
+import { FrequencyKind, ReminderOutcomes } from "@nutritual/protocol";
 
 export default function RoutineRow({
   routine,
@@ -29,7 +29,7 @@ export default function RoutineRow({
         <Column spacing={4}>
           <AppText variant="headline">{routine.productName}</AppText>
           <AppText variant="subhead" color={colors.secondary}>
-            {routine.frequency.kind === frequencyKind.asNeeded
+            {routine.frequency.kind === FrequencyKind.asNeeded
               ? "À la demande"
               : `${routine.time} · ${frequencyLabel(routine.frequency)}`}
           </AppText>
@@ -39,8 +39,8 @@ export default function RoutineRow({
             </AppText>
           )}
           {!routine.paused &&
-            (reminder?.status === reminderOutcomes.denied ||
-              reminder?.status === reminderOutcomes.failed) && (
+            (reminder?.status === ReminderOutcomes.denied ||
+              reminder?.status === ReminderOutcomes.failed) && (
               <AppText variant="footnote" color={colors.danger}>
                 Routine enregistrée · Rappel inactif
               </AppText>

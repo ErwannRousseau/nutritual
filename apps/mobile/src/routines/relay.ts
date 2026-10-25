@@ -1,5 +1,5 @@
 import {
-  createRoutineStatus,
+  CreateRoutineStatus,
   isCreateRoutineCommandMessage,
   type CreateRoutineRequest,
   type CreateRoutineResult,
@@ -60,7 +60,7 @@ export function connectToDeviceRelay(
       .then(sendResult)
       .catch(() => {
         sendResult({
-          status: createRoutineStatus.failed,
+          status: CreateRoutineStatus.failed,
           operationId: message.command.operationId,
           message: "Impossible d’enregistrer la routine sur ce téléphone.",
         });

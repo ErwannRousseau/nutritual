@@ -1,9 +1,9 @@
 import * as SQLite from "expo-sqlite";
 import {
-  createRoutineStatus,
-  frequencyKind,
+  CreateRoutineStatus,
+  FrequencyKind,
   isReminderOutcome,
-  reminderOutcomes,
+  ReminderOutcomes,
   type CreateRoutineRequest,
   type ReminderOutcome,
 } from "@nutritual/protocol";
@@ -35,13 +35,13 @@ type RoutineOperationRow = {
 };
 
 export type RoutineOperationResult =
-  | { status: typeof createRoutineStatus.created; routine: Routine }
+  | { status: typeof CreateRoutineStatus.created; routine: Routine }
   | {
-      status: typeof createRoutineStatus.alreadyProcessed;
+      status: typeof CreateRoutineStatus.alreadyProcessed;
       routineId: string;
       reminder: ReminderOutcome;
     }
-  | { status: typeof createRoutineStatus.conflict };
+  | { status: typeof CreateRoutineStatus.conflict };
 
 let databasePromise: Promise<SQLite.SQLiteDatabase> | undefined;
 
@@ -55,9 +55,9 @@ function getDatabase(): Promise<SQLite.SQLiteDatabase> {
         product_name TEXT NOT NULL,
         frequency_kind TEXT NOT NULL CHECK (
           frequency_kind IN (
-            '${frequencyKind.weekdays}',
-            '${frequencyKind.interval}',
-            '${frequencyKind.asNeeded}'
+            '${FrequencyKind.weekdays}',
+            '${FrequencyKind.interval}',
+            '${FrequencyKind.asNeeded}'
           )
         ),
         weekday_mask INTEGER,
@@ -67,19 +67,19 @@ function getDatabase(): Promise<SQLite.SQLiteDatabase> {
         paused INTEGER NOT NULL CHECK (paused IN (0, 1)),
         CHECK (
           (
-            frequency_kind = '${frequencyKind.weekdays}' AND
+            frequency_kind = '${FrequencyKind.weekdays}' AND
             weekday_mask BETWEEN 1 AND 127 AND
             interval_days IS NULL AND
             start_date IS NULL
           ) OR
           (
-            frequency_kind = '${frequencyKind.interval}' AND
+            frequency_kind = '${FrequencyKind.interval}' AND
             weekday_mask IS NULL AND
             interval_days BETWEEN 1 AND 36500 AND
             start_date IS NOT NULL
           ) OR
           (
-            frequency_kind = '${frequencyKind.asNeeded}' AND
+            frequency_kind = '${FrequencyKind.asNeeded}' AND
             weekday_mask IS NULL AND
             interval_days IS NULL AND
             start_date IS NULL
@@ -98,11 +98,11 @@ function getDatabase(): Promise<SQLite.SQLiteDatabase> {
         routine_id TEXT NOT NULL,
         reminder_outcome TEXT CHECK (
           reminder_outcome IN (
-            '${reminderOutcomes.scheduled}',
-            '${reminderOutcomes.denied}',
-            '${reminderOutcomes.failed}',
-            '${reminderOutcomes.none}',
-            '${reminderOutcomes.unconfirmed}'
+            '${ReminderOutcomes.scheduled}',
+            '${ReminderOutcomes.denied}',
+            '${ReminderOutcomes.failed}',
+            '${ReminderOutcomes.none}',
+            '${ReminderOutcomes.unconfirmed}'
           )
         )
       );
@@ -120,23 +120,33 @@ function getDatabase(): Promise<SQLite.SQLiteDatabase> {
 
 export function createRoutineRequestJson(request: CreateRoutineRequest): string {
   const { frequency } = request;
+  let frequencyJson: CreateRoutineRequest["frequency"];
 
-  const canonicalFrequency =
-    frequency.kind === frequencyKind.weekdays
-      ? { kind: frequency.kind, days: frequency.days }
-      : frequency.kind === frequencyKind.interval
-        ? { kind: frequency.kind, every: frequency.every, startDate: frequency.startDate }
-        : { kind: frequency.kind };
+  switch (frequency.kind) {
+    case FrequencyKind.weekdays:
+      frequencyJson = { kind: FrequencyKind.weekdays, days: frequency.days };
+      break;
+    case FrequencyKind.interval:
+      frequencyJson = {
+        kind: FrequencyKind.interval,
+        every: frequency.every,
+        startDate: frequency.startDate,
+      };
+      break;
+    case FrequencyKind.asNeeded:
+      frequencyJson = { kind: FrequencyKind.asNeeded };
+      break;
+  }
 
   return JSON.stringify({
     productName: request.productName,
-    frequency: canonicalFrequency,
+    frequency: frequencyJson,
     time: request.time,
   });
 }
 
 function parseReminderOutcome(value: string | null): ReminderOutcome {
-  if (value === null) return reminderOutcomes.unconfirmed;
+  if (value === null) return ReminderOutcomes.unconfirmed;
 
   if (!isReminderOutcome(value)) throw new Error("Unreadable routine operation.");
 
@@ -147,7 +157,7 @@ function routineFromRow(row: RoutineRow): Routine {
   let frequency: Routine["frequency"];
 
   switch (row.frequency_kind) {
-    case frequencyKind.weekdays: {
+    case FrequencyKind.weekdays: {
       const mask = row.weekday_mask;
 
       if (mask === null) {
@@ -155,25 +165,25 @@ function routineFromRow(row: RoutineRow): Routine {
       }
 
       frequency = {
-        kind: frequencyKind.weekdays,
+        kind: FrequencyKind.weekdays,
         days: [0, 1, 2, 3, 4, 5, 6].filter((day) => (mask & (1 << day)) !== 0),
       };
       break;
     }
 
-    case frequencyKind.interval:
+    case FrequencyKind.interval:
       if (row.interval_days === null || row.start_date === null) {
         throw new Error(`Unreadable routine frequency: ${row.id}`);
       }
 
       frequency = {
-        kind: frequencyKind.interval,
+        kind: FrequencyKind.interval,
         every: row.interval_days,
         startDate: row.start_date,
       };
       break;
-    case frequencyKind.asNeeded:
-      frequency = { kind: frequencyKind.asNeeded };
+    case FrequencyKind.asNeeded:
+      frequency = { kind: FrequencyKind.asNeeded };
       break;
     default:
       throw new Error(`Unreadable routine frequency: ${row.id}`);
@@ -205,7 +215,7 @@ function routineValues(
 
   const { frequency } = routine;
 
-  if (frequency.kind === frequencyKind.weekdays) {
+  if (frequency.kind === FrequencyKind.weekdays) {
     return [
       routine.id,
       routine.productName,
@@ -218,7 +228,7 @@ function routineValues(
     ];
   }
 
-  if (frequency.kind === frequencyKind.interval) {
+  if (frequency.kind === FrequencyKind.interval) {
     return [
       routine.id,
       routine.productName,
@@ -277,7 +287,7 @@ export async function createRoutineOperation(
 ): Promise<RoutineOperationResult> {
   const database = await getDatabase();
   const requestJson = createRoutineRequestJson(request);
-  let result: RoutineOperationResult = { status: createRoutineStatus.conflict };
+  let result: RoutineOperationResult = { status: CreateRoutineStatus.conflict };
 
   await database.withExclusiveTransactionAsync(async (transaction) => {
     const existing = await transaction.getFirstAsync<RoutineOperationRow>(
@@ -289,11 +299,11 @@ export async function createRoutineOperation(
       result =
         existing.request_json === requestJson
           ? {
-              status: createRoutineStatus.alreadyProcessed,
+              status: CreateRoutineStatus.alreadyProcessed,
               routineId: existing.routine_id,
               reminder: parseReminderOutcome(existing.reminder_outcome),
             }
-          : { status: createRoutineStatus.conflict };
+          : { status: CreateRoutineStatus.conflict };
 
       return;
     }
@@ -307,7 +317,7 @@ export async function createRoutineOperation(
       [request.operationId, requestJson, routine.id],
     );
 
-    result = { status: createRoutineStatus.created, routine };
+    result = { status: CreateRoutineStatus.created, routine };
   });
 
   return result;
