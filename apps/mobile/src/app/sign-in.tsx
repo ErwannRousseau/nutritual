@@ -115,7 +115,7 @@ function createStyles(colors: ReturnType<typeof usePalette>) {
       borderWidth: StyleSheet.hairlineWidth,
       color: colors.text,
       fontSize: 17,
-      minHeight: 52,
+      height: 60,
       paddingHorizontal: 14,
     },
     error: { color: colors.danger, fontSize: 17 },
