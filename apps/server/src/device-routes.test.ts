@@ -19,7 +19,8 @@ process.env.PUBLIC_BASE_URL ??= "https://api.test.invalid";
 process.env.MOBILE_OAUTH_CLIENT_ID ??= "https://mobile.test.invalid/client.json";
 
 const { registerDeviceRoutes } = await import("./routes/device.ts");
-const { digest } = await import("./pairing-store.ts");
+const { createPairingStore, digest } = await import("./pairing-store.ts");
+const { createPairingOperations } = await import("./pairing-operations.ts");
 
 const testTicket = "single-use-device-ticket";
 
@@ -63,11 +64,14 @@ const fakeDatabase = Object.assign(new Pool({ connectionString: process.env.DATA
 function runningDeviceServer() {
   const app = new Hono<McpAuthVariables>();
   const relay = createRoutineRelay();
-  registerDeviceRoutes(app, relay, {
+
+  const store = createPairingStore({
     database: fakeDatabase,
     digest,
     ready: async () => undefined,
   });
+
+  registerDeviceRoutes(app, relay, createPairingOperations(store, relay));
   const server = Bun.serve({ hostname: "127.0.0.1", port: 0, fetch: app.fetch, websocket });
 
   return { app, relay, server };

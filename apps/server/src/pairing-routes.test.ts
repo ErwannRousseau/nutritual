@@ -13,7 +13,9 @@ process.env.MOBILE_OAUTH_CLIENT_ID ??= "https://mobile.test.invalid/client.json"
 
 const { registerPairingRoutes } = await import("./routes/pairing.ts");
 const { registerOAuthPages } = await import("./routes/oauth-pages.ts");
-const { digest } = await import("./pairing-store.ts");
+const { createPairingStore, digest } = await import("./pairing-store.ts");
+const { createPairingOperations } = await import("./pairing-operations.ts");
+const { createRoutineRelay } = await import("./routine-relay.ts");
 
 type StoredChallenge = {
   codeHash: string;
@@ -103,11 +105,14 @@ const fakeDatabase = Object.assign(new Pool({ connectionString: process.env.DATA
 
 const app = new Hono<McpAuthVariables>();
 
-registerPairingRoutes(app, {
+const store = createPairingStore({
   database: fakeDatabase,
   digest,
   rateLimit: async () => true,
   ready: async () => undefined,
+});
+
+registerPairingRoutes(app, createPairingOperations(store, createRoutineRelay()), {
   publicBaseUrl: "https://api.test.invalid",
   verifyBrowserSession: async (token) => {
     if (token === "other-browser-session") return "other-user";

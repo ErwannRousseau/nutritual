@@ -12,7 +12,8 @@ process.env.PUBLIC_BASE_URL ??= "https://api.test.invalid";
 process.env.MOBILE_OAUTH_CLIENT_ID ??= "https://mobile.test.invalid/client.json";
 
 const { registerPhoneRoutes } = await import("./routes/phone.ts");
-const { digest } = await import("./pairing-store.ts");
+const { createPairingStore, digest } = await import("./pairing-store.ts");
+const { createPairingOperations } = await import("./pairing-operations.ts");
 const { createRoutineRelay } = await import("./routine-relay.ts");
 
 type Challenge = { userSub: string; browserSub: string; status: string; expiresAt: Date };
@@ -30,7 +31,7 @@ function fixture(userSub = "user-1", allowAttempt = true, relay = createRoutineR
       if (sql === "BEGIN" || sql === "COMMIT" || sql === "ROLLBACK")
         return { rows: [], rowCount: 0 };
 
-      if (sql.includes("SELECT code_hash, browser_sub, client_id FROM app_pairing_challenges")) {
+      if (sql.includes("SELECT browser_sub, client_id FROM app_pairing_challenges")) {
         // SAFETY: This SQL branch binds the challenge hash as its first parameter.
         const [codeHash] = values as string[];
         const value = challenges.get(codeHash);
@@ -202,14 +203,14 @@ function fixture(userSub = "user-1", allowAttempt = true, relay = createRoutineR
     await next();
   };
 
-  registerPhoneRoutes(app, relay, {
+  const store = createPairingStore({
     database,
     digest,
     rateLimit: async () => allowAttempt,
     ready: async () => undefined,
-    ticketLifetimeMs: 60_000,
-    authGuard,
   });
+
+  registerPhoneRoutes(app, createPairingOperations(store, relay), { authGuard });
 
   return {
     app,

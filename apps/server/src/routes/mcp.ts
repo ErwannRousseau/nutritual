@@ -7,36 +7,22 @@ import { CreateRoutineStatus } from "@nutritual/protocol";
 import type { RoutineRelay } from "../routine-relay.ts";
 import { mcpAuth } from "../neon-auth.ts";
 import { config } from "../neon-auth.ts";
-import { database, ready } from "../pairing-store.ts";
-
-export function canUseMcpClient(
-  clientId: string | undefined,
-  pairedClientId: string | undefined,
-  mobileClientId: string,
-): boolean {
-  return Boolean(clientId && clientId !== mobileClientId && pairedClientId === clientId);
-}
+import type { PairingOperations } from "../pairing-operations.ts";
 
 export function isRoutineToolError(status: string): boolean {
   return status !== CreateRoutineStatus.created && status !== CreateRoutineStatus.alreadyProcessed;
 }
 
-export function registerMcpRoutes(app: Hono<McpAuthVariables>, relay: RoutineRelay): void {
+export function registerMcpRoutes(
+  app: Hono<McpAuthVariables>,
+  relay: RoutineRelay,
+  operations: PairingOperations,
+): void {
   app.use(honoMcp(mcpAuth, { path: "/mcp" }));
   app.all("/mcp", async (c) => {
     const userId = c.get("auth").sub;
-    const clientId = c.get("auth").clientId;
 
-    if (!clientId || clientId === config.mobileClientId) return c.json({ error: "forbidden" }, 403);
-
-    await ready();
-
-    const paired = await database.query<{ client_id: string }>(
-      "SELECT client_id FROM app_paired_devices WHERE user_sub = $1",
-      [userId],
-    );
-
-    if (!canUseMcpClient(clientId, paired.rows[0]?.client_id, config.mobileClientId))
+    if (!(await operations.canUseMcpClient(userId, c.get("auth").clientId, config.mobileClientId)))
       return c.json({ error: "forbidden" }, 403);
     const server = new McpServer({ name: "nutritual", version: "1.0.0" });
     server.tool(

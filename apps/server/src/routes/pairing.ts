@@ -4,23 +4,15 @@ import type { McpAuthVariables } from "@neon/oauth/mcp/hono";
 import type { PairingChallengeRequest, PairingChallengeStatusRequest } from "@nutritual/protocol";
 import { z } from "zod";
 import { config } from "../neon-auth.ts";
-import { database, digest, rateLimit, ready } from "../pairing-store.ts";
 import { createBrowserSessionVerifier } from "../browser-session.ts";
+import type { PairingOperations } from "../pairing-operations.ts";
 
 type PairingRouteDependencies = {
-  database: typeof database;
-  digest: typeof digest;
-  rateLimit: typeof rateLimit;
-  ready: typeof ready;
   publicBaseUrl: string;
   verifyBrowserSession: (token: string) => Promise<string>;
 };
 
 const defaultDependencies: PairingRouteDependencies = {
-  database,
-  digest,
-  rateLimit,
-  ready,
   publicBaseUrl: config.publicBaseUrl,
   verifyBrowserSession: createBrowserSessionVerifier(config.authBaseUrl),
 };
@@ -42,7 +34,7 @@ function randomCode(): string {
   return `${chars.slice(0, 4).join("")}-${chars.slice(4).join("")}`;
 }
 
-function remoteKey(c: Context, kind: string): string {
+function remoteIp(c: Context): string {
   const forwarded = c.req
     .header("x-forwarded-for")
     ?.split(",")
@@ -51,16 +43,17 @@ function remoteKey(c: Context, kind: string): string {
 
   const ip = forwarded?.at(-1) ?? "unknown";
 
-  return digest(`${kind}:${ip}`);
+  return ip;
 }
 
 export function registerPairingRoutes(
   app: Hono<McpAuthVariables>,
+  operations: PairingOperations,
   dependencies = defaultDependencies,
 ): void {
-  const { database, digest, rateLimit, ready, publicBaseUrl, verifyBrowserSession } = dependencies;
+  const { publicBaseUrl, verifyBrowserSession } = dependencies;
   app.post("/pairing/challenges", async (c) => {
-    if (!(await rateLimit(remoteKey(c, "challenge-create"))))
+    if (!(await operations.allowAttempt("challenge-create", remoteIp(c))))
       return c.json({ error: "rate_limited" }, 429);
     const parsed = challengeRequestSchema.safeParse(await c.req.json().catch(() => null));
 
@@ -97,24 +90,17 @@ export function registerPairingRoutes(
     const pollToken = crypto.randomUUID() + crypto.randomUUID();
     const expiresAt = new Date(Date.now() + challengeLifetimeMs);
     const qrUrl = `${publicBaseUrl}/pair?code=${encodeURIComponent(code)}`;
-    await ready();
-    await database.query(
-      `INSERT INTO app_pairing_challenges (
-         code_hash, poll_token_hash, oauth_query_hash, browser_sub, user_sub,
-         client_id, redirect_host, scopes, resource, status, expires_at
-       ) VALUES ($1, $2, $3, $4, NULL, $5, $6, $7, $8, 'pending', $9)`,
-      [
-        digest(code),
-        digest(pollToken),
-        digest(body.oauthQuery),
-        browserSub,
-        clientId,
-        redirectHost,
-        scopes,
-        resource,
-        expiresAt,
-      ],
-    );
+    await operations.createChallenge({
+      code,
+      pollToken,
+      oauthQuery: body.oauthQuery,
+      browserSub,
+      clientId,
+      redirectHost,
+      scopes,
+      resource,
+      expiresAt,
+    });
     const qrDataUrl = await QRCode.toDataURL(qrUrl, { errorCorrectionLevel: "M", margin: 1 });
 
     return c.json({ code, pollToken, qrUrl: qrDataUrl, expiresAt: expiresAt.toISOString() }, 201);
@@ -136,41 +122,12 @@ export function registerPairingRoutes(
       return c.json({ error: "unauthorized" }, 401);
     }
 
-    await ready();
-
-    const result = await database.query<{
-      status: string;
-      expires_at: Date;
-      consumed_at: Date | null;
-      browser_sub: string;
-    }>(
-      `SELECT status, expires_at, consumed_at, browser_sub FROM app_pairing_challenges
-       WHERE code_hash = $1 AND poll_token_hash = $2 AND oauth_query_hash = $3`,
-      [digest(body.code), digest(body.pollToken), digest(body.oauthQuery)],
-    );
-
-    const challenge = result.rows[0];
-
-    if (!challenge || challenge.expires_at <= new Date() || challenge.consumed_at)
-      return c.json({ status: "expired" as const });
-
-    if (challenge.browser_sub !== browserSub) return c.json({ status: "mismatch" as const });
-
-    if (challenge.status !== "pending") {
-      const consumed = await database.query<{ status: string }>(
-        `UPDATE app_pairing_challenges SET consumed_at = now()
-         WHERE code_hash = $1 AND poll_token_hash = $2 AND oauth_query_hash = $3 AND consumed_at IS NULL
-         AND expires_at > now()
-         RETURNING status`,
-        [digest(body.code), digest(body.pollToken), digest(body.oauthQuery)],
-      );
-
-      if (!consumed.rowCount) return c.json({ status: "expired" as const });
-
-      return c.json({ status: consumed.rows[0]?.status });
-    }
-
-    return c.json({ status: challenge.status });
+    return c.json({
+      status: await operations.challengeStatus(
+        { code: body.code, pollToken: body.pollToken, oauthQuery: body.oauthQuery },
+        browserSub,
+      ),
+    });
   });
 
   app.get("/pair", (c) => {

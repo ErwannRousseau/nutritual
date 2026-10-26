@@ -13,7 +13,8 @@ process.env.MOBILE_OAUTH_CLIENT_ID = "https://mobile.example.invalid/client.json
 process.env.NODE_ENV = "test";
 
 const { app } = await import("./app.ts");
-const { isRoutineToolError, canUseMcpClient } = await import("./routes/mcp.ts");
+const { isRoutineToolError } = await import("./routes/mcp.ts");
+const { canUseMcpClient } = await import("./pairing-operations.ts");
 
 test("GET /health keeps its successful health response", async () => {
   const response = await app.request("/health");
