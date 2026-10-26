@@ -1,5 +1,5 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AppState, StyleSheet, useColorScheme } from "react-native";
 import { RoutinesProvider } from "@/routines/RoutinesProvider";
 import { usePalette } from "@/components/ui/palette";
@@ -8,7 +8,7 @@ import { hasActiveSession, sessionExpiryTime } from "@/auth/session";
 import * as Linking from "expo-linking";
 import * as SecureStore from "expo-secure-store";
 import { router, useRootNavigationState } from "expo-router";
-import { normalizePairCode } from "@/auth/parse";
+import { createPendingPairLinkCoordinator } from "@/auth/pending-pair-link";
 
 export default function RootLayout() {
   return (
@@ -33,6 +33,20 @@ function AuthenticatedLayout() {
       ? "signed-out"
       : "restoring";
 
+  const currentNavigation = useRef({ ready: false, authenticated: false });
+  useLayoutEffect(() => {
+    currentNavigation.current = {
+      ready: Boolean(navigationState?.key),
+      authenticated: status === "authenticated",
+    };
+  }, [navigationState?.key, status]);
+
+  const pairLinkCoordinator = useRef<ReturnType<typeof createPendingPairLinkCoordinator> | null>(
+    null,
+  );
+
+  const initialUrlRequested = useRef(false);
+
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") setNow(Date.now());
@@ -51,43 +65,35 @@ function AuthenticatedLayout() {
   }, [expiresAt]);
 
   useEffect(() => {
-    const handleUrl = async (url: string) => {
-      let parsedUrl: URL;
+    pairLinkCoordinator.current ??= createPendingPairLinkCoordinator(
+      (code) => SecureStore.setItemAsync("nutritual.pending-pair-code", code),
+      () => currentNavigation.current,
+      (code, authenticated) =>
+        router.replace(authenticated ? { pathname: "/pair", params: { code } } : "/sign-in"),
+    );
+    const coordinator = pairLinkCoordinator.current;
+    const sub = Linking.addEventListener("url", ({ url }) => void coordinator.handleUrl(url));
 
-      try {
-        parsedUrl = new URL(url);
-      } catch {
-        return;
-      }
-
-      if (parsedUrl.pathname !== "/pair") return;
-      const code = normalizePairCode(parsedUrl.searchParams.get("code"));
-
-      if (!code) return;
-      await SecureStore.setItemAsync("nutritual.pending-pair-code", code);
-
-      if (navigationState?.key)
-        router.replace(
-          status === "authenticated" ? { pathname: "/pair", params: { code } } : "/sign-in",
-        );
-    };
-
-    const sub = Linking.addEventListener("url", ({ url }) => {
-      void handleUrl(url);
-    });
-
-    void Linking.getInitialURL().then((url) => {
-      if (url) void handleUrl(url);
-    });
+    if (!initialUrlRequested.current) {
+      initialUrlRequested.current = true;
+      void Linking.getInitialURL().then((url) => {
+        if (url) void coordinator.handleInitialUrl(url);
+      });
+    }
 
     return () => sub.remove();
-  }, [navigationState?.key, status]);
+  }, []);
 
   useEffect(() => {
     if (status !== "authenticated" || !navigationState?.key) return;
-    void SecureStore.getItemAsync("nutritual.pending-pair-code").then((code) => {
-      if (code) router.replace({ pathname: "/pair", params: { code } });
-    });
+    const coordinator = pairLinkCoordinator.current;
+
+    if (!coordinator) return;
+    void coordinator
+      .readPendingCode(() => SecureStore.getItemAsync("nutritual.pending-pair-code"))
+      .then((code) => {
+        if (code) router.replace({ pathname: "/pair", params: { code } });
+      });
   }, [navigationState?.key, status]);
 
   const stack = (
