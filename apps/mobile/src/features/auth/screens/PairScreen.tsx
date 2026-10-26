@@ -1,117 +1,24 @@
-import { Column, RNHostView, TextInput, useNativeState } from "@expo/ui";
-import { useLocalSearchParams, router } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { Column, RNHostView, TextInput } from "@expo/ui";
+import { useLocalSearchParams } from "expo-router";
+import { useMemo } from "react";
 import { StyleSheet, Text } from "react-native";
-import * as SecureStore from "expo-secure-store";
 import ActionButton from "@/shared/ui/ActionButton";
 import AppText from "@/shared/ui/AppText";
 import Screen from "@/shared/ui/Screen";
 import { fillAvailableWidth } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
-import { getDeviceCredentials } from "@/features/auth/AuthProvider";
-import { phoneRequest } from "@/features/auth/phone-api";
-import { phoneResponses } from "@/features/auth/phone-responses";
-import { normalizePairCode } from "@/features/auth/parse";
-import type { PairingOAuthRequestDetails } from "@nutritual/protocol";
+import { usePairingFlow } from "@/features/auth/usePairingFlow";
 
 export default function PairScreen() {
   const params = useLocalSearchParams<{ code?: string }>();
   const initialCode = Array.isArray(params.code) ? params.code[0] : params.code;
-  const codeInput = useNativeState(initialCode ?? "");
-  const [message, setMessage] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [valid, setValid] = useState(false);
-  const [inspectedCode, setInspectedCode] = useState<string | null>(null);
-  const [details, setDetails] = useState<PairingOAuthRequestDetails | null>(null);
+
+  const { codeInput, message, busy, valid, details, inspect, approve, decline } =
+    usePairingFlow(initialCode);
+
   const colors = usePalette();
 
   const styles = useMemo(() => createStyles(colors), [colors]);
-
-  useEffect(() => {
-    if (initialCode) void SecureStore.setItemAsync("nutritual.pending-pair-code", initialCode);
-  }, [initialCode]);
-  useEffect(() => {
-    if (initialCode) codeInput.set(initialCode);
-  }, [initialCode, codeInput]);
-
-  async function inspect() {
-    const code = normalizePairCode(codeInput.value);
-
-    if (!code) {
-      setMessage("Saisissez le code affiché dans ChatGPT.");
-
-      return;
-    }
-
-    setBusy(true);
-    setMessage(null);
-    setValid(false);
-    setDetails(null);
-
-    try {
-      const inspection = await phoneRequest(
-        "/api/phone/pairing-challenges/inspect",
-        { code },
-        phoneResponses.pending,
-      );
-
-      await SecureStore.setItemAsync("nutritual.pending-pair-code", code);
-      codeInput.set(code);
-      setInspectedCode(code);
-      setDetails(inspection.details);
-      setValid(true);
-      setMessage("Code valide. Vérifiez les autorisations ci-dessous.");
-    } catch {
-      setValid(false);
-      setInspectedCode(null);
-      setDetails(null);
-      setMessage(
-        "Code invalide, expiré ou associé à un autre compte. Vérifiez le compte et réessayez.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function decide(approve: boolean) {
-    const code = normalizePairCode(codeInput.value);
-
-    if (!code || !valid || code !== inspectedCode) {
-      setValid(false);
-      setMessage("Vérifiez à nouveau le code avant de continuer.");
-
-      return;
-    }
-
-    setBusy(true);
-    setMessage(null);
-
-    try {
-      if (approve) {
-        const device = await getDeviceCredentials();
-        await phoneRequest(
-          "/api/phone/pairing-challenges/approve",
-          { code, ...device },
-          phoneResponses.approved,
-        );
-        setMessage("L’application est jumelée à ce téléphone.");
-      } else {
-        await phoneRequest(
-          "/api/phone/pairing-challenges/decline",
-          { code },
-          phoneResponses.declined,
-        );
-        setMessage("Demande refusée.");
-      }
-
-      await SecureStore.deleteItemAsync("nutritual.pending-pair-code");
-      setTimeout(() => router.replace("/settings"), 700);
-    } catch {
-      setMessage("Impossible de traiter ce jumelage. Vérifiez le code et réessayez.");
-    } finally {
-      setBusy(false);
-    }
-  }
 
   return (
     <Screen
@@ -125,12 +32,12 @@ export default function PairScreen() {
           />
           <ActionButton
             label="Autoriser le jumelage"
-            onPress={() => void decide(true)}
+            onPress={() => void approve()}
             disabled={busy || !valid}
           />
           <ActionButton
             label="Refuser"
-            onPress={() => void decide(false)}
+            onPress={() => void decline()}
             disabled={busy || !valid}
             kind="destructive"
           />
