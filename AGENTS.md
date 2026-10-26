@@ -16,3 +16,8 @@ Choose a Ship, Show, or Ask path for each change. See
 ### Domain docs
 
 Use the single-context layout. See `docs/agents/domain.md`.
+
+### Mobile architecture
+
+Before adding, moving, or reviewing mobile code, read `apps/mobile/AGENTS.md`
+for feature ownership, route boundaries, direct imports, and style placement.

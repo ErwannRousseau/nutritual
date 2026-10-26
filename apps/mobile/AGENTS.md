@@ -1,5 +1,28 @@
 This is an Expo/React Native mobile application. Prioritize mobile-first patterns, performance, and cross-platform compatibility.
 
+## Feature-based architecture
+
+Organize code by the feature that owns its behavior:
+
+| Directory                | Responsibility                                                                                        |
+| ------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `src/features/auth/`     | Authentication, sessions, phone pairing, and account settings.                                        |
+| `src/features/home/`     | Daily overview and its components.                                                                    |
+| `src/features/routines/` | Routine creation and management, domain models, state, SQLite storage, reminders, and relay handling. |
+| `src/features/intakes/`  | Recording intakes, intake details, and history screens.                                               |
+| `src/shared/ui/`         | Reusable UI primitives, palette, and layout helpers without feature dependencies.                     |
+
+- Keep screens, components, hooks, domain logic, and tests with their owning feature. Create subdirectories only when needed.
+- Keep `src/app/` for Expo Router layouts and thin route adapters that render feature screens. Put screen behavior and UI in the feature.
+- Keep the combined routine/intake state and persistence in `features/routines/`. Intake screens consume those modules directly.
+- Import from the file that defines a symbol. Do not add barrel files or forwarding re-exports, including in route adapters.
+
+## Component styles
+
+- Define all styles below the components in the same file, including typography and dynamic style calculations.
+- Put static styles in a module-level `StyleSheet.create(...)` declaration below the components. Put theme- or prop-dependent styles in a `createStyles(...)` helper below the components.
+- Inside a component, consume named styles or call the helper, for example `useMemo(() => createStyles(colors), [colors])`. Keep style objects and `StyleSheet.create(...)` out of component bodies and JSX.
+
 ## Expo has changed — do not trust your training data
 
 Expo ships breaking changes every SDK release. APIs you remember are likely renamed, moved, or removed. Before writing any code that touches an Expo, EAS, or React Native API:
@@ -25,7 +48,7 @@ Run lint and typecheck before declaring any task done.
 
 ## Navigation & Routing
 
-- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
+- Use **Expo Router** for all navigation. Route adapters live in `src/app/`, and `_layout.tsx` files define navigators. Feature screens live in `src/features/`.
 - Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
 - Docs: https://docs.expo.dev/router/introduction.md
 
