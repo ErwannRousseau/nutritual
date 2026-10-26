@@ -62,7 +62,13 @@ export async function getDeviceCredentials(): Promise<{ deviceId: string; device
   const existing = await SecureStore.getItemAsync(DEVICE_KEY);
 
   if (existing) {
-    const parsed: JsonValue = JSON.parse(existing);
+    let parsed: JsonValue;
+
+    try {
+      parsed = JSON.parse(existing);
+    } catch {
+      parsed = null;
+    }
 
     if (isJsonObject(parsed)) {
       const deviceId = String(parsed.deviceId ?? "");
