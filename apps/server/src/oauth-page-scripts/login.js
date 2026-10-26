@@ -24,6 +24,15 @@ function setMode(signUp) {
   status.textContent = "";
 }
 
+function completeLogin(url) {
+  const next = new URL(url, location.href);
+
+  if (!isMobileClient && next.origin === location.origin && next.pathname === "/oauth/consent")
+    sessionStorage.setItem("nutritual-paired-oauth-query", next.search.slice(1));
+
+  location.assign(url);
+}
+
 async function continueOAuth() {
   const response = await fetch(`${authBase}/oauth2/continue`, {
     method: "POST",
@@ -36,7 +45,7 @@ async function continueOAuth() {
 
   if (!response.ok || !data.url)
     throw new Error(data.message || "La demande OAuth ne peut pas continuer.");
-  location.assign(data.url);
+  completeLogin(data.url);
 }
 
 async function getSession() {
@@ -107,13 +116,25 @@ async function confirmPairing() {
 
     if (result.status === "approved") {
       status.textContent = "Connexion confirmée. Finalisation de l’autorisation…";
-      sessionStorage.setItem("nutritual-paired-oauth-query", query);
 
       return true;
     }
 
     if (result.status === "declined") {
       status.textContent = "Connexion refusée depuis le téléphone.";
+
+      const response = await fetch(`${authBase}/oauth2/consent`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ accept: false, oauth_query: query }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || !data.url)
+        throw new Error(data.message || "Le refus de connexion n’a pas pu être transmis.");
+      location.assign(data.url);
 
       return false;
     }
@@ -194,7 +215,7 @@ document.querySelector("#form").addEventListener("submit", async (event) => {
     if (!data.url) throw new Error("La demande OAuth ne peut pas continuer.");
 
     if (!isMobileClient && !(await confirmPairing())) return;
-    location.assign(data.url);
+    completeLogin(data.url);
   } catch (error) {
     status.textContent = error.message || "Connexion impossible.";
   }

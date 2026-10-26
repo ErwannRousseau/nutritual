@@ -53,6 +53,9 @@ const mobileOAuthQuery = oauthQuery.replace(
 );
 
 const authorizationUrl = "https://auth.test.invalid/authorize?code=synthetic";
+const consentQuery = `${oauthQuery}&exp=2000&sig=consent-signature`;
+const consentUrl = `${config.publicBaseUrl}/oauth/consent?${consentQuery}`;
+const deniedUrl = "https://client.test.invalid/callback?error=access_denied&state=signed%2Fstate";
 
 async function getServedPageScript(app: Hono<McpAuthVariables>, path: string) {
   const pageResponse = await app.request(path);
@@ -75,6 +78,8 @@ async function runLoginPage(
     signUp?: boolean;
     sessionAfterSignup?: boolean;
     pairingStatus?: "approved" | "declined" | "mismatch" | "expired";
+    nextUrl?: string;
+    denialFails?: boolean;
   } = {},
 ) {
   const query = options.query ?? oauthQuery;
@@ -113,7 +118,12 @@ async function runLoginPage(
   const sessionStorageValues = new Map<string, string>();
 
   await runInNewContext(script, {
-    location: { search: `?${query}`, assign: (url: string) => (destination = url) },
+    location: {
+      href: `${config.publicBaseUrl}/oauth/login?${query}`,
+      origin: new URL(config.publicBaseUrl).origin,
+      search: `?${query}`,
+      assign: (url: string) => (destination = url),
+    },
 
     document: {
       querySelector: (selector: string) => elements.get(selector),
@@ -128,6 +138,7 @@ async function runLoginPage(
       }
     },
     URLSearchParams,
+    URL,
     sessionStorage: {
       setItem(key: string, value: string) {
         sessionStorageValues.set(key, value);
@@ -155,11 +166,18 @@ async function runLoginPage(
       if (url.endsWith("/sign-in/email")) {
         hasSession = true;
 
-        return { ok: true, json: async () => ({ url: authorizationUrl }) };
+        return { ok: true, json: async () => ({ url: options.nextUrl ?? authorizationUrl }) };
       }
 
       if (url.endsWith("/oauth2/continue"))
-        return { ok: true, json: async () => ({ url: authorizationUrl }) };
+        return { ok: true, json: async () => ({ url: options.nextUrl ?? authorizationUrl }) };
+
+      if (url.endsWith("/oauth2/consent"))
+        return {
+          ok: !options.denialFails,
+          json: async () =>
+            options.denialFails ? { message: "Refus impossible." } : { url: deniedUrl },
+        };
 
       if (url === "/pairing/challenges")
         return {
@@ -288,7 +306,7 @@ async function runConsentPage(
 }
 
 test("OAuth signup creates an account then continues the original authorization request", async () => {
-  const flow = await runLoginPage({ signUp: true, sessionAfterSignup: true });
+  const flow = await runLoginPage({ signUp: true, sessionAfterSignup: true, nextUrl: consentUrl });
   await flow.submit();
 
   expect(flow.calls.find((call) => call.url.endsWith("/sign-up/email"))?.body).toEqual({
@@ -303,8 +321,12 @@ test("OAuth signup creates an account then continues the original authorization 
   expect(flow.calls.findIndex((call) => call.url === "/pairing/challenges/status")).toBeLessThan(
     flow.calls.findIndex((call) => call.url.endsWith("/oauth2/continue")),
   );
-  expect(flow.sessionStorageValues.get("nutritual-paired-oauth-query")).toBe(oauthQuery);
-  expect(flow.destination).toBe(authorizationUrl);
+  const pairedQuery = flow.sessionStorageValues.get("nutritual-paired-oauth-query");
+  expect(pairedQuery).toBe(consentQuery);
+  expect(flow.destination).toBe(consentUrl);
+  const consent = await runConsentPage(consentQuery, { pairedQuery });
+  expect(consent.replacement).toBe("");
+  expect(consent.destination).toBe(authorizationUrl);
 });
 
 test("OAuth signup waits for email verification when Neon has not created a session", async () => {
@@ -317,7 +339,13 @@ test("OAuth signup waits for email verification when Neon has not created a sess
 });
 
 test("OAuth login does not continue a ChatGPT request from an existing Neon session", async () => {
-  const flow = await runLoginPage({ sessionAtStart: true });
+  const loginQuery = `${oauthQuery}&exp=1000&sig=login-signature`;
+
+  const flow = await runLoginPage({
+    sessionAtStart: true,
+    query: loginQuery,
+    nextUrl: consentUrl,
+  });
 
   expect(flow.calls.some((call) => call.url.endsWith("/oauth2/continue"))).toBe(false);
   expect(flow.destination).toBe("");
@@ -328,33 +356,79 @@ test("OAuth login does not continue a ChatGPT request from an existing Neon sess
   expect(flow.calls.find((call) => call.url.endsWith("/sign-in/email"))?.body).toEqual({
     email: "person@example.test",
     password: "synthetic-password",
-    oauth_query: oauthQuery,
+    oauth_query: loginQuery,
   });
   expect(flow.calls.find((call) => call.url === "/pairing/challenges")?.body).toEqual({
-    oauthQuery,
+    oauthQuery: loginQuery,
   });
   expect(flow.calls.find((call) => call.url === "/pairing/challenges/status")?.body).toEqual({
     code: "SYNTHETIC",
     pollToken: "synthetic-poll-token",
-    oauthQuery,
+    oauthQuery: loginQuery,
   });
   expect(flow.elements.get("#pair")?.hidden).toBe(false);
   expect(flow.elements.get("#code")?.textContent).toBe("SYNTHETIC");
-  expect(flow.sessionStorageValues.get("nutritual-paired-oauth-query")).toBe(oauthQuery);
-  expect(flow.destination).toBe(authorizationUrl);
+  const pairedQuery = flow.sessionStorageValues.get("nutritual-paired-oauth-query");
+  expect(pairedQuery).toBe(consentQuery);
+  expect(flow.destination).toBe(consentUrl);
+  const consent = await runConsentPage(consentQuery, { pairedQuery });
+  expect(consent.replacement).toBe("");
+  expect(consent.destination).toBe(authorizationUrl);
 });
 
-test("OAuth login stops if the phone declines or has a different account", async () => {
+test("OAuth login sends the phone refusal to the provider after signup or sign-in", async () => {
+  for (const signUp of [true, false]) {
+    const flow = await runLoginPage({
+      signUp,
+      sessionAfterSignup: true,
+      pairingStatus: "declined",
+    });
+
+    await flow.submit();
+
+    expect(flow.calls.find((call) => call.url.endsWith("/oauth2/consent"))?.body).toEqual({
+      accept: false,
+      oauth_query: oauthQuery,
+    });
+    expect(flow.calls.findIndex((call) => call.url === "/pairing/challenges/status")).toBeLessThan(
+      flow.calls.findIndex((call) => call.url.endsWith("/oauth2/consent")),
+    );
+    expect(flow.calls.some((call) => call.url.endsWith("/oauth2/continue"))).toBe(false);
+    expect(flow.destination).toBe(deniedUrl);
+    expect(flow.sessionStorageValues.size).toBe(0);
+  }
+});
+
+test("OAuth login reports a failed refusal without continuing authorization", async () => {
+  const flow = await runLoginPage({ pairingStatus: "declined", denialFails: true });
+  await flow.submit();
+
+  expect(flow.destination).toBe("");
+  expect(flow.elements.get("#status")?.textContent).toBe("Refus impossible.");
+});
+
+test("OAuth login stops if the phone has a different account or the challenge expires", async () => {
   for (const [pairingStatus, statusText] of [
-    ["declined", "refusée"],
     ["mismatch", "ne correspondent pas"],
+    ["expired", "expiré"],
   ] as const) {
     const flow = await runLoginPage({ signUp: true, sessionAfterSignup: true, pairingStatus });
     await flow.submit();
 
     expect(flow.calls.some((call) => call.url.endsWith("/oauth2/continue"))).toBe(false);
+    expect(flow.calls.some((call) => call.url.endsWith("/oauth2/consent"))).toBe(false);
     expect(flow.destination).toBe("");
     expect(flow.elements.get("#status")?.textContent).toContain(statusText);
+  }
+});
+
+test("OAuth login follows an already authorized callback without storing a consent query", async () => {
+  for (const signUp of [true, false]) {
+    const flow = await runLoginPage({ signUp, sessionAfterSignup: true });
+    await flow.submit();
+
+    expect(flow.destination).toBe(authorizationUrl);
+    expect(flow.sessionStorageValues.size).toBe(0);
   }
 });
 
@@ -398,9 +472,11 @@ test("ChatGPT OAuth consent completes after pairing without creating a second ch
 });
 
 test("ChatGPT OAuth consent returns to login when the request was not paired", async () => {
-  const { calls, destination, replacement } = await runConsentPage(oauthQuery);
+  for (const pairedQuery of [undefined, oauthQuery]) {
+    const { calls, destination, replacement } = await runConsentPage(consentQuery, { pairedQuery });
 
-  expect(calls.some((call) => call.url.endsWith("/oauth2/consent"))).toBe(false);
-  expect(destination).toBe("");
-  expect(replacement).toBe(`/oauth/login?${oauthQuery}`);
+    expect(calls.some((call) => call.url.endsWith("/oauth2/consent"))).toBe(false);
+    expect(destination).toBe("");
+    expect(replacement).toBe(`/oauth/login?${consentQuery}`);
+  }
 });
