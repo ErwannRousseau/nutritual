@@ -89,11 +89,7 @@ export default function RoutineNameScreen() {
           <ProductBadge size={96} />
         </Column>
         <AppText variant="largeTitle">Quel complément ?</AppText>
-        <Column
-          spacing={8}
-          style={styles.section}
-          modifiers={fillContainerWidth}
-        >
+        <Column spacing={8} style={styles.section} modifiers={fillContainerWidth}>
           <AppText variant="headline">Nom du complément</AppText>
           <TextInput
             selectTextOnFocus
