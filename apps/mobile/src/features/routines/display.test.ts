@@ -36,7 +36,7 @@ test("interval schedule keeps its interval wording", () => {
 test("as-needed schedule has no time and keeps its label", () => {
   const routine = makeRoutine({ kind: FrequencyKind.asNeeded });
 
-  expect(routineScheduleDisplay(routine)).toEqual({ label: "À la demande", time: null });
+  expect(routineScheduleDisplay(routine)).toEqual({ label: "As needed", time: null });
 });
 
 test("canonical HH:mm time keeps the home row's display", () => {

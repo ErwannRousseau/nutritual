@@ -31,13 +31,13 @@ export async function inspectPairingCode(code: string, services: PairingFlowServ
 
     return {
       details,
-      message: "Code valide. Vérifiez les autorisations ci-dessous.",
+      message: "Code accepted. Review the permissions below.",
     };
   } catch {
     return {
       details: null,
       message:
-        "Code invalide, expiré ou associé à un autre compte. Vérifiez le compte et réessayez.",
+        "The code is invalid, expired, or linked to another account. Check the account and try again.",
     };
   }
 }
@@ -52,15 +52,15 @@ export async function decidePairing(
     if (approve) {
       const device = await services.getDeviceCredentials();
       await services.approve(code, device);
-      setMessage("L’application est jumelée à ce téléphone.");
+      setMessage("The app is paired with this phone.");
     } else {
       await services.decline(code);
-      setMessage("Demande refusée.");
+      setMessage("Request declined.");
     }
 
     await services.deletePendingCode();
     services.schedule(() => services.navigateToSettings(), 700);
   } catch {
-    setMessage("Impossible de traiter ce jumelage. Vérifiez le code et réessayez.");
+    setMessage("Unable to process this pairing. Check the code and try again.");
   }
 }

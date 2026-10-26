@@ -45,7 +45,7 @@ export function useRoutines() {
 
       return true;
     } catch {
-      setError("Impossible de lire ou d’enregistrer les données sur ce téléphone. Réessayez.");
+      setError("Unable to read or save data on this phone. Try again.");
 
       return false;
     } finally {
@@ -74,7 +74,7 @@ export function useRoutines() {
         if (active) setReminders(restored);
       })
       .catch(() => {
-        if (active) setError("Impossible de lire les données sur ce téléphone. Réessayez.");
+        if (active) setError("Unable to read data on this phone. Try again.");
       })
       .finally(() => {
         if (active) {

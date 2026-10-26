@@ -22,7 +22,7 @@ export async function recordIntakeAction(
     setSaving(false);
   }
 
-  setFeedback("Impossible d’enregistrer la prise. Réessayez.");
+  setFeedback("Unable to record the intake. Try again.");
 
   return false;
 }
@@ -46,7 +46,7 @@ export async function undoIntakeAction(
     setUndoing(false);
   }
 
-  setFeedback("Impossible d’annuler cette prise. Réessayez.");
+  setFeedback("Unable to undo this intake. Try again.");
 
   return false;
 }

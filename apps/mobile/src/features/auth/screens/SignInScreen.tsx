@@ -18,7 +18,7 @@ export default function SignInScreen() {
     <Screen
       footer={
         <ActionButton
-          label={isSubmitting ? "Ouverture de la connexion…" : "Se connecter"}
+          label={isSubmitting ? "Signing in…" : "Sign in"}
           onPress={() => {
             setMessage(null);
             void signIn();
@@ -29,9 +29,9 @@ export default function SignInScreen() {
       }
     >
       <Column spacing={20} modifiers={fillAvailableWidth}>
-        <AppText variant="largeTitle">Se connecter</AppText>
+        <AppText variant="largeTitle">Sign in</AppText>
         <AppText color={colors.secondary}>
-          Connectez-vous avec votre compte Neon pour accéder à vos routines et jumeler ChatGPT.
+          Sign in with your Neon account to access your routines and pair ChatGPT.
         </AppText>
         {message ? (
           <RNHostView matchContents>

@@ -24,7 +24,7 @@ export default function SettingsScreen() {
           if (active) setPaired(value.paired);
         })
         .catch(() => {
-          if (active) setMessage("État du jumelage indisponible.");
+          if (active) setMessage("Pairing status is unavailable.");
         });
 
       return () => {
@@ -44,9 +44,9 @@ export default function SettingsScreen() {
         phoneResponses.disconnected,
       );
       setPaired(false);
-      setMessage("ChatGPT a été déconnecté.");
+      setMessage("ChatGPT has been disconnected.");
     } catch {
-      setMessage("Impossible de déconnecter ChatGPT.");
+      setMessage("Unable to disconnect ChatGPT.");
     } finally {
       setBusy(false);
     }
@@ -55,20 +55,18 @@ export default function SettingsScreen() {
   return (
     <Screen>
       <Column spacing={18}>
-        <AppText variant="largeTitle">Jumelage ChatGPT</AppText>
+        <AppText variant="largeTitle">ChatGPT pairing</AppText>
         <AppText color={colors.secondary}>
-          {paired
-            ? "ChatGPT est jumelé à ce téléphone."
-            : "Aucun téléphone n’est jumelé à ChatGPT."}
+          {paired ? "ChatGPT is paired with this phone." : "No phone is paired with ChatGPT."}
         </AppText>
         <ActionButton
-          label="Saisir un code de jumelage"
+          label="Enter pairing code"
           onPress={() => router.push("/pair")}
           kind="secondary"
         />
         {paired ? (
           <ActionButton
-            label={busy ? "Déconnexion…" : "Déconnecter ChatGPT"}
+            label={busy ? "Disconnecting…" : "Disconnect ChatGPT"}
             onPress={() => void disconnect()}
             disabled={busy}
             kind="destructive"
@@ -79,7 +77,7 @@ export default function SettingsScreen() {
             <Text accessibilityRole="alert">{message}</Text>
           </RNHostView>
         ) : null}
-        <ActionButton label="Se déconnecter" onPress={() => void signOut()} kind="secondary" />
+        <ActionButton label="Sign out" onPress={() => void signOut()} kind="secondary" />
       </Column>
     </Screen>
   );

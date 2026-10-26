@@ -33,7 +33,7 @@ export default function HistoryScreen() {
             <AppText
               variant="subhead"
               color={colors.secondary}
-            >{`${dateLabel(date)} ${date.getFullYear()} à ${timeLabel(date)}`}</AppText>
+            >{`${dateLabel(date)} ${date.getFullYear()} at ${timeLabel(date)}`}</AppText>
           </ListItem.Supporting>
           <ListItem.Trailing>
             <AppSymbol name="chevron.right" size={14} color={colors.secondary} />
@@ -47,7 +47,7 @@ export default function HistoryScreen() {
   if (history.length === 0)
     return (
       <Screen>
-        <AppText color={colors.secondary}>Vos prises enregistrées apparaîtront ici.</AppText>
+        <AppText color={colors.secondary}>Your recorded intakes will appear here.</AppText>
       </Screen>
     );
 

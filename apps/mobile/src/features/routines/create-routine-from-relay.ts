@@ -53,7 +53,7 @@ export function createRoutineFromRelayHandler({
         return {
           status: CreateRoutineStatus.conflict,
           operationId: request.operationId,
-          message: "Cet identifiant a déjà été utilisé avec une autre routine.",
+          message: "This ID has already been used for another routine.",
         };
       }
 
@@ -82,7 +82,7 @@ export function createRoutineFromRelayHandler({
       try {
         onData(await storage.loadData());
       } catch {
-        onError("Impossible de lire les données sur ce téléphone. Réessayez.");
+        onError("Unable to read data on this phone. Try again.");
       }
 
       return {
@@ -95,7 +95,7 @@ export function createRoutineFromRelayHandler({
       return {
         status: CreateRoutineStatus.failed,
         operationId: request.operationId,
-        message: "Impossible d’enregistrer la routine sur ce téléphone.",
+        message: "Unable to save the routine on this phone.",
       };
     }
   }
@@ -109,7 +109,7 @@ export function createRoutineFromRelayHandler({
         return Promise.resolve({
           status: CreateRoutineStatus.conflict,
           operationId: request.operationId,
-          message: "Cet identifiant a déjà été utilisé avec une autre routine.",
+          message: "This ID has already been used for another routine.",
         });
       }
 

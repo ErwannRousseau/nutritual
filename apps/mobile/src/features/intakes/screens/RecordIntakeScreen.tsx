@@ -31,10 +31,10 @@ export default function RecordIntakeScreen() {
     return (
       <Screen grouped>
         <AppText color={error ? colors.danger : colors.text}>
-          {busy ? "Chargement de la routine…" : (error ?? "Routine introuvable.")}
+          {busy ? "Loading routine…" : (error ?? "Routine not found.")}
         </AppText>
         {!busy ? (
-          <ActionButton kind="secondary" label="Fermer" onPress={() => router.back()} />
+          <ActionButton kind="secondary" label="Close" onPress={() => router.back()} />
         ) : null}
       </Screen>
     );
@@ -51,7 +51,7 @@ export default function RecordIntakeScreen() {
       grouped
       footer={
         <ActionButton
-          label={isSaving ? "Enregistrement…" : "Enregistrer la prise"}
+          label={isSaving ? "Saving…" : "Record intake"}
           onPress={() => void save()}
           disabled={!isSelected || isActionDisabled}
         />
@@ -66,7 +66,7 @@ export default function RecordIntakeScreen() {
             variant="largeTitle"
             textStyle={styles.centeredText}
           >
-            {schedule.time ? `Prise de ${schedule.time}` : "À la demande"}
+            {schedule.time ? `Intake at ${schedule.time}` : "As needed"}
           </AppText>
         </Column>
         <Spacer />

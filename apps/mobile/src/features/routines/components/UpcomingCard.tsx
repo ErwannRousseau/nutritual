@@ -29,7 +29,7 @@ export default function UpcomingCard({
       <Column modifiers={fillAvailableWidth} spacing={10} style={styles.card}>
         <Row modifiers={fillAvailableWidth} alignment="center">
           <AppText textStyle={styles.time}>
-            {routine.frequency.kind === FrequencyKind.asNeeded ? "À la demande" : routine.time}
+            {routine.frequency.kind === FrequencyKind.asNeeded ? "As needed" : routine.time}
           </AppText>
           <Spacer />
           <AppSymbol name="plus" size={24} color={colors.blue} />
@@ -40,7 +40,7 @@ export default function UpcomingCard({
             <AppText>{routine.productName}</AppText>
             {warning && (
               <AppText variant="footnote" color={colors.danger}>
-                Rappel inactif
+                Reminder inactive
               </AppText>
             )}
           </Column>

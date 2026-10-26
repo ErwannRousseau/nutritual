@@ -14,7 +14,7 @@ export default function SheetHeader({ title }: { title: string }) {
   return (
     <Row alignment="center" style={styles.row}>
       <Column style={styles.close}>
-        <IconButton name="xmark" label="Fermer" onPress={() => router.back()} />
+        <IconButton name="xmark" label="Close" onPress={() => router.back()} />
       </Column>
       <Spacer flexible />
       <AppText variant="subhead" style={styles.title} textStyle={styles.centered}>

@@ -111,15 +111,15 @@ function AuthenticatedLayout() {
         guard={status === "authenticated"}
         redirectTo={status === "restoring" ? "/auth-loading" : "/sign-in"}
       >
-        <Stack.Screen name="index" options={{ title: "Compléments" }} />
+        <Stack.Screen name="index" options={{ title: "Supplements" }} />
         <Stack.Screen name="routine/[id]" options={{ presentation: "modal", headerShown: false }} />
         <Stack.Screen name="record/[id]" options={{ presentation: "modal", headerShown: false }} />
         <Stack.Screen name="intake/[id]" options={{ presentation: "modal", headerShown: false }} />
-        <Stack.Screen name="routine-detail/[id]" options={{ title: "Complément" }} />
-        <Stack.Screen name="as-needed" options={{ title: "À la demande" }} />
-        <Stack.Screen name="history" options={{ title: "Historique" }} />
-        <Stack.Screen name="settings" options={{ title: "ChatGPT et jumelage" }} />
-        <Stack.Screen name="pair" options={{ title: "Jumeler ChatGPT" }} />
+        <Stack.Screen name="routine-detail/[id]" options={{ title: "Supplement" }} />
+        <Stack.Screen name="as-needed" options={{ title: "As needed" }} />
+        <Stack.Screen name="history" options={{ title: "History" }} />
+        <Stack.Screen name="settings" options={{ title: "ChatGPT pairing" }} />
+        <Stack.Screen name="pair" options={{ title: "Pair ChatGPT" }} />
       </Stack.Protected>
       <Stack.Protected
         guard={status === "restoring"}

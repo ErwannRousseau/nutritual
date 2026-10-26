@@ -27,9 +27,7 @@ export default function RoutineNameScreen() {
     if (!draft) return;
     const nextDraft = { ...draft, productName: editedName.current ?? draft.productName };
 
-    const errorMessage = nextDraft.productName.trim()
-      ? null
-      : "Le nom du complément est obligatoire.";
+    const errorMessage = nextDraft.productName.trim() ? null : "Supplement name is required.";
 
     if (errorMessage) {
       setValidationError(errorMessage);
@@ -44,15 +42,15 @@ export default function RoutineNameScreen() {
   if (!ready || !draft) {
     return (
       <Screen>
-        <AppText variant="title">{missing ? "Routine introuvable" : "Chargement…"}</AppText>
+        <AppText variant="title">{missing ? "Routine not found" : "Loading…"}</AppText>
         {missing ? (
-          <ActionButton label="Fermer" onPress={() => router.dismissAll()} kind="secondary" />
+          <ActionButton label="Close" onPress={() => router.dismissAll()} kind="secondary" />
         ) : error ? (
           <>
             <AppText variant="body" color={colors.secondary}>
               {error}
             </AppText>
-            <ActionButton label="Réessayer" onPress={() => void reload()} kind="secondary" />
+            <ActionButton label="Try again" onPress={() => void reload()} kind="secondary" />
           </>
         ) : null}
       </Screen>
@@ -64,18 +62,18 @@ export default function RoutineNameScreen() {
       <Stack.Screen
         options={{
           headerShown: true,
-          title: id === "new" ? "Nouvelle routine" : "Modifier la routine",
+          title: id === "new" ? "New routine" : "Edit routine",
         }}
       />
       <Stack.Toolbar placement="right">
         <Stack.Toolbar.Button tintColor={colors.blue} onPress={() => router.dismiss()}>
-          Annuler
+          Cancel
         </Stack.Toolbar.Button>
       </Stack.Toolbar>
       <Screen
         footer={
           <ActionButton
-            label="Continuer"
+            label="Continue"
             onPress={continueToSchedule}
             testID="routine-name-continue"
           />
@@ -84,9 +82,9 @@ export default function RoutineNameScreen() {
         <Column alignment="center" style={styles.hero}>
           <ProductBadge size={96} />
         </Column>
-        <AppText variant="largeTitle">Quel complément ?</AppText>
+        <AppText variant="largeTitle">Which supplement?</AppText>
         <Column spacing={8} style={styles.section} modifiers={fillContainerWidth}>
-          <AppText variant="headline">Nom du complément</AppText>
+          <AppText variant="headline">Supplement name</AppText>
           <TextInput
             selectTextOnFocus
             autoCapitalize="sentences"
@@ -98,7 +96,7 @@ export default function RoutineNameScreen() {
               markDirty();
               setValidationError(null);
             }}
-            placeholder="Ex. Vitamine D"
+            placeholder="e.g. Vitamin D"
             returnKeyType="done"
             style={styles.input}
             textStyle={styles.inputText}

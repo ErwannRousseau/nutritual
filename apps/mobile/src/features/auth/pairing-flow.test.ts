@@ -39,7 +39,7 @@ test("inspection stores the normalized code after the server accepts it", async 
 
   expect(result).toEqual({
     details,
-    message: "Code valide. Vérifiez les autorisations ci-dessous.",
+    message: "Code accepted. Review the permissions below.",
   });
   expect(events).toEqual(["inspect:AAAA-AAAA", "store:AAAA-AAAA"]);
 });
@@ -61,7 +61,7 @@ test("inspection failure keeps the pending code and reports the existing message
 
   expect(result.details).toBeNull();
   expect(result.message).toBe(
-    "Code invalide, expiré ou associé à un autre compte. Vérifiez le compte et réessayez.",
+    "The code is invalid, expired, or linked to another account. Check the account and try again.",
   );
   expect(stored).toBe(false);
 });
@@ -98,11 +98,11 @@ test("approval sends device credentials and only then clears the code and schedu
     },
   );
 
-  expect(message).toBe("L’application est jumelée à ce téléphone.");
+  expect(message).toBe("The app is paired with this phone.");
   expect(events).toEqual([
     "credentials",
     "approve:AAAA-AAAA:device-id:device-secret",
-    "message:L’application est jumelée à ce téléphone.",
+    "message:The app is paired with this phone.",
     "delete",
     "schedule:700",
   ]);
@@ -134,7 +134,7 @@ test("approval failure does not delete the pending code or schedule navigation",
     },
   );
 
-  expect(message).toBe("Impossible de traiter ce jumelage. Vérifiez le code et réessayez.");
+  expect(message).toBe("Unable to process this pairing. Check the code and try again.");
   expect(deleted).toBe(false);
   expect(scheduled).toBe(false);
 });
@@ -165,7 +165,7 @@ test("decline posts only the validated code and never requests device credential
     },
   );
 
-  expect(message).toBe("Demande refusée.");
+  expect(message).toBe("Request declined.");
   expect(events).toEqual(["decline:AAAA-AAAA", "delete", "schedule:700"]);
 });
 

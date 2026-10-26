@@ -76,7 +76,7 @@ test("record reports false and rejected operations", async () => {
     ),
   ).toBe(false);
   expect(saving).toEqual([true, false]);
-  expect(feedback.at(-1)).toBe("Impossible d’enregistrer la prise. Réessayez.");
+  expect(feedback.at(-1)).toBe("Unable to record the intake. Try again.");
 
   expect(
     await recordIntakeAction(
@@ -91,7 +91,7 @@ test("record reports false and rejected operations", async () => {
     ),
   ).toBe(false);
   expect(saving.slice(-2)).toEqual([true, false]);
-  expect(feedback.at(-1)).toBe("Impossible d’enregistrer la prise. Réessayez.");
+  expect(feedback.at(-1)).toBe("Unable to record the intake. Try again.");
 });
 
 test("undo succeeds and resets pending state", async () => {
@@ -131,7 +131,7 @@ test("undo reports false and rejected operations and resets pending state", asyn
     ),
   ).toBe(false);
   expect(undoing).toEqual([true, false]);
-  expect(feedback.at(-1)).toBe("Impossible d’annuler cette prise. Réessayez.");
+  expect(feedback.at(-1)).toBe("Unable to undo this intake. Try again.");
 
   expect(
     await undoIntakeAction(
@@ -145,5 +145,5 @@ test("undo reports false and rejected operations and resets pending state", asyn
     ),
   ).toBe(false);
   expect(undoing.slice(-2)).toEqual([true, false]);
-  expect(feedback.at(-1)).toBe("Impossible d’annuler cette prise. Réessayez.");
+  expect(feedback.at(-1)).toBe("Unable to undo this intake. Try again.");
 });

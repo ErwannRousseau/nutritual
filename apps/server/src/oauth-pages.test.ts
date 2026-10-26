@@ -139,5 +139,5 @@ test("OAuth signup waits for email verification when Neon has not created a sess
 
   expect(calls.some((call) => call.url.endsWith("/oauth2/continue"))).toBe(false);
   expect(destination).toBe("");
-  expect(elements.get("#status")?.textContent).toContain("vérification");
+  expect(elements.get("#status")?.textContent).toContain("verify your email");
 });

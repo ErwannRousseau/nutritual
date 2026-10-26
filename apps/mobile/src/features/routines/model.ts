@@ -31,7 +31,7 @@ export type ReminderState = {
 
 export type RoutineDraft = RoutineInput;
 
-const weekdayNames = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
+const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const maxIntervalDays = 36_500;
 
 function dayOrdinal(year: number, month: number, day: number): number {
@@ -195,12 +195,12 @@ export function nextOccurrence(routine: Routine, after: Date): Date | null {
 }
 
 export function describeFrequency(frequency: Frequency): string {
-  if (frequency.kind === FrequencyKind.asNeeded) return "À la demande";
+  if (frequency.kind === FrequencyKind.asNeeded) return "As needed";
 
   if (frequency.kind === FrequencyKind.interval)
-    return `Tous les ${frequency.every} jours à partir du ${frequency.startDate}`;
+    return `Every ${frequency.every} days starting ${frequency.startDate}`;
 
-  if (frequency.days.length === 7) return "Tous les jours";
+  if (frequency.days.length === 7) return "Every day";
 
   return frequency.days.map((day) => weekdayNames[day]).join(", ");
 }
