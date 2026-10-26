@@ -25,18 +25,18 @@ export default function PairScreen() {
       footer={
         <Column spacing={10}>
           <ActionButton
-            label={busy ? "Vérification…" : "Vérifier le code"}
+            label={busy ? "Checking…" : "Check code"}
             onPress={() => void inspect()}
             disabled={busy}
             kind="secondary"
           />
           <ActionButton
-            label="Autoriser le jumelage"
+            label="Allow pairing"
             onPress={() => void approve()}
             disabled={busy || !valid}
           />
           <ActionButton
-            label="Refuser"
+            label="Decline"
             onPress={() => void decline()}
             disabled={busy || !valid}
             kind="destructive"
@@ -45,27 +45,27 @@ export default function PairScreen() {
       }
     >
       <Column spacing={18} modifiers={fillAvailableWidth}>
-        <AppText variant="largeTitle">Jumeler ChatGPT</AppText>
+        <AppText variant="largeTitle">Pair ChatGPT</AppText>
         <AppText>
-          L’application identifiée ci-dessous pourra créer des routines sur ce téléphone. Les
-          routines et prises restent stockées localement. Une seule autorisation suffit pour créer
-          les routines suivantes. Ne continuez que si vous reconnaissez cette application.
+          The app identified below can create routines on this phone. Routines and intakes stay
+          stored locally. This authorization allows it to create future routines. Continue only if
+          you recognize this app.
         </AppText>
         <TextInput
           autoCapitalize="characters"
           autoCorrect={false}
-          placeholder="Code de jumelage"
+          placeholder="Pairing code"
           modifiers={fillAvailableWidth}
           style={styles.input}
           value={codeInput}
         />
         {details ? (
           <Column spacing={8}>
-            <AppText variant="headline">Application à autoriser</AppText>
-            <AppText>{`Identifiant client : ${details.clientId}`}</AppText>
-            <AppText>{`Hôte de redirection : ${details.redirectHost}`}</AppText>
-            <AppText>{`Autorisations demandées : ${details.scope.join(", ")}`}</AppText>
-            <AppText>{`Ressource : ${details.resource ?? "Aucune"}`}</AppText>
+            <AppText variant="headline">App requesting access</AppText>
+            <AppText>{`Client ID: ${details.clientId}`}</AppText>
+            <AppText>{`Redirect host: ${details.redirectHost}`}</AppText>
+            <AppText>{`Requested permissions: ${details.scope.join(", ")}`}</AppText>
+            <AppText>{`Resource: ${details.resource ?? "None"}`}</AppText>
           </Column>
         ) : null}
         {message ? (

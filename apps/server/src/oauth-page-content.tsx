@@ -41,7 +41,7 @@ function OAuthPage({ children, script }: PropsWithChildren<{ script: Child }>) {
   return (
     <>
       {html`<!doctype html>`}
-      <html lang="fr">
+      <html lang="en">
         <head>
           <meta charset="utf-8" />
           <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -68,14 +68,14 @@ export function renderOAuthLoginPage(authBaseUrl: string, mobileClientId: string
         />
       }
     >
-      <h1 id="title">Se connecter à Nutritual</h1>
-      <p id="description">Utilisez le compte Nutritual associé à votre téléphone.</p>
+      <h1 id="title">Sign in to Nutritual</h1>
+      <p id="description">Use the Nutritual account associated with your phone.</p>
       <form id="form">
         <input
           name="email"
           type="email"
           autocomplete="username"
-          placeholder="Adresse e-mail"
+          placeholder="Email address"
           required
         />
         <input
@@ -83,22 +83,22 @@ export function renderOAuthLoginPage(authBaseUrl: string, mobileClientId: string
           name="password"
           type="password"
           autocomplete="current-password"
-          placeholder="Mot de passe"
+          placeholder="Password"
           required
         />
-        <button id="submit">Continuer</button>
+        <button id="submit">Continue</button>
       </form>
       <button id="toggle" class="secondary" type="button">
-        Créer un compte
+        Create an account
       </button>
       <section id="pair" hidden>
-        <img id="qr" alt="QR code d’association" />
-        <p>Scannez ce code avec Nutritual pour confirmer la connexion.</p>
+        <img id="qr" alt="Pairing QR code" />
+        <p>Scan this code with Nutritual to confirm the connection.</p>
         <p>
-          Code : <code id="code" />
+          Code: <code id="code" />
         </p>
         <p id="requestDetails" />
-        <small>Le code expire dans cinq minutes.</small>
+        <small>The code expires in five minutes.</small>
       </section>
       <p id="status" role="status" />
     </OAuthPage>
@@ -116,13 +116,13 @@ export function renderOAuthConsentPage(authBaseUrl: string, mobileClientId: stri
         />
       }
     >
-      <h1>Connecter Nutritual</h1>
-      <p id="explanation">Préparation de la demande…</p>
+      <h1>Connect to Nutritual</h1>
+      <p id="explanation">Preparing request…</p>
       <section id="mobile" hidden>
-        <p>Cette application demande l’accès suivant :</p>
+        <p>This app is requesting the following permissions:</p>
         <pre id="details" />
-        <button id="allow">Autoriser</button>
-        <button id="deny">Refuser</button>
+        <button id="allow">Allow</button>
+        <button id="deny">Deny</button>
       </section>
       <p id="status" role="status" />
     </OAuthPage>

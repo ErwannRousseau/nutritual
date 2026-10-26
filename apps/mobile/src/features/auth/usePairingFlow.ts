@@ -63,7 +63,7 @@ export function usePairingFlow(initialCode?: string) {
     const code = normalizePairCode(codeInput.value);
 
     if (!code) {
-      setMessage("Saisissez le code affiché dans ChatGPT.");
+      setMessage("Enter the code shown in ChatGPT.");
 
       return;
     }
@@ -97,7 +97,7 @@ export function usePairingFlow(initialCode?: string) {
 
     if (!code) {
       setValid(false);
-      setMessage("Vérifiez à nouveau le code avant de continuer.");
+      setMessage("Check the code again before continuing.");
 
       return;
     }

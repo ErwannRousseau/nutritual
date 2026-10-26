@@ -7,8 +7,8 @@ export default function AuthLoadingScreen() {
   return (
     <Screen>
       <Column spacing={16} modifiers={fillAvailableWidth}>
-        <AppText variant="title">Ouverture de Nutritual</AppText>
-        <AppText color="#6C6C70">Restauration de la session…</AppText>
+        <AppText variant="title">Opening Nutritual</AppText>
+        <AppText color="#6C6C70">Restoring session…</AppText>
       </Column>
     </Screen>
   );

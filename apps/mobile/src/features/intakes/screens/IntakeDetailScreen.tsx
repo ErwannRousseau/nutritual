@@ -34,10 +34,10 @@ export default function IntakeDetailScreen() {
     return (
       <Screen grouped>
         <AppText color={error ? colors.danger : colors.text}>
-          {busy ? "Chargement de la prise…" : (error ?? "Prise introuvable.")}
+          {busy ? "Loading intake…" : (error ?? "Intake not found.")}
         </AppText>
         {!busy ? (
-          <ActionButton kind="secondary" label="Fermer" onPress={() => router.back()} />
+          <ActionButton kind="secondary" label="Close" onPress={() => router.back()} />
         ) : null}
       </Screen>
     );
@@ -49,13 +49,13 @@ export default function IntakeDetailScreen() {
       footer={
         <ActionButton
           kind="destructive"
-          label={isUndoing ? "Annulation…" : "Annuler la prise"}
+          label={isUndoing ? "Undoing…" : "Undo intake"}
           onPress={() => void removeIntake()}
           disabled={isActionDisabled}
         />
       }
     >
-      <SheetHeader title="Prise enregistrée" />
+      <SheetHeader title="Intake recorded" />
       <Row alignment="center">
         <Column alignment="center" spacing={12} style={styles.fullWidth}>
           <Column alignment="center" style={styles.check}>
@@ -68,7 +68,7 @@ export default function IntakeDetailScreen() {
             variant="largeTitle"
             textStyle={styles.centeredText}
           >
-            {recordedAt ? timeLabel(recordedAt) : "Prise enregistrée"}
+            {recordedAt ? timeLabel(recordedAt) : "Intake recorded"}
           </AppText>
           {recordedAt ? (
             <AppText

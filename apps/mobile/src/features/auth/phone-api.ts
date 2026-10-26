@@ -15,10 +15,10 @@ export async function phoneRequest<T extends JsonValue>(
   body: PhoneRequestBody | undefined,
   responseGuard: (value: JsonValue) => value is T,
 ): Promise<T> {
-  if (!base) throw new Error("Le serveur n’est pas configuré.");
+  if (!base) throw new Error("The server is not configured.");
   const tokens = await getUsableTokens();
 
-  if (!tokens) throw new Error("Reconnectez-vous pour continuer.");
+  if (!tokens) throw new Error("Sign in again to continue.");
 
   const authorization = `Bearer ${tokens.accessToken}`;
 
@@ -33,11 +33,11 @@ export async function phoneRequest<T extends JsonValue>(
 
   const response = await fetch(`${base}${path}`, request);
 
-  if (!response.ok) throw new Error("La demande n’a pas abouti.");
+  if (!response.ok) throw new Error("The request failed.");
 
   const result: JsonValue = await response.json();
 
-  if (!responseGuard(result)) throw new Error("Réponse serveur invalide.");
+  if (!responseGuard(result)) throw new Error("Invalid server response.");
 
   return result;
 }

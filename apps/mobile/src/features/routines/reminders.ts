@@ -55,8 +55,8 @@ function notification(
   return {
     identifier,
     content: {
-      title: "Rappel de routine",
-      body: `C’est l’heure de prendre ${routine.productName}.`,
+      title: "Routine reminder",
+      body: `Time to take ${routine.productName}.`,
       sound: "default",
       data: { routineId: routine.id },
     },
@@ -84,14 +84,10 @@ async function updateReminderOnce(
     const prefix = routinePrefix(routine.id);
     await cancelScheduled(await ownScheduled(prefix));
 
-    if (routine.paused) return state(routine.id, "paused", "Routine en pause. Aucun rappel actif.");
+    if (routine.paused) return state(routine.id, "paused", "Routine paused. No active reminders.");
 
     if (routine.frequency.kind === FrequencyKind.asNeeded)
-      return state(
-        routine.id,
-        ReminderOutcomes.none,
-        "Routine à la demande. Aucun rappel programmé.",
-      );
+      return state(routine.id, ReminderOutcomes.none, "As-needed routine. No reminders scheduled.");
 
     let permissions = await Notifications.getPermissionsAsync();
 
@@ -110,7 +106,7 @@ async function updateReminderOnce(
       return state(
         routine.id,
         ReminderOutcomes.denied,
-        "Autorisez les notifications dans les réglages pour activer les rappels.",
+        "Allow notifications in Settings to enable reminders.",
       );
 
     const pending = await Notifications.getAllScheduledNotificationsAsync();
@@ -120,7 +116,7 @@ async function updateReminderOnce(
     const batchPrefix = `${prefix}${randomUUID()}:`;
     const time = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(routine.time);
 
-    if (!time) throw new Error("Heure de rappel invalide.");
+    if (!time) throw new Error("Invalid reminder time.");
 
     const hour = Number(time[1]);
     const minute = Number(time[2]);
@@ -165,10 +161,10 @@ async function updateReminderOnce(
         );
       }
 
-      if (!requests.length) throw new Error("Aucun créneau de notification disponible.");
+      if (!requests.length) throw new Error("No notification slots are available.");
     }
 
-    if (requests.length > slots) throw new Error("Aucun créneau de notification disponible.");
+    if (requests.length > slots) throw new Error("No notification slots are available.");
 
     const created: string[] = [];
 
@@ -184,21 +180,21 @@ async function updateReminderOnce(
 
     if (created.some((identifier) => !scheduled.some((item) => item.identifier === identifier))) {
       await cancelScheduled(scheduled);
-      throw new Error("Le système n’a pas conservé tous les rappels programmés.");
+      throw new Error("The system did not keep all scheduled reminders.");
     }
 
     const message = lastIntervalDate
-      ? `Rappels programmés jusqu’au ${lastIntervalDate.toLocaleDateString("fr-FR")}. Ouvrez Nutritual avant cette date pour les renouveler.`
-      : `Rappel programmé à ${routine.time}.`;
+      ? `Reminders are scheduled through ${lastIntervalDate.toLocaleDateString("en-GB")}. Open Nutritual before this date to renew them.`
+      : `Reminder scheduled for ${routine.time}.`;
 
     return state(routine.id, ReminderOutcomes.scheduled, message);
   } catch (error) {
-    const detail = error instanceof Error ? error.message : "Réessayez plus tard.";
+    const detail = error instanceof Error ? error.message : "Try again later.";
 
     return state(
       routine.id,
       ReminderOutcomes.failed,
-      `Routine enregistrée. L’état du rappel n’est pas confirmé. ${detail}`,
+      `Routine saved. Reminder status is unconfirmed. ${detail}`,
     );
   }
 }

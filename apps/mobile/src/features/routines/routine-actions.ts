@@ -19,7 +19,7 @@ export async function pauseRoutine(
     // Keep the screen's existing failure message for provider errors.
   }
 
-  setFeedback("Impossible de modifier la routine. Réessayez.");
+  setFeedback("Unable to update the routine. Try again.");
 
   return false;
 }
@@ -39,7 +39,7 @@ export async function removeRoutine(
     // Keep the screen's existing failure message for provider errors.
   }
 
-  setFeedback("Impossible de supprimer la routine. Réessayez.");
+  setFeedback("Unable to delete the routine. Try again.");
 
   return false;
 }
@@ -71,11 +71,9 @@ export async function saveRoutineDraft(
     const saved = await save(draft, id);
 
     if (saved) finish();
-    else setSaveError(storeError ?? "La routine n’a pas pu être enregistrée. Réessayez.");
+    else setSaveError(storeError ?? "Unable to save the routine. Try again.");
   } catch (cause) {
-    setSaveError(
-      cause instanceof Error ? cause.message : "La routine n’a pas pu être enregistrée.",
-    );
+    setSaveError(cause instanceof Error ? cause.message : "Unable to save the routine.");
   } finally {
     setSaving(false);
   }

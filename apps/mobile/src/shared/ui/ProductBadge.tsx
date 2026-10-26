@@ -15,7 +15,7 @@ export default function ProductBadge({ size = 40 }: Props) {
     <RNHostView matchContents>
       <View
         accessible
-        accessibilityLabel="Complément"
+        accessibilityLabel="Supplement"
         accessibilityRole="image"
         style={large ? styles.large : styles.small}
       >

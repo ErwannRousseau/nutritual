@@ -16,13 +16,13 @@ import type { Frequency } from "@nutritual/protocol";
 import { useRoutineStore } from "@/features/routines/RoutinesProvider";
 
 const week = [
-  ["Lundi", 1],
-  ["Mardi", 2],
-  ["Mercredi", 3],
-  ["Jeudi", 4],
-  ["Vendredi", 5],
-  ["Samedi", 6],
-  ["Dimanche", 0],
+  ["Monday", 1],
+  ["Tuesday", 2],
+  ["Wednesday", 3],
+  ["Thursday", 4],
+  ["Friday", 5],
+  ["Saturday", 6],
+  ["Sunday", 0],
 ] as const;
 
 const allDays = week.map(([, day]) => day);
@@ -42,9 +42,9 @@ export default function RoutineScheduleScreen() {
   if (!ready || !draft)
     return (
       <Screen>
-        <AppText>{missing ? "Routine introuvable." : (error ?? "Chargement…")}</AppText>
+        <AppText>{missing ? "Routine not found." : (error ?? "Loading…")}</AppText>
         <ActionButton
-          label={error ? "Réessayer" : "Fermer"}
+          label={error ? "Try again" : "Close"}
           onPress={() => (error ? void reload() : router.dismissAll())}
         />
       </Screen>
@@ -86,27 +86,27 @@ export default function RoutineScheduleScreen() {
             </AppText>
           )}
           <ActionButton
-            label="Continuer"
+            label="Continue"
             onPress={continueToReview}
             testID="routine-schedule-continue"
           />
         </Column>
       }
     >
-      <AppText variant="largeTitle">À quel rythme ?</AppText>
+      <AppText variant="largeTitle">How often?</AppText>
       <Column modifiers={fillAvailableWidth} spacing={12}>
-        <AppText variant="headline">Fréquence</AppText>
+        <AppText variant="headline">Frequency</AppText>
         <Column spacing={0} style={styles.group}>
           <ChoiceRow
-            label="Chaque jour"
-            detail="À la même heure, tous les jours"
+            label="Every day"
+            detail="At the same time every day"
             selected={daily}
             onPress={() => choose({ kind: FrequencyKind.weekdays, days: allDays })}
           />
           <Column style={styles.separator} />
           <ChoiceRow
-            label="Certains jours"
-            detail="Les jours de votre choix"
+            label="Selected days"
+            detail="Choose which days"
             selected={frequency.kind === FrequencyKind.weekdays && !daily}
             onPress={() =>
               choose({
@@ -117,15 +117,15 @@ export default function RoutineScheduleScreen() {
           />
           <Column style={styles.separator} />
           <ChoiceRow
-            label="Tous les N jours"
-            detail="Tous les 2 jours, tous les 3 jours…"
+            label="Every N days"
+            detail="Every 2 days, every 3 days…"
             selected={frequency.kind === FrequencyKind.interval}
             onPress={() => choose({ kind: FrequencyKind.interval, every, startDate: anchor })}
           />
           <Column style={styles.separator} />
           <ChoiceRow
-            label="À la demande"
-            detail="Sans rappel automatique"
+            label="As needed"
+            detail="No automatic reminders"
             selected={frequency.kind === FrequencyKind.asNeeded}
             onPress={() => choose({ kind: FrequencyKind.asNeeded })}
           />
@@ -134,7 +134,7 @@ export default function RoutineScheduleScreen() {
 
       {frequency.kind === FrequencyKind.weekdays && !daily && (
         <Column modifiers={fillAvailableWidth} spacing={12}>
-          <AppText variant="headline">Jours de prise</AppText>
+          <AppText variant="headline">Intake days</AppText>
           <Column spacing={0} style={styles.group}>
             {week.map(([name, day], index) => (
               <Column key={day} spacing={0}>
@@ -159,10 +159,10 @@ export default function RoutineScheduleScreen() {
 
       {frequency.kind === FrequencyKind.interval && (
         <Column modifiers={fillAvailableWidth} spacing={12}>
-          <AppText variant="headline">Intervalle</AppText>
+          <AppText variant="headline">Interval</AppText>
           <Row spacing={12} alignment="center" style={styles.numberRow}>
             <Column alignment="start">
-              <AppText>Nombre de jours</AppText>
+              <AppText>Number of days</AppText>
             </Column>
             <Spacer />
             <TextInput
@@ -177,7 +177,7 @@ export default function RoutineScheduleScreen() {
             />
           </Row>
           <DateField
-            label="Date de début"
+            label="Start date"
             mode="date"
             value={dateWithTime(anchor, "12:00")}
             onChange={(value) => choose({ ...frequency, startDate: localDate(value) })}
@@ -188,9 +188,9 @@ export default function RoutineScheduleScreen() {
 
       {frequency.kind !== FrequencyKind.asNeeded && (
         <Column modifiers={fillAvailableWidth} spacing={12}>
-          <AppText variant="headline">Heure de prise</AppText>
+          <AppText variant="headline">Intake time</AppText>
           <DateField
-            label="Prendre à"
+            label="Take at"
             mode="time"
             value={dateWithTime(localDate(today), draft.time)}
             onChange={(value) =>

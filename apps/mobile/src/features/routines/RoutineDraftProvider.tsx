@@ -28,21 +28,17 @@ export function RoutineDraftProvider({ children }: { children: ReactNode }) {
   const disablePrevention = usePreventRemove(
     !leaving && (dirty || editedDraft !== null),
     ({ repeat }) => {
-      Alert.alert(
-        "Abandonner les modifications ?",
-        "Vos modifications ne seront pas enregistrées.",
-        [
-          { text: "Continuer la saisie", style: "cancel" },
-          {
-            text: "Abandonner",
-            style: "destructive",
-            onPress: () => {
-              setLeaving(true);
-              repeat();
-            },
+      Alert.alert("Discard changes?", "Your changes will not be saved.", [
+        { text: "Continue editing", style: "cancel" },
+        {
+          text: "Discard",
+          style: "destructive",
+          onPress: () => {
+            setLeaving(true);
+            repeat();
           },
-        ],
-      );
+        },
+      ]);
     },
   );
 

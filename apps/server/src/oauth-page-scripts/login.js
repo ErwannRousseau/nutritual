@@ -14,13 +14,13 @@ let creatingAccount = false;
 
 function setMode(signUp) {
   creatingAccount = signUp;
-  title.textContent = signUp ? "Créer un compte Nutritual" : "Se connecter à Nutritual";
+  title.textContent = signUp ? "Create a Nutritual account" : "Sign in to Nutritual";
   description.textContent = signUp
-    ? "Choisissez l’adresse e-mail et le mot de passe de votre compte Nutritual."
-    : "Utilisez le compte Nutritual associé à votre téléphone.";
+    ? "Choose an email address and password for your Nutritual account."
+    : "Use the Nutritual account associated with your phone.";
   password.autocomplete = signUp ? "new-password" : "current-password";
-  submit.textContent = signUp ? "Créer mon compte" : "Continuer";
-  toggle.textContent = signUp ? "Déjà un compte ? Se connecter" : "Créer un compte";
+  submit.textContent = signUp ? "Create my account" : "Continue";
+  toggle.textContent = signUp ? "Already have an account? Sign in" : "Create an account";
   status.textContent = "";
 }
 
@@ -44,7 +44,7 @@ async function continueOAuth() {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok || !data.url)
-    throw new Error(data.message || "La demande OAuth ne peut pas continuer.");
+    throw new Error(data.message || "The OAuth request cannot continue.");
   completeLogin(data.url);
 }
 
@@ -59,7 +59,7 @@ async function getBrowserSessionJwt() {
   const token = response.headers.get("set-auth-jwt");
 
   if (!response.ok || !token)
-    throw new Error("Session navigateur Neon introuvable. Reconnectez-vous puis réessayez.");
+    throw new Error("Neon browser session not found. Sign in again and retry.");
 
   return token;
 }
@@ -73,7 +73,7 @@ async function createBrowserChallenge() {
     body: JSON.stringify({ oauthQuery: query }),
   });
 
-  if (!response.ok) throw new Error("Création du code impossible.");
+  if (!response.ok) throw new Error("Unable to create a code.");
 
   return response.json();
 }
@@ -82,22 +82,22 @@ async function confirmPairing() {
   const challenge = await createBrowserChallenge();
   const pair = document.querySelector("#pair");
 
-  title.textContent = "Confirmer la connexion à Nutritual";
-  description.textContent = "Scannez ce code avec Nutritual pour confirmer la connexion.";
+  title.textContent = "Confirm your connection to Nutritual";
+  description.textContent = "Scan this code with Nutritual to confirm the connection.";
   formElement.hidden = true;
   toggle.hidden = true;
   pair.hidden = false;
   document.querySelector("#qr").src = challenge.qrUrl;
   document.querySelector("#code").textContent = challenge.code;
   document.querySelector("#requestDetails").textContent = [
-    `Client : ${params.get("client_id") || "inconnu"}`,
-    `Ressource : ${params.get("resource") || "non précisée"}`,
-    `Autorisations : ${params.get("scope") || "non précisées"}`,
+    `Client: ${params.get("client_id") || "unknown"}`,
+    `Resource: ${params.get("resource") || "not specified"}`,
+    `Permissions: ${params.get("scope") || "not specified"}`,
   ].join("\n");
   const deadline = Date.parse(challenge.expiresAt);
 
   while (Date.now() < deadline) {
-    status.textContent = "En attente de confirmation sur le téléphone…";
+    status.textContent = "Waiting for confirmation on your phone…";
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const sessionJwt = await getBrowserSessionJwt();
 
@@ -111,17 +111,17 @@ async function confirmPairing() {
       }),
     });
 
-    if (!response.ok) throw new Error("Vérification du téléphone impossible.");
+    if (!response.ok) throw new Error("Unable to verify your phone.");
     const result = await response.json();
 
     if (result.status === "approved") {
-      status.textContent = "Connexion confirmée. Finalisation de l’autorisation…";
+      status.textContent = "Connection confirmed. Finalizing authorization…";
 
       return true;
     }
 
     if (result.status === "declined") {
-      status.textContent = "Connexion refusée depuis le téléphone.";
+      status.textContent = "Connection declined on your phone.";
 
       const response = await fetch(`${authBase}/oauth2/consent`, {
         method: "POST",
@@ -133,7 +133,7 @@ async function confirmPairing() {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok || !data.url)
-        throw new Error(data.message || "Le refus de connexion n’a pas pu être transmis.");
+        throw new Error(data.message || "The refusal could not be sent.");
       location.assign(data.url);
 
       return false;
@@ -141,7 +141,7 @@ async function confirmPairing() {
 
     if (result.status === "mismatch") {
       status.textContent =
-        "Le compte du navigateur et celui du téléphone ne correspondent pas. Recommencez avec le même compte.";
+        "The browser and phone accounts do not match. Start again with the same account.";
 
       return false;
     }
@@ -149,7 +149,7 @@ async function confirmPairing() {
     if (result.status === "expired") break;
   }
 
-  status.textContent = "Le code a expiré. Relancez la connexion.";
+  status.textContent = "The code has expired. Start sign-in again.";
 
   return false;
 }
@@ -157,14 +157,14 @@ async function confirmPairing() {
 getSession().then((data) => {
   if (data?.user && isMobileClient)
     continueOAuth().catch((error) => (status.textContent = error.message));
-  else if (data?.user) status.textContent = "Reconnectez-vous pour confirmer la connexion.";
+  else if (data?.user) status.textContent = "Sign in again to confirm the connection.";
 });
 
 toggle.addEventListener("click", () => setMode(!creatingAccount));
 
 document.querySelector("#form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  status.textContent = creatingAccount ? "Création du compte…" : "Connexion…";
+  status.textContent = creatingAccount ? "Creating account…" : "Signing in…";
   const form = new FormData(event.currentTarget);
   const email = String(form.get("email"));
   const userPassword = String(form.get("password"));
@@ -189,9 +189,7 @@ document.querySelector("#form").addEventListener("submit", async (event) => {
     if (!response.ok)
       throw new Error(
         data.message ||
-          (creatingAccount
-            ? "La création du compte a échoué."
-            : "Vérifiez votre adresse e-mail et votre mot de passe."),
+          (creatingAccount ? "Account creation failed." : "Check your email address and password."),
       );
 
     if (creatingAccount) {
@@ -200,7 +198,7 @@ document.querySelector("#form").addEventListener("submit", async (event) => {
       if (!session?.user) {
         setMode(false);
         status.textContent =
-          "Compte créé. Si Neon demande une vérification, consultez votre e-mail, puis reconnectez-vous.";
+          "Account created. If Neon asks you to verify your email, check your inbox, then sign in again.";
 
         return;
       }
@@ -212,11 +210,11 @@ document.querySelector("#form").addEventListener("submit", async (event) => {
       return;
     }
 
-    if (!data.url) throw new Error("La demande OAuth ne peut pas continuer.");
+    if (!data.url) throw new Error("The OAuth request cannot continue.");
 
     if (!isMobileClient && !(await confirmPairing())) return;
     completeLogin(data.url);
   } catch (error) {
-    status.textContent = error.message || "Connexion impossible.";
+    status.textContent = error.message || "Unable to sign in.";
   }
 });

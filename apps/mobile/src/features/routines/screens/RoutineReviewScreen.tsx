@@ -32,15 +32,15 @@ export default function RoutineReviewScreen() {
   if (!ready || !draft) {
     return (
       <Screen>
-        <AppText variant="title">{missing ? "Routine introuvable" : "Chargement…"}</AppText>
+        <AppText variant="title">{missing ? "Routine not found" : "Loading…"}</AppText>
         {missing ? (
-          <ActionButton label="Fermer" onPress={() => router.dismissAll()} kind="secondary" />
+          <ActionButton label="Close" onPress={() => router.dismissAll()} kind="secondary" />
         ) : storeError ? (
           <>
             <AppText variant="body" color={colors.secondary}>
               {storeError}
             </AppText>
-            <ActionButton label="Réessayer" onPress={() => void reload()} kind="secondary" />
+            <ActionButton label="Try again" onPress={() => void reload()} kind="secondary" />
           </>
         ) : null}
       </Screen>
@@ -51,11 +51,11 @@ export default function RoutineReviewScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "Vérifier" }} />
+      <Stack.Screen options={{ title: "Review" }} />
       <Screen
         footer={
           <ActionButton
-            label={saving ? "Enregistrement…" : id === "new" ? "Créer la routine" : "Enregistrer"}
+            label={saving ? "Saving…" : id === "new" ? "Create routine" : "Save"}
             onPress={() => void saveRoutine()}
             disabled={saving || busy}
             testID="routine-save"
@@ -65,11 +65,11 @@ export default function RoutineReviewScreen() {
         <Column alignment="center" style={styles.hero}>
           <ProductBadge size={96} />
         </Column>
-        <AppText variant="largeTitle">Vérifiez votre routine</AppText>
+        <AppText variant="largeTitle">Review your routine</AppText>
         <Column spacing={4} style={styles.summary}>
           <Row alignment="center">
             <AppText variant="subhead" color={colors.secondary}>
-              Complément
+              Supplement
             </AppText>
             <Spacer />
           </Row>
@@ -78,7 +78,7 @@ export default function RoutineReviewScreen() {
         <Column spacing={4} style={styles.summary}>
           <Row alignment="center">
             <AppText variant="subhead" color={colors.secondary}>
-              Fréquence
+              Frequency
             </AppText>
             <Spacer />
           </Row>
@@ -98,7 +98,7 @@ export default function RoutineReviewScreen() {
           </Column>
         ) : null}
         <AppText variant="footnote" color={colors.secondary}>
-          La routine sera enregistrée. L’état du rappel sera indiqué après l’enregistrement.
+          The routine will be saved. Reminder status will be shown after saving.
         </AppText>
         {saveError ? (
           <AppText variant="footnote" textStyle={styles.error}>

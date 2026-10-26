@@ -133,11 +133,11 @@ export function registerPairingRoutes(
   app.get("/pair", (c) => {
     const code = c.req.query("code") ?? "";
 
-    if (!/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) return c.text("Code d’association invalide.", 400);
+    if (!/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) return c.text("Invalid pairing code.", 400);
     const nativeUrl = `com.erwannrousseau.nutritual:/pair?code=${encodeURIComponent(code)}`;
 
     return c.html(
-      `<!doctype html><html lang="fr"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ouvrir Nutritual</title><main><h1>Ouvrir Nutritual</h1><p>Confirmez la connexion dans l’application.</p><a href="${nativeUrl}">Ouvrir l’application</a></main><script>location.replace(${JSON.stringify(nativeUrl)})</script></html>`,
+      `<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Open Nutritual</title><main><h1>Open Nutritual</h1><p>Confirm the connection in the app.</p><a href="${nativeUrl}">Open the app</a></main><script>location.replace(${JSON.stringify(nativeUrl)})</script></html>`,
     );
   });
 }

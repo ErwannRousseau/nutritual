@@ -18,7 +18,7 @@ export default function AsNeededScreen() {
   return (
     <Screen>
       <AppText color={colors.secondary}>
-        Enregistrez une prise quand vous en avez besoin. Aucun rappel automatique.
+        Record an intake when you need it. No automatic reminders.
       </AppText>
       <Column spacing={12}>
         {asNeeded.map((routine) => (
@@ -28,7 +28,7 @@ export default function AsNeededScreen() {
             onPress={() => router.push({ pathname: "/record/[id]", params: { id: routine.id } })}
           />
         ))}
-        {asNeeded.length === 0 && <AppText>Aucun complément à la demande.</AppText>}
+        {asNeeded.length === 0 && <AppText>No as-needed supplements.</AppText>}
       </Column>
     </Screen>
   );

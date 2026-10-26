@@ -16,7 +16,7 @@ export default function SheetHeader({ title }: { title: string }) {
           {title}
         </Text>
         <Pressable
-          accessibilityLabel="Fermer"
+          accessibilityLabel="Close"
           accessibilityRole="button"
           onPress={() => router.back()}
           style={styles.close}

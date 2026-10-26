@@ -28,12 +28,12 @@ export default function RoutineDetailScreen() {
   function confirmDelete() {
     if (!routine) return;
     Alert.alert(
-      "Supprimer cette routine ?",
-      `${routine.productName} ne figurera plus dans votre planning.`,
+      "Delete this routine?",
+      `${routine.productName} will no longer appear in your schedule.`,
       [
-        { text: "Annuler", style: "cancel" },
+        { text: "Cancel", style: "cancel" },
         {
-          text: "Supprimer",
+          text: "Delete",
           style: "destructive",
           onPress: () => {
             void removeRoutine(routine.id).then((removed) => {
@@ -47,11 +47,11 @@ export default function RoutineDetailScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: "Complément", headerShown: true }} />
+      <Stack.Screen options={{ title: "Supplement", headerShown: true }} />
       {!routine ? (
         <Screen grouped>
           <AppText color={error ? colors.danger : colors.text}>
-            {busy ? "Chargement de la routine…" : (error ?? "Routine introuvable.")}
+            {busy ? "Loading routine…" : (error ?? "Routine not found.")}
           </AppText>
         </Screen>
       ) : (
@@ -71,7 +71,7 @@ export default function RoutineDetailScreen() {
                 modifiers={centerAvailableWidth}
                 textStyle={styles.centeredText}
               >
-                {routine.paused ? "En pause" : schedule}
+                {routine.paused ? "Paused" : schedule}
               </AppText>
             </Column>
             <Spacer />
@@ -81,7 +81,7 @@ export default function RoutineDetailScreen() {
               <Row alignment="center">
                 <Column spacing={4}>
                   <AppText variant="footnote" color={colors.secondary}>
-                    Rythme
+                    Schedule
                   </AppText>
                   <AppText variant="subhead">{schedule}</AppText>
                 </Column>
@@ -90,7 +90,7 @@ export default function RoutineDetailScreen() {
               <Row alignment="center">
                 <Column spacing={4}>
                   <AppText variant="footnote" color={colors.secondary}>
-                    Rappel
+                    Reminder
                   </AppText>
                   <AppText variant="subhead">{reminderLabel(reminder)}</AppText>
                 </Column>
@@ -105,33 +105,33 @@ export default function RoutineDetailScreen() {
             </AppText>
           ) : null}
           <AppText variant="footnote" color={colors.secondary}>
-            GESTION
+            MANAGEMENT
           </AppText>
           <Row alignment="center">
             <Column spacing={0} style={styles.card}>
               <ActionRow
-                label="Modifier"
+                label="Edit"
                 icon="ellipsis"
                 disabled={busy}
                 onPress={() => router.push(`/routine/${routine.id}`)}
               />
               <Column style={styles.separator} />
               <ActionRow
-                label="Enregistrer une prise"
+                label="Record intake"
                 icon="checkmark"
                 disabled={busy}
                 onPress={() => router.push(`/record/${routine.id}`)}
               />
               <Column style={styles.separator} />
               <ActionRow
-                label={routine.paused ? "Reprendre la routine" : "Mettre en pause"}
+                label={routine.paused ? "Resume routine" : "Pause routine"}
                 icon="pause"
                 disabled={busy}
                 onPress={() => void pauseRoutine(routine.id)}
               />
               <Column style={styles.separator} />
               <ActionRow
-                label="Supprimer la routine"
+                label="Delete routine"
                 icon="xmark"
                 destructive
                 disabled={busy}

@@ -33,14 +33,14 @@ export default function RoutineRow({
           </AppText>
           {routine.paused && (
             <AppText variant="footnote" color={colors.secondary}>
-              En pause
+              Paused
             </AppText>
           )}
           {!routine.paused &&
             (reminder?.status === ReminderOutcomes.denied ||
               reminder?.status === ReminderOutcomes.failed) && (
               <AppText variant="footnote" color={colors.danger}>
-                Routine enregistrée · Rappel inactif
+                Routine saved · Reminder inactive
               </AppText>
             )}
         </Column>

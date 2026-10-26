@@ -86,7 +86,7 @@ export function connectToDeviceRelay(
             sendResult({
               status: CreateRoutineStatus.failed,
               operationId: message.command.operationId,
-              message: "Impossible d’enregistrer la routine sur ce téléphone.",
+              message: "Unable to save the routine on this phone.",
             }),
           );
       };

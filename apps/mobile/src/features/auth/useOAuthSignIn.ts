@@ -32,7 +32,7 @@ export function useOAuthSignIn(onError: (message: string) => void) {
 
   async function signIn() {
     if (!request || !discovery || !issuer || !clientId || !callbackUri || !server) {
-      onError("La connexion OAuth mobile n’est pas configurée.");
+      onError("Mobile OAuth sign-in is not configured.");
 
       return;
     }
@@ -82,7 +82,7 @@ export function useOAuthSignIn(onError: (message: string) => void) {
 
       setSession(session);
     } catch {
-      onError("Connexion impossible. Vérifiez les paramètres OAuth et réessayez.");
+      onError("Unable to sign in. Check the OAuth settings and try again.");
     } finally {
       setIsSubmitting(false);
     }

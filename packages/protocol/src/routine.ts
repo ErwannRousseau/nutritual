@@ -60,12 +60,12 @@ export function isValidDateString(value: string): boolean {
 }
 
 export function validateRoutineInput(input: RoutineInput): string | null {
-  if (!input.productName.trim()) return "Le nom du produit est obligatoire.";
+  if (!input.productName.trim()) return "Product name is required.";
 
   const frequency = input.frequency;
 
   if (frequency.kind !== FrequencyKind.asNeeded && !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.time))
-    return "Choisissez une heure valide au format HH:mm.";
+    return "Choose a valid time in HH:mm format.";
 
   if (frequency.kind === FrequencyKind.weekdays) {
     if (
@@ -73,7 +73,7 @@ export function validateRoutineInput(input: RoutineInput): string | null {
       frequency.days.some((day) => !Number.isInteger(day) || day < 0 || day > 6) ||
       new Set(frequency.days).size !== frequency.days.length
     ) {
-      return "Choisissez au moins un jour de la semaine, sans doublon.";
+      return "Choose at least one day of the week, with no duplicates.";
     }
   } else if (frequency.kind === FrequencyKind.interval) {
     if (
@@ -81,12 +81,12 @@ export function validateRoutineInput(input: RoutineInput): string | null {
       frequency.every < 1 ||
       frequency.every > maxIntervalDays
     ) {
-      return `L’intervalle doit être compris entre 1 et ${maxIntervalDays} jours.`;
+      return `The interval must be between 1 and ${maxIntervalDays} days.`;
     }
 
-    if (!isValidDateString(frequency.startDate)) return "Choisissez une date de début valide.";
+    if (!isValidDateString(frequency.startDate)) return "Choose a valid start date.";
   } else if (frequency.kind !== FrequencyKind.asNeeded) {
-    return "Choisissez une fréquence valide.";
+    return "Choose a valid frequency.";
   }
 
   return null;

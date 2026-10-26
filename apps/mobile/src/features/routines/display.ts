@@ -4,7 +4,7 @@ import { FrequencyKind, ReminderOutcomes } from "@nutritual/protocol";
 import { describeFrequency } from "@/features/routines/model";
 
 export function dateLabel(date: Date): string {
-  return date.toLocaleDateString("fr-FR", {
+  return date.toLocaleDateString("en-GB", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -12,7 +12,7 @@ export function dateLabel(date: Date): string {
 }
 
 export function timeLabel(date: Date): string {
-  return date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }
 
 export function frequencyLabel(frequency: Frequency): string {
@@ -22,13 +22,13 @@ export function frequencyLabel(frequency: Frequency): string {
   const date = new Date(0);
   date.setFullYear(year, month - 1, day);
 
-  const start = date.toLocaleDateString("fr-FR", {
+  const start = date.toLocaleDateString("en-GB", {
     day: "numeric",
     month: "long",
     year: "numeric",
   });
 
-  return `Tous les ${frequency.every} jours, depuis le ${start}`;
+  return `Every ${frequency.every} days, starting ${start}`;
 }
 
 export type RoutineScheduleDisplay = { label: string; time: string | null };
@@ -46,20 +46,20 @@ export function routineScheduleDisplay(routine: Routine): RoutineScheduleDisplay
 }
 
 export function reminderLabel(reminder?: ReminderState): string {
-  if (!reminder) return "Vérification du rappel…";
+  if (!reminder) return "Checking reminder…";
 
   if (reminder.message) return reminder.message;
 
   switch (reminder.status) {
     case ReminderOutcomes.scheduled:
-      return "Rappel programmé";
+      return "Reminder scheduled";
     case ReminderOutcomes.denied:
-      return "Notifications désactivées. La routine est enregistrée.";
+      return "Notifications are disabled. The routine is saved.";
     case ReminderOutcomes.failed:
-      return "Routine enregistrée. Le rappel n’a pas pu être programmé.";
+      return "Routine saved. The reminder could not be scheduled.";
     case "paused":
-      return "Rappels en pause";
+      return "Reminders paused";
     case ReminderOutcomes.none:
-      return "Sans rappel automatique";
+      return "No automatic reminders";
   }
 }

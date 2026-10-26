@@ -176,7 +176,7 @@ async function runLoginPage(
         return {
           ok: !options.denialFails,
           json: async () =>
-            options.denialFails ? { message: "Refus impossible." } : { url: deniedUrl },
+            options.denialFails ? { message: "Unable to send the refusal." } : { url: deniedUrl },
         };
 
       if (url === "/pairing/challenges")
@@ -335,7 +335,7 @@ test("OAuth signup waits for email verification when Neon has not created a sess
 
   expect(flow.calls.some((call) => call.url.endsWith("/oauth2/continue"))).toBe(false);
   expect(flow.destination).toBe("");
-  expect(flow.elements.get("#status")?.textContent).toContain("vérification");
+  expect(flow.elements.get("#status")?.textContent).toContain("verify your email");
 });
 
 test("OAuth login does not continue a ChatGPT request from an existing Neon session", async () => {
@@ -349,7 +349,7 @@ test("OAuth login does not continue a ChatGPT request from an existing Neon sess
 
   expect(flow.calls.some((call) => call.url.endsWith("/oauth2/continue"))).toBe(false);
   expect(flow.destination).toBe("");
-  expect(flow.elements.get("#status")?.textContent).toContain("Reconnectez-vous");
+  expect(flow.elements.get("#status")?.textContent).toContain("Sign in again");
 
   await flow.submit();
 
@@ -404,13 +404,13 @@ test("OAuth login reports a failed refusal without continuing authorization", as
   await flow.submit();
 
   expect(flow.destination).toBe("");
-  expect(flow.elements.get("#status")?.textContent).toBe("Refus impossible.");
+  expect(flow.elements.get("#status")?.textContent).toBe("Unable to send the refusal.");
 });
 
 test("OAuth login stops if the phone has a different account or the challenge expires", async () => {
   for (const [pairingStatus, statusText] of [
-    ["mismatch", "ne correspondent pas"],
-    ["expired", "expiré"],
+    ["mismatch", "do not match"],
+    ["expired", "expired"],
   ] as const) {
     const flow = await runLoginPage({ signUp: true, sessionAfterSignup: true, pairingStatus });
     await flow.submit();

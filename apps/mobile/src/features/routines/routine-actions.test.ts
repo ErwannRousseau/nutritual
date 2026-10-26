@@ -39,7 +39,7 @@ test("pause reports a false provider result", async () => {
       (message) => feedback.push(message),
     ),
   ).toBe(false);
-  expect(feedback).toEqual([null, "Impossible de modifier la routine. Réessayez."]);
+  expect(feedback).toEqual([null, "Unable to update the routine. Try again."]);
 });
 
 test("pause keeps the failure feedback when the provider rejects", async () => {
@@ -55,7 +55,7 @@ test("pause keeps the failure feedback when the provider rejects", async () => {
       (message) => feedback.push(message),
     ),
   ).toBe(false);
-  expect(feedback.at(-1)).toBe("Impossible de modifier la routine. Réessayez.");
+  expect(feedback.at(-1)).toBe("Unable to update the routine. Try again.");
 });
 
 test("pause does not run while the store is busy", async () => {
@@ -101,7 +101,7 @@ test("remove reports a false or rejected provider result", async () => {
       (message) => feedback.push(message),
     ),
   ).toBe(false);
-  expect(feedback.at(-1)).toBe("Impossible de supprimer la routine. Réessayez.");
+  expect(feedback.at(-1)).toBe("Unable to delete the routine. Try again.");
 
   expect(
     await removeRoutine(
@@ -113,7 +113,7 @@ test("remove reports a false or rejected provider result", async () => {
       (message) => feedback.push(message),
     ),
   ).toBe(false);
-  expect(feedback.at(-1)).toBe("Impossible de supprimer la routine. Réessayez.");
+  expect(feedback.at(-1)).toBe("Unable to delete the routine. Try again.");
 });
 
 test("save validates the draft before calling the store", async () => {
@@ -139,7 +139,7 @@ test("save validates the draft before calling the store", async () => {
     (message) => errors.push(message),
   );
 
-  expect(errors).toEqual(["Le nom du produit est obligatoire."]);
+  expect(errors).toEqual(["Product name is required."]);
   expect(saving).toEqual([]);
   expect(saves).toBe(0);
   expect(finishes).toBe(0);

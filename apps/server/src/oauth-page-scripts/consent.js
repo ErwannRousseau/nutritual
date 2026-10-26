@@ -7,7 +7,7 @@ const status = document.querySelector("#status");
 const explanation = document.querySelector("#explanation");
 
 async function consent(accept) {
-  status.textContent = accept ? "Connexion accordée…" : "Connexion refusée…";
+  status.textContent = accept ? "Authorization approved…" : "Authorization denied…";
 
   try {
     const response = await fetch(`${authBase}/oauth2/consent`, {
@@ -19,34 +19,33 @@ async function consent(accept) {
 
     const data = await response.json().catch(() => ({}));
 
-    if (!response.ok)
-      throw new Error(data.message || "La demande OAuth n’a pas pu être finalisée.");
+    if (!response.ok) throw new Error(data.message || "The OAuth request could not be completed.");
 
     if (data.url) location.assign(data.url);
     else if (data.redirect) location.assign(data.redirect);
     else
       status.textContent = accept
-        ? "Connexion terminée. Vous pouvez fermer cette fenêtre."
-        : "Demande refusée. Vous pouvez fermer cette fenêtre.";
+        ? "Authorization complete. You can close this window."
+        : "Request denied. You can close this window.";
   } catch (error) {
-    status.textContent = error.message || "Erreur de connexion.";
+    status.textContent = error.message || "Authorization failed.";
   }
 }
 
 async function start() {
   if (!query) {
-    status.textContent = "Paramètres OAuth manquants.";
+    status.textContent = "Missing OAuth parameters.";
 
     return;
   }
 
   if (mobileClient && params.get("client_id") === mobileClient) {
-    explanation.textContent = "Vérifiez les autorisations demandées avant de continuer.";
+    explanation.textContent = "Review the requested permissions before continuing.";
     document.querySelector("#mobile").hidden = false;
     document.querySelector("#details").textContent = [
-      `Application : ${params.get("client_id") || "inconnue"}`,
-      `Ressource : ${params.get("resource") || "non précisée"}`,
-      `Autorisations : ${params.get("scope") || "non précisées"}`,
+      `App: ${params.get("client_id") || "unknown"}`,
+      `Resource: ${params.get("resource") || "not specified"}`,
+      `Permissions: ${params.get("scope") || "not specified"}`,
     ].join("\n");
     document.querySelector("#allow").addEventListener("click", () => consent(true));
     document.querySelector("#deny").addEventListener("click", () => consent(false));
@@ -61,7 +60,7 @@ async function start() {
   }
 
   sessionStorage.removeItem("nutritual-paired-oauth-query");
-  explanation.textContent = "Connexion confirmée dans Nutritual. Finalisation de l’autorisation…";
+  explanation.textContent = "Connection confirmed in Nutritual. Finalizing authorization…";
   await consent(true);
 }
 

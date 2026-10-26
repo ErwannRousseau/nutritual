@@ -24,19 +24,19 @@ export default function DailyOverview() {
     <>
       <Stack.Toolbar placement="right">
         <Stack.Toolbar.Button tintColor={colors.blue} onPress={() => router.push("/settings")}>
-          Jumelage
+          Pairing
         </Stack.Toolbar.Button>
         <Stack.Toolbar.Button tintColor={colors.blue} onPress={() => router.push("/routine/new")}>
-          Ajouter
+          Add
         </Stack.Toolbar.Button>
       </Stack.Toolbar>
       <Screen>
         <Column alignment="center" spacing={4} style={styles.date}>
           <AppText variant="title" textStyle={styles.centered}>
-            Aujourd’hui
+            Today
           </AppText>
           <AppText variant="headline" color={colors.secondary} textStyle={styles.centered}>
-            {now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
+            {now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
           </AppText>
         </Column>
 
@@ -44,7 +44,7 @@ export default function DailyOverview() {
           <Column spacing={12} style={styles.error}>
             <AppText color={colors.danger}>{error}</AppText>
             <Button
-              label="Réessayer"
+              label="Try again"
               variant="text"
               disabled={busy}
               onPress={() => void reload()}
@@ -53,11 +53,11 @@ export default function DailyOverview() {
         )}
 
         {busy && routines.length === 0 && !error ? (
-          <AppText color={colors.secondary}>Chargement des routines…</AppText>
+          <AppText color={colors.secondary}>Loading routines…</AppText>
         ) : (
           <>
             <Column modifiers={fillAvailableWidth} spacing={12}>
-              <AppText variant="title">À prendre</AppText>
+              <AppText variant="title">To take</AppText>
               {upcoming.map((routine) => (
                 <UpcomingCard
                   key={routine.id}
@@ -72,20 +72,17 @@ export default function DailyOverview() {
                 <Column spacing={12} style={styles.group}>
                   {routines.length === 0 && <ProductBadge size={96} />}
                   <AppText variant="headline">
-                    {routines.length === 0 ? "Votre première routine" : "Rien de prévu aujourd’hui"}
+                    {routines.length === 0 ? "Your first routine" : "Nothing scheduled today"}
                   </AppText>
                   <AppText color={colors.secondary}>
                     {routines.length === 0
-                      ? "Ajoutez un complément pour organiser vos prises et recevoir vos rappels."
+                      ? "Add a supplement to organize your intakes and get reminders."
                       : logged.length
-                        ? "Vos prises enregistrées sont ci-dessous."
-                        : "Vos compléments restent accessibles dans la liste ci-dessous."}
+                        ? "Your recorded intakes are below."
+                        : "Your supplements are available in the list below."}
                   </AppText>
                   {routines.length === 0 && (
-                    <Button
-                      label="Ajouter un complément"
-                      onPress={() => router.push("/routine/new")}
-                    />
+                    <Button label="Add a supplement" onPress={() => router.push("/routine/new")} />
                   )}
                 </Column>
               )}
@@ -101,7 +98,7 @@ export default function DailyOverview() {
                     spacing={12}
                     style={styles.needed}
                   >
-                    <AppText>À la demande</AppText>
+                    <AppText>As needed</AppText>
                     <Spacer />
                     <AppSymbol name="plus" size={24} color={colors.blue} />
                   </Row>
@@ -111,7 +108,7 @@ export default function DailyOverview() {
 
             <Column spacing={4} style={styles.group}>
               <Row alignment="center">
-                <AppText variant="title">Prises du jour</AppText>
+                <AppText variant="title">Today's intakes</AppText>
               </Row>
               {logged.length > 0 ? (
                 logged.map((intake) => (
@@ -124,7 +121,7 @@ export default function DailyOverview() {
                   />
                 ))
               ) : (
-                <AppText color={colors.secondary}>Aucune prise enregistrée aujourd’hui.</AppText>
+                <AppText color={colors.secondary}>No intakes recorded today.</AppText>
               )}
               <Column style={styles.separator} />
               <Button
@@ -133,7 +130,7 @@ export default function DailyOverview() {
                 onPress={() => router.push("/history")}
               >
                 <Row modifiers={fillAvailableWidth} alignment="center">
-                  <AppText color={colors.blue}>Voir l’historique</AppText>
+                  <AppText color={colors.blue}>View history</AppText>
                   <Spacer />
                   <AppSymbol name="chevron.right" size={14} color={colors.blue} />
                 </Row>
@@ -142,7 +139,7 @@ export default function DailyOverview() {
 
             {routines.length > 0 && (
               <Column spacing={12}>
-                <AppText variant="title">Vos compléments</AppText>
+                <AppText variant="title">Your supplements</AppText>
                 <Column style={styles.group} spacing={0}>
                   {routines.map((routine, index) => (
                     <Column key={routine.id} spacing={0}>
