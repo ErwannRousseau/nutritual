@@ -1,55 +1,24 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Button, Column, Row, Spacer } from "@expo/ui";
 import { router, Stack } from "expo-router";
-import { AppState, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 import { useRoutineStore } from "@/features/routines/RoutinesProvider";
-import { isDueOn, localDate } from "@/features/routines/model";
 import AppText from "@/shared/ui/AppText";
 import AppSymbol from "@/shared/ui/AppSymbol";
 import ProductBadge from "@/shared/ui/ProductBadge";
 import Screen from "@/shared/ui/Screen";
 import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
-import { FrequencyKind } from "@nutritual/protocol";
 import UpcomingCard from "@/features/routines/components/UpcomingCard";
 import IntakeRow from "@/features/home/components/IntakeRow";
 import RoutineRow from "@/features/home/components/RoutineRow";
+import { useDailyOverview } from "@/features/home/useDailyOverview";
 
 export default function DailyOverview() {
   const { routines, intakes, reminders, busy, error, reload } = useRoutineStore();
-  const [now, setNow] = useState(() => new Date());
+  const { now, logged, upcoming, asNeeded } = useDailyOverview(routines, intakes);
   const colors = usePalette();
   const styles = useMemo(() => createStyles(colors), [colors]);
-
-  useEffect(() => {
-    const refresh = () => setNow(new Date());
-    const timer = setInterval(refresh, 60_000);
-
-    const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") refresh();
-    });
-
-    return () => {
-      clearInterval(timer);
-      subscription.remove();
-    };
-  }, []);
-
-  const today = localDate(now);
-
-  const logged = intakes
-    .filter((intake) => localDate(new Date(intake.recordedAt)) === today)
-    .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt));
-
-  const recorded = new Set(logged.map((intake) => intake.routineId));
-
-  const upcoming = routines
-    .filter((routine) => isDueOn(routine, now) && !recorded.has(routine.id))
-    .sort((a, b) => a.time.localeCompare(b.time));
-
-  const asNeeded = routines.some(
-    (routine) => !routine.paused && routine.frequency.kind === FrequencyKind.asNeeded,
-  );
 
   return (
     <>
