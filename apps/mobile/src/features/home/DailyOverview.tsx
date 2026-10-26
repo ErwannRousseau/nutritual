@@ -130,7 +130,7 @@ export default function DailyOverview() {
                 onPress={() => router.push("/history")}
               >
                 <Row modifiers={fillAvailableWidth} alignment="center">
-                  <AppText color={colors.blue}>Voir l’historique</AppText>
+                  <AppText color={colors.blue}>View history</AppText>
                   <Spacer />
                   <AppSymbol name="chevron.right" size={14} color={colors.blue} />
                 </Row>
