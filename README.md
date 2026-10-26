@@ -1,113 +1,115 @@
 # Nutritual
 
-## Set up and run
+Talk to ChatGPT about the supplements you take, then let it create your routines
+in Nutritual. You don't have to enter each product by hand.
 
-Install workspace dependencies and start Expo with the Hono server:
+The goal is to set up products and reminder schedules through the conversation.
+On your phone, you can see your routines, receive local reminders, and record
+what you've taken.
 
-```sh
-bun install --frozen-lockfile
-bun run dev
+> **Under development.** I've demonstrated that ChatGPT can create a supplement
+> routine directly in the app. I'm still building the full workflow, including
+> reminder scheduling and routine listing through ChatGPT.
+
+[Get started](#run-locally) · [Connect ChatGPT](docs/development.md#connect-chatgpt)
+· [Architecture](#how-it-works) · [Development guide](docs/development.md)
+
+## What you can do
+
+| Action                                            | Phone app | ChatGPT        |
+| ------------------------------------------------- | --------- | -------------- |
+| Add a supplement routine                          | Yes       | As needed only |
+| Choose weekdays or an interval                    | Yes       | Not yet        |
+| Schedule local reminders                          | Yes       | Not yet        |
+| Edit, delete, pause, or resume a routine          | Yes       | Not yet        |
+| Record an intake, undo an entry, and view history | Yes       | Not yet        |
+
+For example, ask ChatGPT to add a magnesium routine to Nutritual. After you
+confirm the action in ChatGPT, it appears on the connected phone without
+another approval in the app. An as-needed routine has no automatic reminder.
+
+The app targets iOS first.
+
+## How it works
+
+```mermaid
+flowchart LR
+    ChatGPT -->|MCP over HTTPS| Server["Bun / Hono server"]
+    Server <-->|Live WebSocket relay| Phone["Nutritual / Expo"]
+    Server --- Neon["Neon Auth and pairing metadata"]
+    Phone --- SQLite["Local routines and intake history"]
 ```
 
-The server listens on port `3000`. Its harmless health response is available at
-`/health`.
+The server authenticates the request and sends it to the paired phone. The phone
+validates and saves the routine, then returns the outcome. Only one phone is
+paired per user at a time.
 
-## Neon development branch
+Keep Nutritual open and connected when creating a routine through ChatGPT. The
+server has no persistent command queue. If the phone is unavailable, reopen the
+app and retry. If the outcome is unconfirmed, reuse the same operation ID.
 
-The app uses the Neon `development` branch. If this checkout is not linked yet,
-sign in and select the branch:
+### Your routine data stays on your phone
 
-```sh
-bunx neon login
-bunx neon link
-bunx neon checkout development
-bunx neon deploy
-bunx neon status
-```
+SQLite stores routines and intake history. The phone schedules reminders through
+the operating system. Once scheduled, reminders don't need a ChatGPT conversation
+or a live server connection.
 
-Neon CLI writes database and Auth URLs to the ignored root `.env.local`. Add the
-variables from [.env.example](.env.example) to that file. Keep the mobile Auth
-URL equal to `NEON_AUTH_BASE_URL`, and keep the mobile client ID equal to
-`MOBILE_OAUTH_CLIENT_ID`.
+Neon handles identity. Postgres stores pairing metadata, hashed device
+credentials, short-lived relay tickets, and rate-limit counters. The server
+doesn't persist routine commands or log their payloads. Supplement details you
+share in ChatGPT still pass through ChatGPT and the relay during creation.
 
-`EXPO_PUBLIC_SERVER_URL` is the origin the iPhone can reach. Set
-`PUBLIC_BASE_URL` to the same origin for the phone pairing flow. Both values
-must be the same public HTTPS ngrok origin for ChatGPT testing.
+Reminders use local time. Interval reminders cover a finite set of future dates.
+The app displays the last covered date and renews them when you reopen it.
+Receiving a reminder never records an intake.
 
-## Configure Neon OAuth
+## Run locally
 
-In the Neon Console, configure OAuth Provider on the `development` branch:
+You'll need Bun, a Neon project with Managed Auth, and a Mac with Xcode for the
+iOS development build. The ChatGPT connection also needs a free ngrok HTTPS endpoint
+and a workspace that allows custom MCP apps and write actions.
 
-1. Set the MCP server URL to `PUBLIC_BASE_URL/mcp`.
-2. Set the login and consent pages to `PUBLIC_BASE_URL/oauth/login` and
-   `PUBLIC_BASE_URL/oauth/consent`, then add the public origin as a trusted
-   domain.
-3. Create a public OAuth client linked to the MCP resource. Keep PKCE and user
-   consent enabled. Register the exact HTTPS callback
-   `PUBLIC_BASE_URL/oauth/mobile/callback`.
-4. Copy the configured public client ID (not necessarily a metadata URL) to `MOBILE_OAUTH_CLIENT_ID` and
-   `EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID`.
+1. Install dependencies from the repository root.
 
-The callback sends the authorization response back to the registered Expo
-scheme, `com.erwannrousseau.nutritual:/oauth/callback`. The phone stores OAuth
-tokens in SecureStore. The server verifies the issuer and `PUBLIC_BASE_URL/mcp`
-audience for MCP and phone API calls.
+   ```sh
+   bun install --frozen-lockfile
+   ```
 
-The server stores only pairing metadata and one-time relay tickets in Postgres.
-Products, routines, reminders, and intake history stay on the phone.
+2. Follow the [development guide](docs/development.md) to configure Neon OAuth,
+   the HTTPS origin, and the ignored `.env.local` file.
 
-## Connect ChatGPT through ngrok
+3. Start Expo and the server.
 
-The free ngrok account provides one assigned development domain. Add the
-authtoken in the local terminal, then start the tunnel with inspection disabled:
+   ```sh
+   bun run dev
+   ```
 
-```sh
-ngrok config add-authtoken <your-authtoken>
-ngrok http 3000 --url https://<your-domain>.ngrok-free.dev --inspect=false
-```
+4. In another terminal, install the development build on your connected iPhone.
 
-Check that full request and response capture is disabled in the ngrok account’s
-Traffic Inspector settings. The local `--inspect=false` flag disables the
-agent’s inspection interface. Do not use a paid domain or plan for this test.
+   ```sh
+   bun run --filter mobile ios:device "<device-name>"
+   ```
 
-Set `PUBLIC_BASE_URL` and `EXPO_PUBLIC_SERVER_URL` to the assigned HTTPS domain,
-then restart the server and Expo. In the ChatGPT Business workspace, add a
-custom MCP app at `PUBLIC_BASE_URL/mcp` using OAuth. Workspace admin settings
-may need to allow custom apps and write actions.
+The server listens on port `3000` by default.
 
-From ChatGPT, start the connection and scan the QR code with the iPhone or enter
-the short code in **Jumelage ChatGPT**. Approve the pairing on the signed-in
-phone. Afterward, `create_intake_routine` creates an as-needed routine without
-scheduling a reminder or asking the phone for another approval.
+## Repository
 
-## Verify
+| Path                                               | Responsibility                                               |
+| -------------------------------------------------- | ------------------------------------------------------------ |
+| [`apps/mobile`](apps/mobile/README.md)             | Expo app, local storage, reminders, and phone authentication |
+| [`apps/server`](apps/server/README.md)             | Hono server, OAuth pages, pairing, MCP, and live relay       |
+| [`packages/protocol`](packages/protocol)           | Shared commands, validation, and delivery outcomes           |
+| [`packages/oxlint-config`](packages/oxlint-config) | Shared lint rules                                            |
 
-Run the workspace checks:
+The workspace uses Bun, TypeScript, Expo, React Native, `@expo/ui`, Hono, the
+official MCP SDK, and Neon Managed Auth.
 
-```sh
-bun run typecheck
-bun run test
-bun run lint
-bun run fmt:check
-bun run db:check
-```
+## Further reading
 
-The database check requires `DATABASE_URL`. Check local server health with:
-
-```sh
-curl --fail http://localhost:3000/health
-```
-
-Expected response: `{"status":"ok"}`.
-
-## Run on an iPhone
-
-On a Mac with Xcode and the iPhone connected:
-
-```sh
-bun run --filter mobile ios:device <device-name>
-```
-
-The QR and manual-code flows, OAuth renewal, and actual ChatGPT-to-iPhone
-creation still require verification with the configured Neon branch, ngrok
-domain, ChatGPT Business workspace, and real iPhone.
+- [Development guide](docs/development.md) for configuration, ChatGPT pairing,
+  and common setup problems.
+- [Domain glossary](GLOSSARY.md) for products, routines, intakes, and reminders.
+- [Architecture decisions](docs/adr) for data ownership, authentication, and
+  the single-process relay.
+- [GitHub issues](https://github.com/ErwannRousseau/nutritual/issues) for specs
+  and planned work.

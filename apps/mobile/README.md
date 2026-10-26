@@ -1,56 +1,49 @@
-# Welcome to your Expo app 👋
+# Nutritual mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+The Expo app stores supplement routines and intake history on the phone. It
+schedules local reminders and receives routine creation requests from ChatGPT
+through the authenticated server relay.
 
-## Get started
+Development targets iOS first. Use a development build rather than Expo Go.
 
-1. Install dependencies
+## Run
 
-   ```bash
-   npm install
-   ```
+Follow the root [development guide](../../docs/development.md) for dependencies,
+environment variables, Neon OAuth, and the tunnel. From the repository root:
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```sh
+bun run dev
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+Install the iPhone development build from another terminal:
 
-### Other setup steps
+```sh
+bun run --filter mobile ios:device "<device-name>"
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Use `bun run --filter mobile ios` for an iOS simulator.
 
-## Learn more
+## App behavior
 
-To learn more about developing your project with Expo, look at the following resources:
+- Routines can use selected weekdays, an interval in calendar days, or no
+  schedule. You can edit, delete, pause, and resume them.
+- The phone schedules reminders in local time. Interval reminders have finite
+  coverage and renew when the app opens or returns to the foreground.
+- Recording an intake adds a dated history entry. You can undo an entry.
+  A notification alone never records an intake.
+- A ChatGPT request currently creates an as-needed routine. The phone must stay
+  open and connected during creation. It keeps operation IDs in SQLite to
+  prevent duplicate creation on retries.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Source layout
 
-## Join the community
+| Path             | Responsibility                                                         |
+| ---------------- | ---------------------------------------------------------------------- |
+| `src/app`        | Expo Router routes and screen composition                              |
+| `src/components` | Shared UI and routine forms                                            |
+| `src/routines`   | Routine state, SQLite persistence, reminders, and relay handling       |
+| `src/auth`       | OAuth sign-in, SecureStore tokens, pairing, and authenticated requests |
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+The UI uses the universal `@expo/ui` API. See
+[ADR-0005](../../docs/adr/0005-use-expo-ui-for-the-ios-routine-milestone.md)
+for the native control boundaries.
