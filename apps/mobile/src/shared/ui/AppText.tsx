@@ -11,6 +11,14 @@ type Props = Omit<UniversalTextProps, "textStyle"> & {
   textStyle?: UniversalTextStyle;
 };
 
+export default function AppText({ variant = "body", color, textStyle, ...props }: Props) {
+  const { fontScale } = useWindowDimensions();
+  const colors = usePalette();
+  const resolvedStyle = createTextStyle(variant, color, textStyle, colors.text, fontScale);
+
+  return <UniversalText {...props} textStyle={resolvedStyle} />;
+}
+
 const typography: Record<TextVariant, UniversalTextStyle> = StyleSheet.create({
   largeTitle: { fontSize: 34, fontWeight: "700", lineHeight: 41 },
   title: { fontSize: 28, fontWeight: "700", lineHeight: 34 },
@@ -20,16 +28,20 @@ const typography: Record<TextVariant, UniversalTextStyle> = StyleSheet.create({
   footnote: { fontSize: 13, fontWeight: "400", lineHeight: 18 },
 });
 
-export default function AppText({ variant = "body", color, textStyle, ...props }: Props) {
-  const { fontScale } = useWindowDimensions();
-  const colors = usePalette();
+function createTextStyle(
+  variant: TextVariant,
+  color: string | undefined,
+  textStyle: UniversalTextStyle | undefined,
+  defaultColor: string,
+  fontScale: number,
+): UniversalTextStyle {
   const baseStyle = typography[variant === "largeTitle" && fontScale > 1.3 ? "title" : variant];
   const fontSize = textStyle?.fontSize ?? baseStyle.fontSize ?? 17;
 
   const resolvedStyle: UniversalTextStyle = {
     ...baseStyle,
     ...textStyle,
-    color: color ?? textStyle?.color ?? colors.text,
+    color: color ?? textStyle?.color ?? defaultColor,
     fontSize: fontSize * fontScale,
   };
 
@@ -41,5 +53,5 @@ export default function AppText({ variant = "body", color, textStyle, ...props }
     resolvedStyle.letterSpacing *= fontScale;
   }
 
-  return <UniversalText {...props} textStyle={resolvedStyle} />;
+  return resolvedStyle;
 }

@@ -25,23 +25,7 @@ export default function PairScreen() {
   const [details, setDetails] = useState<PairingOAuthRequestDetails | null>(null);
   const colors = usePalette();
 
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-        input: {
-          backgroundColor: colors.grouped,
-          borderColor: colors.separator,
-          borderRadius: 12,
-          borderWidth: StyleSheet.hairlineWidth,
-          color: colors.text,
-          fontSize: 18,
-          height: 58,
-          paddingHorizontal: 14,
-        },
-        error: { color: colors.danger, fontSize: 16 },
-      }),
-    [colors],
-  );
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   useEffect(() => {
     if (initialCode) void SecureStore.setItemAsync("nutritual.pending-pair-code", initialCode);
@@ -187,4 +171,20 @@ export default function PairScreen() {
       </Column>
     </Screen>
   );
+}
+
+function createStyles(colors: ReturnType<typeof usePalette>) {
+  return StyleSheet.create({
+    input: {
+      backgroundColor: colors.grouped,
+      borderColor: colors.separator,
+      borderRadius: 12,
+      borderWidth: StyleSheet.hairlineWidth,
+      color: colors.text,
+      fontSize: 18,
+      height: 58,
+      paddingHorizontal: 14,
+    },
+    error: { color: colors.danger, fontSize: 16 },
+  });
 }
