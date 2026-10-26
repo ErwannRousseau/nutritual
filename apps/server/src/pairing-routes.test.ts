@@ -223,16 +223,23 @@ test("OAuth pages preserve raw provider query and bridge callback values unchang
 
   const consentPage = await app.request(`/oauth/consent?${query}`);
   const consentHtml = await consentPage.text();
-  expect(consentHtml).toContain("oauth_query:query");
-  expect(consentHtml).toContain("'x-neon-session-jwt':sessionJwt");
-  expect(consentHtml).toContain("/oauth2/consent");
+  expect(consentHtml).toContain('src="/oauth/scripts/consent.js"');
   expect(consentHtml).toContain('id="allow"');
-  expect(consentHtml).toContain("addEventListener('click',()=>consent(true))");
+  const consentScript = await (await app.request("/oauth/scripts/consent.js")).text();
+  expect(consentScript).toContain("oauth_query: query");
+  expect(consentScript).toContain("/oauth2/consent");
+  expect(consentScript).toContain('addEventListener("click", () => consent(true))');
+  expect(consentScript).not.toContain("/pairing/challenges");
 
   const loginPage = await app.request(`/oauth/login?${query}`);
   const loginHtml = await loginPage.text();
-  expect(loginHtml).toContain("oauth_query:query");
-  expect(loginHtml).toContain("/oauth2/continue");
+  expect(loginHtml).toContain('src="/oauth/scripts/login.js"');
+  expect(loginHtml).toContain("data-mobile-client-id=");
+  const loginScript = await (await app.request("/oauth/scripts/login.js")).text();
+  expect(loginScript).toContain("oauth_query: query");
+  expect(loginScript).toContain("/oauth2/continue");
+  expect(loginScript).toContain('"x-neon-session-jwt": sessionJwt');
+  expect(loginScript).toContain("/pairing/challenges/status");
 
   const callback = await app.request("/oauth/mobile/callback?code=abc%2B123&state=state%2Fok", {
     redirect: "manual",
