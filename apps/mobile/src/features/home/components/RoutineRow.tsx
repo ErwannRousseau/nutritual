@@ -2,13 +2,13 @@ import { Button, Column, Row, Spacer } from "@expo/ui";
 import { useMemo } from "react";
 import { StyleSheet } from "react-native";
 import type { ReminderState, Routine } from "@/features/routines/model";
-import { frequencyLabel } from "@/features/routines/display";
+import { routineScheduleDisplay } from "@/features/routines/display";
 import AppText from "@/shared/ui/AppText";
 import AppSymbol from "@/shared/ui/AppSymbol";
 import ProductBadge from "@/shared/ui/ProductBadge";
 import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
-import { FrequencyKind, ReminderOutcomes } from "@nutritual/protocol";
+import { ReminderOutcomes } from "@nutritual/protocol";
 
 export default function RoutineRow({
   routine,
@@ -29,9 +29,7 @@ export default function RoutineRow({
         <Column spacing={4}>
           <AppText variant="headline">{routine.productName}</AppText>
           <AppText variant="subhead" color={colors.secondary}>
-            {routine.frequency.kind === FrequencyKind.asNeeded
-              ? "À la demande"
-              : `${routine.time} · ${frequencyLabel(routine.frequency)}`}
+            {routineScheduleDisplay(routine).label}
           </AppText>
           {routine.paused && (
             <AppText variant="footnote" color={colors.secondary}>

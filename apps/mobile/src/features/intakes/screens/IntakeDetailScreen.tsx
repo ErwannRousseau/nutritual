@@ -1,6 +1,6 @@
 import { Column, Row, Spacer } from "@expo/ui";
 import { router, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { StyleSheet } from "react-native";
 import ActionButton from "@/shared/ui/ActionButton";
 import AppSymbol from "@/shared/ui/AppSymbol";
@@ -11,34 +11,23 @@ import Screen from "@/shared/ui/Screen";
 import SheetHeader from "@/shared/ui/SheetHeader";
 import { usePalette } from "@/shared/ui/palette";
 import { dateLabel, timeLabel } from "@/features/routines/display";
-import { useRoutineStore } from "@/features/routines/RoutinesProvider";
+import { useUndoIntake } from "@/features/intakes/useUndoIntake";
 
 export default function IntakeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { intakes, busy, error, undo } = useRoutineStore();
+
+  const { intakes, busy, error, isUndoing, isActionDisabled, feedback, undoIntake } =
+    useUndoIntake();
+
   const colors = usePalette();
-  const [isUndoing, setIsUndoing] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(null);
   const intake = intakes.find((item) => item.id === id);
   const parsedDate = intake ? new Date(intake.recordedAt) : null;
   const recordedAt = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate : null;
-  const isActionDisabled = busy || isUndoing;
   const errorMessage = feedback ?? error;
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   async function removeIntake() {
-    if (!intake || isActionDisabled) return;
-    setIsUndoing(true);
-    setFeedback(null);
-
-    try {
-      if (await undo(intake.id)) router.back();
-      else setFeedback("Impossible d’annuler cette prise. Réessayez.");
-    } catch {
-      setFeedback("Impossible d’annuler cette prise. Réessayez.");
-    } finally {
-      setIsUndoing(false);
-    }
+    if (intake && (await undoIntake(intake.id))) router.back();
   }
 
   if (!intake) {

@@ -1,4 +1,4 @@
-import type { ReminderState } from "@/features/routines/model";
+import type { ReminderState, Routine } from "@/features/routines/model";
 import type { Frequency } from "@nutritual/protocol";
 import { FrequencyKind, ReminderOutcomes } from "@nutritual/protocol";
 import { describeFrequency } from "@/features/routines/model";
@@ -29,6 +29,20 @@ export function frequencyLabel(frequency: Frequency): string {
   });
 
   return `Tous les ${frequency.every} jours, depuis le ${start}`;
+}
+
+export type RoutineScheduleDisplay = { label: string; time: string | null };
+
+export function routineScheduleDisplay(routine: Routine): RoutineScheduleDisplay {
+  const frequency = frequencyLabel(routine.frequency);
+
+  if (routine.frequency.kind === FrequencyKind.asNeeded) {
+    return { label: frequency, time: null };
+  }
+
+  const time = timeLabel(new Date(`2000-01-01T${routine.time}:00`));
+
+  return { label: `${time} · ${frequency}`, time };
 }
 
 export function reminderLabel(reminder?: ReminderState): string {

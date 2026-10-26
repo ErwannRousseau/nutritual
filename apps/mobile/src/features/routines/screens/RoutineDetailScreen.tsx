@@ -1,6 +1,6 @@
 import { Column, Row, Spacer } from "@expo/ui";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Alert, StyleSheet } from "react-native";
 import ActionRow from "@/features/routines/components/ActionRow";
 import AppText from "@/shared/ui/AppText";
@@ -8,49 +8,22 @@ import { centerAvailableWidth, fillParent } from "@/shared/ui/layout";
 import ProductBadge from "@/shared/ui/ProductBadge";
 import Screen from "@/shared/ui/Screen";
 import { usePalette } from "@/shared/ui/palette";
-import { frequencyLabel, reminderLabel, timeLabel } from "@/features/routines/display";
-import { useRoutineStore } from "@/features/routines/RoutinesProvider";
-import { FrequencyKind } from "@nutritual/protocol";
+import { reminderLabel, routineScheduleDisplay } from "@/features/routines/display";
+import { useRoutineDetailActions } from "@/features/routines/useRoutineDetailActions";
 
 export default function RoutineDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { routines, reminders, busy, error, pause, remove } = useRoutineStore();
+
+  const { routines, reminders, busy, error, feedback, pauseRoutine, removeRoutine } =
+    useRoutineDetailActions();
+
   const colors = usePalette();
-  const [feedback, setFeedback] = useState<string | null>(null);
   const routine = routines.find((item) => item.id === id);
   const reminder = reminders.find((item) => item.routineId === id);
   const errorMessage = feedback ?? error;
-
-  const schedule = routine
-    ? routine.frequency.kind === FrequencyKind.asNeeded
-      ? frequencyLabel(routine.frequency)
-      : `${timeLabel(new Date(`2000-01-01T${routine.time}:00`))} · ${frequencyLabel(routine.frequency)}`
-    : "";
+  const schedule = routine ? routineScheduleDisplay(routine).label : "";
 
   const styles = useMemo(() => createStyles(colors), [colors]);
-
-  async function togglePause() {
-    if (!routine || busy) return;
-    setFeedback(null);
-
-    try {
-      if (!(await pause(routine.id))) setFeedback("Impossible de modifier la routine. Réessayez.");
-    } catch {
-      setFeedback("Impossible de modifier la routine. Réessayez.");
-    }
-  }
-
-  async function deleteRoutine() {
-    if (!routine || busy) return;
-    setFeedback(null);
-
-    try {
-      if (await remove(routine.id)) router.back();
-      else setFeedback("Impossible de supprimer la routine. Réessayez.");
-    } catch {
-      setFeedback("Impossible de supprimer la routine. Réessayez.");
-    }
-  }
 
   function confirmDelete() {
     if (!routine) return;
@@ -59,7 +32,15 @@ export default function RoutineDetailScreen() {
       `${routine.productName} ne figurera plus dans votre planning.`,
       [
         { text: "Annuler", style: "cancel" },
-        { text: "Supprimer", style: "destructive", onPress: () => void deleteRoutine() },
+        {
+          text: "Supprimer",
+          style: "destructive",
+          onPress: () => {
+            void removeRoutine(routine.id).then((removed) => {
+              if (removed) router.back();
+            });
+          },
+        },
       ],
     );
   }
@@ -146,7 +127,7 @@ export default function RoutineDetailScreen() {
                 label={routine.paused ? "Reprendre la routine" : "Mettre en pause"}
                 icon="pause"
                 disabled={busy}
-                onPress={() => void togglePause()}
+                onPress={() => void pauseRoutine(routine.id)}
               />
               <Column style={styles.separator} />
               <ActionRow

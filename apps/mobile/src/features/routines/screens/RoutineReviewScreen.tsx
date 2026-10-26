@@ -10,18 +10,22 @@ import Screen from "@/shared/ui/Screen";
 import { usePalette } from "@/shared/ui/palette";
 import { useRoutineDraft } from "@/features/routines/RoutineDraftProvider";
 import { FrequencyKind } from "@nutritual/protocol";
-import { useRoutineStore } from "@/features/routines/RoutinesProvider";
 import { frequencyLabel, timeLabel } from "@/features/routines/display";
-import { localDate, validateRoutine } from "@/features/routines/model";
+import { localDate } from "@/features/routines/model";
+import { useSaveRoutine } from "@/features/routines/useSaveRoutine";
 
 export default function RoutineReviewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { draft, ready, missing, finish } = useRoutineDraft();
-  const { busy, error: storeError, reload, save } = useRoutineStore();
+
+  const { busy, storeError, reload, saving, saveError, saveRoutine } = useSaveRoutine(
+    id,
+    draft,
+    finish,
+  );
+
   const colors = usePalette();
   const [today] = useState(() => new Date());
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
 
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -43,35 +47,6 @@ export default function RoutineReviewScreen() {
     );
   }
 
-  const saveRoutine = async () => {
-    const validation = validateRoutine(draft);
-
-    if (validation) {
-      setSaveError(validation);
-
-      return;
-    }
-
-    setSaving(true);
-    setSaveError(null);
-
-    try {
-      const saved = await save(draft, id === "new" ? undefined : id);
-
-      if (saved) {
-        finish();
-      } else {
-        setSaveError(storeError ?? "La routine n’a pas pu être enregistrée. Réessayez.");
-      }
-    } catch (cause) {
-      setSaveError(
-        cause instanceof Error ? cause.message : "La routine n’a pas pu être enregistrée.",
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const isAsNeeded = draft.frequency.kind === FrequencyKind.asNeeded;
 
   return (
@@ -81,7 +56,7 @@ export default function RoutineReviewScreen() {
         footer={
           <ActionButton
             label={saving ? "Enregistrement…" : id === "new" ? "Créer la routine" : "Enregistrer"}
-            onPress={saveRoutine}
+            onPress={() => void saveRoutine()}
             disabled={saving || busy}
             testID="routine-save"
           />

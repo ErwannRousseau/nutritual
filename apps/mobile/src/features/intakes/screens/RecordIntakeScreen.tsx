@@ -10,44 +10,22 @@ import SheetHeader from "@/shared/ui/SheetHeader";
 import ProductBadge from "@/shared/ui/ProductBadge";
 import Screen from "@/shared/ui/Screen";
 import { usePalette } from "@/shared/ui/palette";
-import { useRoutineStore } from "@/features/routines/RoutinesProvider";
-import { dateLabel, frequencyLabel, timeLabel } from "@/features/routines/display";
-import { FrequencyKind } from "@nutritual/protocol";
+import { dateLabel, routineScheduleDisplay } from "@/features/routines/display";
+import { useRecordIntake } from "@/features/intakes/useRecordIntake";
 
 export default function RecordIntakeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { routines, busy, error, record } = useRoutineStore();
+
+  const { routines, busy, error, isSaving, isActionDisabled, feedback, recordIntake } =
+    useRecordIntake();
+
   const colors = usePalette();
   const [today] = useState(() => new Date());
   const [isSelected, setIsSelected] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(null);
   const routine = routines.find((item) => item.id === id);
-  const isActionDisabled = busy || isSaving;
   const errorMessage = feedback ?? error;
 
-  const schedule = routine
-    ? routine.frequency.kind === FrequencyKind.asNeeded
-      ? frequencyLabel(routine.frequency)
-      : `${timeLabel(new Date(`2000-01-01T${routine.time}:00`))} · ${frequencyLabel(routine.frequency)}`
-    : "";
-
   const styles = useMemo(() => createStyles(colors, isSelected), [colors, isSelected]);
-
-  async function save() {
-    if (!routine || !isSelected || isActionDisabled) return;
-    setIsSaving(true);
-    setFeedback(null);
-
-    try {
-      if (await record(routine.id)) router.back();
-      else setFeedback("Impossible d’enregistrer la prise. Réessayez.");
-    } catch {
-      setFeedback("Impossible d’enregistrer la prise. Réessayez.");
-    } finally {
-      setIsSaving(false);
-    }
-  }
 
   if (!routine) {
     return (
@@ -61,6 +39,12 @@ export default function RecordIntakeScreen() {
       </Screen>
     );
   }
+
+  const schedule = routineScheduleDisplay(routine);
+
+  const save = async () => {
+    if (await recordIntake(routine.id, isSelected)) router.back();
+  };
 
   return (
     <Screen
@@ -82,9 +66,7 @@ export default function RecordIntakeScreen() {
             variant="largeTitle"
             textStyle={styles.centeredText}
           >
-            {routine.frequency.kind === FrequencyKind.asNeeded
-              ? "À la demande"
-              : `Prise de ${schedule.split(" · ")[0]}`}
+            {schedule.time ? `Prise de ${schedule.time}` : "À la demande"}
           </AppText>
         </Column>
         <Spacer />
@@ -96,7 +78,7 @@ export default function RecordIntakeScreen() {
             <Column alignment="start" spacing={5}>
               <AppText variant="headline">{routine.productName}</AppText>
               <AppText variant="footnote" color={colors.secondary}>
-                {schedule}
+                {schedule.label}
               </AppText>
             </Column>
             <Spacer />
