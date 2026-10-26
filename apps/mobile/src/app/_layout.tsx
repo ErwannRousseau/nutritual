@@ -1,14 +1,14 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AppState, StyleSheet, useColorScheme } from "react-native";
-import { RoutinesProvider } from "@/routines/RoutinesProvider";
-import { usePalette } from "@/components/ui/palette";
-import { AuthProvider, useAuth } from "@/auth/AuthProvider";
-import { hasActiveSession, sessionExpiryTime } from "@/auth/session";
+import { RoutinesProvider } from "@/features/routines/RoutinesProvider";
+import { usePalette } from "@/shared/ui/palette";
+import { AuthProvider, useAuth } from "@/features/auth/AuthProvider";
+import { hasActiveSession, sessionExpiryTime } from "@/features/auth/session-model";
 import * as Linking from "expo-linking";
 import * as SecureStore from "expo-secure-store";
 import { router, useRootNavigationState } from "expo-router";
-import { createPendingPairLinkCoordinator } from "@/auth/pending-pair-link";
+import { createPendingPairLinkCoordinator } from "@/features/auth/pending-pair-link";
 
 export default function RootLayout() {
   return (

@@ -37,12 +37,11 @@ Use `bun run --filter mobile ios` for an iOS simulator.
 
 ## Source layout
 
-| Path             | Responsibility                                                         |
-| ---------------- | ---------------------------------------------------------------------- |
-| `src/app`        | Expo Router routes and screen composition                              |
-| `src/components` | Shared UI and routine forms                                            |
-| `src/routines`   | Routine state, SQLite persistence, reminders, and relay handling       |
-| `src/auth`       | OAuth sign-in, SecureStore tokens, pairing, and authenticated requests |
+| Path            | Responsibility                                                   |
+| --------------- | ---------------------------------------------------------------- |
+| `src/app`       | Expo Router routes and screen composition                        |
+| `src/features`  | Home, routine, intake, and authentication flows and domain logic |
+| `src/shared/ui` | Shared UI components                                             |
 
 The UI uses the universal `@expo/ui` API. See
 [ADR-0005](../../docs/adr/0005-use-expo-ui-for-the-ios-routine-milestone.md)

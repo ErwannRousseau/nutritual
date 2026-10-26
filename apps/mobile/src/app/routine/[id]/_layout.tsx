@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import { RoutineDraftProvider } from "@/components/routine-form/RoutineDraftProvider";
+import { RoutineDraftProvider } from "@/features/routines/RoutineDraftProvider";
 
 export default function RoutineFlowLayout() {
   return (
