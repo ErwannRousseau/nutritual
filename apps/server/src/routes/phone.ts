@@ -265,13 +265,18 @@ export function registerPhoneRoutes(
     await ready();
 
     const result = await database.query(
-      `DELETE FROM app_paired_devices WHERE user_sub = $1 AND device_id = $2 AND device_secret_hash = $3 RETURNING user_sub`,
+      `DELETE FROM app_paired_devices WHERE user_sub = $1 AND device_id = $2 AND device_secret_hash = $3 RETURNING pairing_id`,
       [c.get("auth").sub, body.deviceId, digest(body.deviceSecret)],
     );
 
-    if (!result.rowCount) return c.json({ error: "invalid_device_credentials" }, 401);
-    await database.query("DELETE FROM app_device_tickets WHERE user_sub = $1", [c.get("auth").sub]);
-    relay.disconnectPairedPhone(c.get("auth").sub, body.deviceId);
+    const pairingId = result.rows[0]?.pairing_id;
+
+    if (!pairingId) return c.json({ error: "invalid_device_credentials" }, 401);
+    relay.disconnectPairedPhone(c.get("auth").sub, body.deviceId, pairingId);
+    await database.query("DELETE FROM app_device_tickets WHERE user_sub = $1 AND pairing_id = $2", [
+      c.get("auth").sub,
+      pairingId,
+    ]);
 
     return c.json({ paired: false });
   });

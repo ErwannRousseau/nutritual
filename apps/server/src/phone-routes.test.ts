@@ -19,10 +19,11 @@ type Challenge = { userSub: string; browserSub: string; status: string; expiresA
 
 type Device = { deviceId: string; secretHash: string; pairingId: string; clientId: string };
 
-function fixture(userSub = "user-1", allowAttempt = true) {
+function fixture(userSub = "user-1", allowAttempt = true, relay = createRoutineRelay()) {
   const challenges = new Map<string, Challenge>();
   const devices = new Map<string, Device>();
   let pairedInsertCount = 0;
+  let ticketCleanupPairingId: string | undefined;
 
   const client = {
     async query(sql: string, values: unknown[] = []) {
@@ -169,6 +170,25 @@ function fixture(userSub = "user-1", allowAttempt = true) {
         return { rows: [], rowCount: 1 };
       }
 
+      if (sql.includes("DELETE FROM app_paired_devices")) {
+        // SAFETY: This route binds the authenticated user, device ID, and secret hash in this order.
+        const [owner, deviceId, secretHash] = values as string[];
+        const device = devices.get(owner);
+
+        if (device?.deviceId !== deviceId || device.secretHash !== secretHash)
+          return { rows: [], rowCount: 0 };
+        devices.delete(owner);
+
+        return { rows: [{ pairing_id: device.pairingId }], rowCount: 1 };
+      }
+
+      if (sql.includes("DELETE FROM app_device_tickets")) {
+        // SAFETY: This route binds the user subject before the deleted pairing ID.
+        ticketCleanupPairingId = values[1] as string;
+
+        return { rows: [], rowCount: 0 };
+      }
+
       return { rows: [], rowCount: 0 };
     },
   });
@@ -182,7 +202,7 @@ function fixture(userSub = "user-1", allowAttempt = true) {
     await next();
   };
 
-  registerPhoneRoutes(app, createRoutineRelay(), {
+  registerPhoneRoutes(app, relay, {
     database,
     digest,
     rateLimit: async () => allowAttempt,
@@ -195,11 +215,49 @@ function fixture(userSub = "user-1", allowAttempt = true) {
     app,
     challenges,
     devices,
+    relay,
+    get ticketCleanupPairingId() {
+      return ticketCleanupPairingId;
+    },
     get pairedInsertCount() {
       return pairedInsertCount;
     },
   };
 }
+
+test("disconnect revokes only the deleted pairing generation", async () => {
+  const relay = createRoutineRelay();
+  const state = fixture("user-1", true, relay);
+  const secret = "a-secure-random-device-secret-value-123456";
+  state.devices.set("user-1", {
+    deviceId: "device-1",
+    secretHash: digest(secret),
+    pairingId: "pairing-1",
+    clientId: "client-1",
+  });
+  let oldCloseCount = 0;
+  await relay.connectPhone(
+    "user-1",
+    {
+      id: "old-connection",
+      deviceId: "device-1",
+      pairingId: "pairing-1",
+      send: () => undefined,
+      close: () => oldCloseCount++,
+    },
+    async () => true,
+  );
+
+  const response = await state.app.request("/api/phone/disconnect", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ deviceId: "device-1", deviceSecret: secret }),
+  });
+
+  expect(response.status).toBe(200);
+  expect(state.ticketCleanupPairingId).toBe("pairing-1");
+  expect(oldCloseCount).toBe(1);
+});
 
 test("authenticated phone inspection finds a pending challenge before approval binds its subject", async () => {
   const state = fixture("user-1");

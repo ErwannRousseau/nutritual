@@ -41,12 +41,17 @@ test("MCP and phone APIs reject missing bearer credentials", async () => {
 test("relay isolates connected phones by authenticated user", async () => {
   const relay = createRoutineRelay();
   const sent: string[] = [];
-  relay.connectPhone("user-a", {
-    id: "device-a",
-    deviceId: "paired-device-a",
-    send: (message) => sent.push(message),
-    close: () => undefined,
-  });
+  await relay.connectPhone(
+    "user-a",
+    {
+      id: "device-a",
+      deviceId: "paired-device-a",
+      pairingId: "pairing-a",
+      send: (message) => sent.push(message),
+      close: () => undefined,
+    },
+    async () => true,
+  );
 
   const result = await relay.createRoutine("user-b", {
     operationId: "3b5d754f-00e6-451e-974f-fcbd180b3a6a",
@@ -63,18 +68,28 @@ test("a replaced socket close cannot disconnect the newer socket for the same de
   const relay = createRoutineRelay();
   const firstSent: string[] = [];
   const secondSent: string[] = [];
-  relay.connectPhone("user-a", {
-    id: "connection-1",
-    deviceId: "device-a",
-    send: (message) => firstSent.push(message),
-    close: () => undefined,
-  });
-  relay.connectPhone("user-a", {
-    id: "connection-2",
-    deviceId: "device-a",
-    send: (message) => secondSent.push(message),
-    close: () => undefined,
-  });
+  await relay.connectPhone(
+    "user-a",
+    {
+      id: "connection-1",
+      deviceId: "device-a",
+      pairingId: "pairing-a",
+      send: (message) => firstSent.push(message),
+      close: () => undefined,
+    },
+    async () => true,
+  );
+  await relay.connectPhone(
+    "user-a",
+    {
+      id: "connection-2",
+      deviceId: "device-a",
+      pairingId: "pairing-a",
+      send: (message) => secondSent.push(message),
+      close: () => undefined,
+    },
+    async () => true,
+  );
   relay.disconnectPhone("user-a", "connection-1");
 
   const pending = relay.createRoutine("user-a", {
@@ -88,6 +103,137 @@ test("a replaced socket close cannot disconnect the newer socket for the same de
   expect(firstSent).toEqual([]);
   expect(secondSent).toHaveLength(1);
   relay.disconnectPhone("user-a", "connection-2");
+  expect((await pending).status).toBe(CreateRoutineDeliveryStatus.unconfirmed);
+});
+
+test("rejected pairing and revoked pending pairing stay unavailable after late approval", async () => {
+  const relay = createRoutineRelay();
+  expect(
+    (
+      await relay.createRoutine("user-a", {
+        operationId: "c6d611b7-b4a7-427a-bce1-50c3a2815d88",
+        productName: "Magnesium",
+        frequency: { kind: "as-needed" },
+        time: "",
+      })
+    ).status,
+  ).toBe(CreateRoutineDeliveryStatus.unavailable);
+
+  await relay.connectPhone(
+    "user-a",
+    {
+      id: "rejected",
+      deviceId: "device-a",
+      pairingId: "pairing-1",
+      send: () => undefined,
+      close: () => undefined,
+    },
+    async () => false,
+  );
+  expect(
+    (
+      await relay.createRoutine("user-a", {
+        operationId: "c6d611b7-b4a7-427a-bce1-50c3a2815d88",
+        productName: "Magnesium",
+        frequency: { kind: "as-needed" },
+        time: "",
+      })
+    ).status,
+  ).toBe(CreateRoutineDeliveryStatus.unavailable);
+
+  await relay.connectPhone(
+    "user-a",
+    {
+      id: "lookup-failed",
+      deviceId: "device-a",
+      pairingId: "pairing-1",
+      send: () => undefined,
+      close: () => undefined,
+    },
+    async () => {
+      throw new Error("Pairing lookup failed.");
+    },
+  );
+
+  expect(
+    (
+      await relay.createRoutine("user-a", {
+        operationId: "c6d611b7-b4a7-427a-bce1-50c3a2815d88",
+        productName: "Magnesium",
+        frequency: { kind: "as-needed" },
+        time: "",
+      })
+    ).status,
+  ).toBe(CreateRoutineDeliveryStatus.unavailable);
+
+  let allowPairing!: (paired: boolean) => void;
+
+  const admission = relay.connectPhone(
+    "user-a",
+    {
+      id: "revoked-pending",
+      deviceId: "device-a",
+      pairingId: "pairing-1",
+      send: () => undefined,
+      close: () => undefined,
+    },
+    () => new Promise((resolve) => (allowPairing = resolve)),
+  );
+
+  relay.disconnectPairedPhone("user-a", "device-a", "pairing-1");
+  allowPairing(true);
+  await admission;
+
+  expect(
+    (
+      await relay.createRoutine("user-a", {
+        operationId: "c6d611b7-b4a7-427a-bce1-50c3a2815d88",
+        productName: "Magnesium",
+        frequency: { kind: "as-needed" },
+        time: "",
+      })
+    ).status,
+  ).toBe(CreateRoutineDeliveryStatus.unavailable);
+});
+
+test("revoking an old pairing does not disconnect its replacement", async () => {
+  const relay = createRoutineRelay();
+  const currentSent: string[] = [];
+  await relay.connectPhone(
+    "user-a",
+    {
+      id: "old",
+      deviceId: "device-a",
+      pairingId: "pairing-1",
+      send: () => undefined,
+      close: () => undefined,
+    },
+    async () => true,
+  );
+  await relay.connectPhone(
+    "user-a",
+    {
+      id: "new",
+      deviceId: "device-a",
+      pairingId: "pairing-2",
+      send: (message) => currentSent.push(message),
+      close: () => undefined,
+    },
+    async () => true,
+  );
+
+  relay.disconnectPairedPhone("user-a", "device-a", "pairing-1");
+
+  const pending = relay.createRoutine("user-a", {
+    operationId: "f490c9b0-b05f-49ee-ae09-89eb1bd48cc6",
+    productName: "Magnesium",
+    frequency: { kind: "as-needed" },
+    time: "",
+  });
+
+  await Promise.resolve();
+  expect(currentSent).toHaveLength(1);
+  relay.disconnectPhone("user-a", "new");
   expect((await pending).status).toBe(CreateRoutineDeliveryStatus.unconfirmed);
 });
 

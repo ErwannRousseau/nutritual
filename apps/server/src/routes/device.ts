@@ -56,13 +56,12 @@ export function registerDeviceRoutes(
         const phone: DeviceConnection = {
           id: connectionId,
           deviceId,
+          pairingId,
           send: (message) => ws.send(message),
           close: (code, reason) => ws.close(code, reason),
         };
 
-        relay.connectPhone(userId, phone);
-
-        try {
+        await relay.connectPhone(userId, phone, async () => {
           await ready();
 
           const stillPaired = await database.query(
@@ -70,10 +69,8 @@ export function registerDeviceRoutes(
             [userId, deviceId, pairingId],
           );
 
-          if (!stillPaired.rowCount) relay.disconnectPhone(userId, connectionId, true);
-        } catch {
-          relay.disconnectPhone(userId, connectionId, true);
-        }
+          return Boolean(stillPaired.rowCount);
+        });
       },
       onMessage(event) {
         let value: unknown;

@@ -12,6 +12,7 @@ const acknowledgementTimeoutMs = 10_000;
 export type DeviceConnection = {
   id: string;
   deviceId: string;
+  pairingId: string;
   send: (message: string) => void;
   close: (code: number, reason: string) => void;
 };
@@ -26,6 +27,7 @@ type PendingRequest = {
 export function createRoutineRelay() {
   const pendingRequests = new Map<string, PendingRequest>();
   const connectedPhones = new Map<string, DeviceConnection>();
+  const pendingPhones = new Map<string, DeviceConnection>();
 
   function unconfirmed(operationId: string, message: string): CreateRoutineDeliveryResult {
     return { status: CreateRoutineDeliveryStatus.unconfirmed, operationId, message };
@@ -109,7 +111,38 @@ export function createRoutineRelay() {
     });
   }
 
-  function connectPhone(userId: string, phone: DeviceConnection): void {
+  async function connectPhone(
+    userId: string,
+    phone: DeviceConnection,
+    isPaired: () => Promise<boolean>,
+  ): Promise<void> {
+    const previousPending = pendingPhones.get(userId);
+    pendingPhones.set(userId, phone);
+
+    if (previousPending) previousPending.close(1012, "Replaced by a new phone connection.");
+
+    let paired: boolean;
+
+    try {
+      paired = await isPaired();
+    } catch {
+      if (pendingPhones.get(userId) === phone) pendingPhones.delete(userId);
+      phone.close(1011, "Device pairing could not be verified.");
+
+      return;
+    }
+
+    if (!paired || pendingPhones.get(userId) !== phone) {
+      if (pendingPhones.get(userId) === phone) pendingPhones.delete(userId);
+      phone.close(
+        1008,
+        paired ? "Device connection was canceled." : "Device pairing is no longer active.",
+      );
+
+      return;
+    }
+
+    pendingPhones.delete(userId);
     const previousPhone = connectedPhones.get(userId);
     connectedPhones.set(userId, phone);
 
@@ -120,6 +153,14 @@ export function createRoutineRelay() {
   }
 
   function disconnectPhone(userId: string, connectionId: string, closeConnection = false): void {
+    const pending = pendingPhones.get(userId);
+
+    if (pending?.id === connectionId) {
+      pendingPhones.delete(userId);
+
+      if (closeConnection) pending.close(1008, "Device disconnected.");
+    }
+
     const phone = connectedPhones.get(userId);
 
     if (phone?.id === connectionId) {
@@ -131,10 +172,16 @@ export function createRoutineRelay() {
     finishPendingForPhone(userId, connectionId);
   }
 
-  function disconnectPairedPhone(userId: string, deviceId: string): void {
+  function disconnectPairedPhone(userId: string, deviceId: string, pairingId: string): void {
+    const pending = pendingPhones.get(userId);
+
+    if (pending?.deviceId === deviceId && pending.pairingId === pairingId)
+      disconnectPhone(userId, pending.id, true);
+
     const phone = connectedPhones.get(userId);
 
-    if (phone?.deviceId === deviceId) disconnectPhone(userId, phone.id, true);
+    if (phone?.deviceId === deviceId && phone.pairingId === pairingId)
+      disconnectPhone(userId, phone.id, true);
   }
 
   async function createRoutine(

@@ -22,23 +22,37 @@ const { registerDeviceRoutes } = await import("./routes/device.ts");
 const { digest } = await import("./pairing-store.ts");
 
 const testTicket = "single-use-device-ticket";
-let ticketConsumed = false;
+
+const tickets = new Map([
+  [testTicket, "pairing-1"],
+  ["second-device-ticket", "pairing-1"],
+  ["new-pairing-ticket", "pairing-2"],
+]);
+
+const consumedTickets = new Set<string>();
+let pairingCheck: () => Promise<boolean> = async () => true;
 
 const fakeDatabase = Object.assign(new Pool({ connectionString: process.env.DATABASE_URL }), {
   async query(sql: string, values: unknown[] = []) {
     if (sql.includes("UPDATE app_device_tickets")) {
-      if (ticketConsumed || values[0] !== digest(testTicket)) return { rows: [], rowCount: 0 };
-      ticketConsumed = true;
+      const ticket = [...tickets.keys()].find((value) => digest(value) === values[0]);
+
+      if (!ticket || consumedTickets.has(ticket)) return { rows: [], rowCount: 0 };
+      consumedTickets.add(ticket);
 
       return {
-        rows: [{ user_sub: "user-1", device_id: "device-1", pairing_id: "pairing-1" }],
+        rows: [{ user_sub: "user-1", device_id: "device-1", pairing_id: tickets.get(ticket) }],
         rowCount: 1,
       };
     }
 
     if (sql.includes("SELECT 1 FROM app_paired_devices")) {
+      const paired = await pairingCheck();
+
       return values[0] === "user-1" && values[1] === "device-1" && values[2] === "pairing-1"
-        ? { rows: [{ 1: 1 }], rowCount: 1 }
+        ? paired
+          ? { rows: [{ 1: 1 }], rowCount: 1 }
+          : { rows: [], rowCount: 0 }
         : { rows: [], rowCount: 0 };
     }
 
@@ -60,7 +74,8 @@ function runningDeviceServer() {
 }
 
 test("device route rejects missing and replayed tickets and relays the real phone result", async () => {
-  ticketConsumed = false;
+  consumedTickets.clear();
+  pairingCheck = async () => true;
   const { relay, server } = runningDeviceServer();
 
   try {
@@ -120,6 +135,164 @@ test("device route rejects missing and replayed tickets and relays the real phon
 
     expect(replay.status).toBe(401);
     phone.close();
+  } finally {
+    server.stop(true);
+  }
+});
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => (resolve = done));
+
+  return { promise, resolve };
+}
+
+function socketFor(server: ReturnType<typeof Bun.serve>, ticket: string) {
+  const url = new URL("/device", server.url);
+  url.protocol = "ws:";
+  url.searchParams.set("ticket", ticket);
+
+  return new WebSocket(url);
+}
+
+function acknowledgeNextCommand(phone: WebSocket): Promise<void> {
+  return new Promise((resolve, reject) => {
+    phone.addEventListener(
+      "message",
+      (event) => {
+        const value: unknown = JSON.parse(String(event.data));
+
+        if (!isCreateRoutineCommandMessage(value)) {
+          reject(new Error("Invalid command message."));
+
+          return;
+        }
+
+        const result: CreateRoutineResultMessage = {
+          type: "create_routine_result",
+          requestId: value.requestId,
+          result: {
+            status: "created",
+            operationId: value.command.operationId,
+            routineId: "routine-1",
+            reminder: "none",
+          },
+        };
+
+        phone.send(JSON.stringify(result));
+        resolve();
+      },
+      { once: true },
+    );
+  });
+}
+
+test("a pending pairing check cannot receive commands or replace the active phone", async () => {
+  consumedTickets.clear();
+  pairingCheck = async () => true;
+  const { relay, server } = runningDeviceServer();
+  const activePhone = socketFor(server, testTicket);
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      activePhone.addEventListener("open", () => resolve(), { once: true });
+      activePhone.addEventListener("error", () => reject(new Error("WebSocket failed.")), {
+        once: true,
+      });
+    });
+
+    const initialDelivery = relay.createRoutine("user-1", {
+      operationId: "f490c9b0-b05f-49ee-ae09-89eb1bd48cc6",
+      productName: "Magnesium",
+      frequency: { kind: "as-needed" },
+      time: "",
+    });
+
+    await acknowledgeNextCommand(activePhone);
+    expect((await initialDelivery).status).toBe("created");
+
+    const checkStarted = deferred<void>();
+    const allowCheck = deferred<boolean>();
+    pairingCheck = async () => {
+      checkStarted.resolve();
+
+      return allowCheck.promise;
+    };
+
+    const pendingPhone = socketFor(server, "second-device-ticket");
+    await new Promise<void>((resolve, reject) => {
+      pendingPhone.addEventListener("open", () => resolve(), { once: true });
+      pendingPhone.addEventListener("error", () => reject(new Error("WebSocket failed.")), {
+        once: true,
+      });
+    });
+    await checkStarted.promise;
+
+    const activeDelivery = relay.createRoutine("user-1", {
+      operationId: "f490c9b0-b05f-49ee-ae09-89eb1bd48cc6",
+      productName: "Magnesium",
+      frequency: { kind: "as-needed" },
+      time: "",
+    });
+
+    await acknowledgeNextCommand(activePhone);
+    expect((await activeDelivery).status).toBe("created");
+
+    allowCheck.resolve(true);
+    await new Promise<void>((resolve) =>
+      activePhone.addEventListener("close", () => resolve(), { once: true }),
+    );
+
+    const delivery = relay.createRoutine("user-1", {
+      operationId: "c6d611b7-b4a7-427a-bce1-50c3a2815d88",
+      productName: "Magnesium",
+      frequency: { kind: "as-needed" },
+      time: "",
+    });
+
+    await acknowledgeNextCommand(pendingPhone);
+    expect((await delivery).status).toBe("created");
+    activePhone.close();
+    pendingPhone.close();
+  } finally {
+    server.stop(true);
+  }
+});
+
+test("a closed pending socket cannot activate after its pairing check succeeds", async () => {
+  consumedTickets.clear();
+  const checkStarted = deferred<void>();
+  const allowCheck = deferred<boolean>();
+  pairingCheck = async () => {
+    checkStarted.resolve();
+
+    return allowCheck.promise;
+  };
+
+  const { relay, server } = runningDeviceServer();
+  const phone = socketFor(server, testTicket);
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      phone.addEventListener("open", () => resolve(), { once: true });
+      phone.addEventListener("error", () => reject(new Error("WebSocket failed.")), { once: true });
+    });
+    await checkStarted.promise;
+    phone.close();
+    await new Promise<void>((resolve) =>
+      phone.addEventListener("close", () => resolve(), { once: true }),
+    );
+    allowCheck.resolve(true);
+    expect(
+      (
+        await relay.createRoutine("user-1", {
+          operationId: "f490c9b0-b05f-49ee-ae09-89eb1bd48cc6",
+          productName: "Magnesium",
+          frequency: { kind: "as-needed" },
+          time: "",
+        })
+      ).status,
+    ).toBe("unavailable");
   } finally {
     server.stop(true);
   }
