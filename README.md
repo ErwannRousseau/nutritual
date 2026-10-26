@@ -7,6 +7,7 @@ The goal is to set up products and reminder schedules through the conversation.
 On your phone, you can see your routines, receive local reminders, and record
 what you've taken.
 
+> [!NOTE]
 > **Under development.** I've demonstrated that ChatGPT can create a supplement
 > routine directly in the app. I'm still building the full workflow, including
 > reminder scheduling and routine listing through ChatGPT.
