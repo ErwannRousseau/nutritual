@@ -18,6 +18,12 @@ decision. Use Ask when another perspective can change the plan or prevent a
 costly mistake. Ask early when the uncertainty is about the approach, instead of
 waiting until the implementation is complete.
 
-GitHub branch protection and ruleset settings are not available for this private
-repository on its current plan. These paths are workflow conventions, not
-enforced merge gates.
+GitHub has `show` and `ask` labels and uses this pull request template. The
+active `main-integrity` ruleset prevents deleting `main`, force-pushing it, and
+adding merge commits. Squash and rebase merges are enabled, and GitHub deletes
+merged head branches automatically.
+
+The ruleset does not require a pull request or status checks, so Ship can still
+commit directly to `main`. The labels and the Ask feedback decision remain
+workflow conventions. GitHub does not currently enforce that exactly one label
+is present or that Ask feedback is addressed before merging.
