@@ -32,7 +32,7 @@ export default function DateField({
         value={value}
         display="compact"
         presentation="inline"
-        locale="en_GB"
+        locale="en_US"
         is24Hour
         themeVariant={scheme}
         accentColor={colors.blue}
