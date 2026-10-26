@@ -1,11 +1,11 @@
 # Run Nutritual locally and connect ChatGPT
 
-This guide sets up the server on your Mac and the app on your iPhone. Once
-paired, ChatGPT can add supplement routines to Nutritual.
+This guide sets up the server on Mac and the app on iPhone. Once paired, ChatGPT
+can add supplement routines to Nutritual.
 
-You'll need Bun, Xcode, a Neon project with Managed Auth, a free ngrok account,
-and a ChatGPT workspace that allows custom MCP apps and write actions.
-Enable Developer Mode on the iPhone before installing the app.
+Needs Bun, Xcode, a Neon project with Managed Auth, a free ngrok account, and a
+ChatGPT workspace that allows custom MCP apps and write actions. Enable
+Developer Mode on the iPhone before installing the app.
 
 Run all commands from the repository root.
 
@@ -15,8 +15,8 @@ Run all commands from the repository root.
 bun install --frozen-lockfile
 ```
 
-The project uses the Neon `development` branch. For an unlinked checkout,
-sign in, select the project, and provision the services declared in `neon.ts`:
+The project uses the Neon `development` branch. For an unlinked checkout, sign
+in, select the project, and provision the services declared in `neon.ts`:
 
 ```sh
 bunx neon login
@@ -25,28 +25,28 @@ bunx neon checkout development
 bunx neon deploy
 ```
 
-Neon CLI writes database and Auth URLs to the ignored root `.env.local`.
-Keep those values when completing the configuration below.
+Neon CLI writes database and Auth URLs to the ignored root `.env.local`. Keep
+those values when completing the configuration below.
 
 ## Set the server origin and environment
 
 Start a tunnel using ngrok's free assigned development domain:
 
 ```sh
-ngrok config add-authtoken <your-authtoken>
-ngrok http 3000 --url https://<your-domain>.ngrok-free.dev --inspect=false
+ngrok config add-authtoken <authtoken>
+ngrok http 3000 --url https://<domain>.ngrok-free.dev --inspect=false
 ```
 
 Keep this terminal open. The tunnel forwards HTTPS requests to the local server
-on port `3000`, which you'll start after configuring OAuth.
+on port `3000`, which starts after configuring OAuth.
 
 Disable full request and response capture in the ngrok account's Traffic
 Inspector settings. `--inspect=false` disables only the local agent's inspection
 interface.
 
-Complete the root `.env.local` using [`.env.example`](../.env.example).
-Use the same ngrok HTTPS origin, without a trailing slash, for OAuth and MCP.
-The mobile client ID comes from the next section.
+Complete the root `.env.local` using [`.env.example`](../.env.example). Use the
+same ngrok HTTPS origin, without a trailing slash, for OAuth and MCP. The mobile
+client ID comes from the next section.
 
 | Variable                             | Value                                              |
 | ------------------------------------ | -------------------------------------------------- |
@@ -54,7 +54,7 @@ The mobile client ID comes from the next section.
 | `DATABASE_URL_UNPOOLED`              | Direct Postgres connection for administrative work |
 | `NEON_BRANCH`                        | `development`                                      |
 | `NEON_AUTH_BASE_URL`                 | Managed Auth issuer URL for this branch            |
-| `PUBLIC_BASE_URL`                    | Your ngrok HTTPS origin                            |
+| `PUBLIC_BASE_URL`                    | ngrok HTTPS origin                                 |
 | `MOBILE_OAUTH_CLIENT_ID`             | Public mobile client ID created in Neon OAuth      |
 | `EXPO_PUBLIC_SERVER_URL`             | Same value as `PUBLIC_BASE_URL`                    |
 | `EXPO_PUBLIC_NEON_AUTH_BASE_URL`     | Same value as `NEON_AUTH_BASE_URL`                 |
@@ -69,8 +69,8 @@ Use the public HTTPS origin on the iPhone. A loopback address such as
 
 ## Configure Neon OAuth
 
-Open the OAuth provider settings on the Neon `development` branch.
-Replace `<public-origin>` with your ngrok HTTPS origin.
+Open the OAuth provider settings on the Neon `development` branch. Replace
+`<public-origin>` with ngrok HTTPS origin.
 
 | Setting                    | Value                                   |
 | -------------------------- | --------------------------------------- |
@@ -80,8 +80,8 @@ Replace `<public-origin>` with your ngrok HTTPS origin.
 | Trusted domain             | `<public-origin>`                       |
 | Mobile client redirect URI | `<public-origin>/oauth/mobile/callback` |
 
-Create a public mobile OAuth client linked to the MCP resource. Enable PKCE
-and user consent. Copy its client ID into `MOBILE_OAUTH_CLIENT_ID` and
+Create a public mobile OAuth client linked to the MCP resource. Enable PKCE and
+user consent. Copy its client ID into `MOBILE_OAUTH_CLIENT_ID` and
 `EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID`.
 
 Register the HTTPS callback above in Neon. The server forwards the authorization
@@ -110,7 +110,7 @@ development build, not Expo Go.
 
 At first sign-in, choose **Créer un compte** on the Nutritual login page.
 Register with an email address and password. This Nutritual account belongs to
-the selected Neon branch and is separate from your Neon Console account.
+the selected Neon branch and is separate from Neon Console account.
 
 ## Connect ChatGPT
 
@@ -123,9 +123,9 @@ the selected Neon branch and is separate from your Neon Console account.
 4. Keep Nutritual open and connected. Ask ChatGPT to add a supplement routine,
    then confirm the action in ChatGPT.
 
-ChatGPT creates an as-needed routine without another approval on the phone.
-To add reminders, edit the routine's frequency and time in the app.
-Scheduling reminders through ChatGPT isn't implemented yet.
+ChatGPT creates an as-needed routine without another approval on the phone. To
+add reminders, edit the routine's frequency and time in the app. Scheduling
+reminders through ChatGPT isn't implemented yet.
 
 ## Fix setup problems
 
