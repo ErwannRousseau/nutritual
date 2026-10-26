@@ -25,7 +25,7 @@ const week = [
   ["Dimanche", 0],
 ] as const;
 
-const allDays = [0, 1, 2, 3, 4, 5, 6];
+const allDays = week.map(([, day]) => day);
 
 export default function RoutineScheduleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
