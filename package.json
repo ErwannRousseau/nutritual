@@ -10,12 +10,11 @@
   "scripts": {
     "dev": "bun --env-file=.env.local run --parallel --filter './apps/*' dev",
     "db:check": "bun --env-file=.env.local run --filter server db:check",
-    "auth:check": "bun --env-file=.env.local run --filter server auth:check",
     "lint": "bun run --parallel --filter '*' lint",
     "typecheck": "bun run --parallel --filter '*' typecheck",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
-    "test": "bun run --filter server test"
+    "test": "bun run --filter server test && bun run --filter mobile test"
   },
   "dependencies": {
     "@neon/config": "^1.9.3",

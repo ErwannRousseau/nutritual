@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "nutritual",
+    "scheme": "com.erwannrousseau.nutritual",
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.erwannrousseau.nutritual",
@@ -34,7 +34,10 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "expo-sqlite",
+      "expo-notifications",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -1,13 +1,13 @@
-import { Hono } from "hono";
+import { websocket } from "@hono/bun";
+import { app } from "./app.ts";
 
-const app = new Hono();
+export { app };
 
-app.get("/", (c) => {
-  return c.text("Hello Hono!");
-});
+export const serverConfig = {
+  hostname: "0.0.0.0",
+  port: Number(Bun.env.PORT ?? 3000),
+  fetch: app.fetch,
+  websocket,
+};
 
-app.get("/health", (c) => {
-  return c.json({ status: "ok" });
-});
-
-export default app;
+export default serverConfig;

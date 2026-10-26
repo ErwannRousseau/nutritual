@@ -6,7 +6,16 @@ authentication. Commands are transient, with no durable storage or payload
 logging. This limits centralized data and rules out a persistent server-side
 command queue.
 
-The first milestone serves one user with one paired phone at a time. ChatGPT
+The first milestone is validated on iOS and works entirely in the phone app,
+without a ChatGPT connection. The user creates a routine by entering a product name, configuring
+its frequency and any scheduled time, then pressing the creation button.
+The user can create multiple routines, edit each routine, and delete it.
+Routines persist after restarting the app.
+The interface uses Expo UI as recorded in
+[ADR-0005](0005-use-expo-ui-for-the-ios-routine-milestone.md). Android validation
+is outside this milestone.
+
+A later ChatGPT milestone serves one user with one paired phone at a time. ChatGPT
 runs in a desktop browser, and Nutritual stays open and connected on the phone
 during creation. If the phone is unavailable, the server reports that state
 without queuing the command. The user reopens the app and retries.
@@ -15,10 +24,30 @@ The initial ChatGPT connection includes a QR code to continue authorization in
 Nutritual. Authorizing the connection is separate from confirming a routine
 creation in ChatGPT.
 
-The initial routine contains a product name and a daily local time, and can be
-paused in the app. Dosage is optional. Workout scheduling, HealthKit, Health
-Connect, and a scientific recommendation engine are outside this milestone. The
-app does not embed an AI model.
+The initial routine contains a product name and a configurable frequency, and
+can be paused in the app. Frequency options are selected weekdays, every N days
+from a chosen start date, and as needed. An as-needed routine has no automatic
+reminder and lets the user record an intake voluntarily. Scheduled routine times
+are local. Dosage is optional. Workout scheduling, HealthKit, Health Connect, and
+a scientific recommendation engine are outside this milestone. The app does not
+embed an AI model.
+
+Pausing a routine cancels its upcoming reminders and preserves its schedule.
+Resuming uses the original schedule without catching up. For example, a routine
+scheduled for the 25th, 28th, and 31st resumes on the 31st if reactivated on the
+29th. The app never schedules past occurrences as catch-up reminders. iOS
+controls delivery after a phone shutdown, so suppression of overdue system
+notifications cannot be guaranteed.
+
+Every-N-calendar-day reminders use a finite queue of future local calendar
+dates. The app displays the last covered date and renews the queue when opened
+or brought to the foreground. This limit is accepted for the local milestone.
+Weekly and daily reminders use native repeating calendar schedules. Operating
+system queue limits or notification failures do not erase a saved routine.
+
+Every routine supports recording an intake through a "Taken" action, viewing
+the dated intake history, and undoing an accidental entry. A notification alone
+never records an intake.
 
 Confirmation in ChatGPT authorizes immediate activation without another approval
 in Nutritual. The result distinguishes a saved routine from a scheduled
