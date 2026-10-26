@@ -33,18 +33,26 @@ Expo ships breaking changes every SDK release. APIs you remember are likely rena
 
 ## Commands
 
-Use `bunx` instead of `npx` if the project uses bun (`bun.lock` present).
+Run workspace commands from the repository root. Run one-off Expo tools from
+`apps/mobile` with Bun so Expo uses this app's SDK and configuration.
 
 ```bash
-npx expo install <package>  # ALWAYS use instead of npm/yarn/pnpm/bun add — resolves SDK-compatible versions
-npx expo start              # start the dev server
-npx expo lint               # lint
-npx tsc --noEmit            # typecheck
-npx expo-doctor             # diagnose dependency and config issues
-npx expo install --fix      # fix incompatible package versions
+bun run dev
+bun run --filter mobile ios
+bun run --filter mobile lint
+bun run --filter mobile typecheck
+bun run --filter mobile test
 ```
 
-Run lint and typecheck before declaring any task done.
+From `apps/mobile`, run one-off Expo commands:
+
+```bash
+bunx expo install <package>
+bunx expo install --fix
+bunx expo-doctor
+```
+
+Run lint and typecheck before declaring any code work done.
 
 ## Navigation & Routing
 
