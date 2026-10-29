@@ -20,7 +20,7 @@ export default function ProductBadge({ size = 40 }: Props) {
         style={large ? styles.large : styles.small}
       >
         <SymbolView
-          name={{ ios: "pills.fill", android: "medication", web: "medication" }}
+          name={{ ios: "pills.fill", android: "medication" }}
           size={size * 0.48}
           tintColor={large ? colors.cyan : "#FFFFFF"}
         />

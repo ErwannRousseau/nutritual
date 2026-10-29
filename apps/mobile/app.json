@@ -20,10 +20,6 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.erwannrousseau.nutritual"
     },
-    "web": {
-      "output": "server",
-      "favicon": "./assets/images/favicon.png"
-    },
     "plugins": [
       "expo-router",
       [

@@ -18,16 +18,16 @@ export const symbolNames = [
 export type AppSymbolName = (typeof symbolNames)[number];
 
 export const platformNames: Record<AppSymbolName, NonNullable<SymbolViewProps["name"]>> = {
-  pills: { ios: "pills.fill", android: "medication", web: "medication" },
-  pill: { ios: "pills", android: "medication", web: "medication" },
-  plus: { ios: "plus", android: "add", web: "add" },
-  checkmark: { ios: "checkmark", android: "check", web: "check" },
-  "chevron.right": { ios: "chevron.right", android: "chevron_right", web: "chevron_right" },
-  xmark: { ios: "xmark", android: "close", web: "close" },
-  calendar: { ios: "calendar", android: "calendar_month", web: "calendar_month" },
-  clock: { ios: "clock", android: "schedule", web: "schedule" },
-  pause: { ios: "pause.fill", android: "pause", web: "pause" },
-  ellipsis: { ios: "ellipsis", android: "more_horiz", web: "more_horiz" },
+  pills: { ios: "pills.fill", android: "medication" },
+  pill: { ios: "pills", android: "medication" },
+  plus: { ios: "plus", android: "add" },
+  checkmark: { ios: "checkmark", android: "check" },
+  "chevron.right": { ios: "chevron.right", android: "chevron_right" },
+  xmark: { ios: "xmark", android: "close" },
+  calendar: { ios: "calendar", android: "calendar_month" },
+  clock: { ios: "clock", android: "schedule" },
+  pause: { ios: "pause.fill", android: "pause" },
+  ellipsis: { ios: "ellipsis", android: "more_horiz" },
 };
 
 type Props = {
