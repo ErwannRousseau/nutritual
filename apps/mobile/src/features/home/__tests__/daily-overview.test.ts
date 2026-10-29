@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { FrequencyKind } from "@nutritual/protocol";
 import { localDate, type Intake, type Routine } from "@/features/routines/model";
-import { selectDailyOverview } from "./daily-overview";
+import { selectDailyOverview } from "../daily-overview";
 
 describe("selectDailyOverview", () => {
   test("includes intakes for the local day and sorts newest first", () => {

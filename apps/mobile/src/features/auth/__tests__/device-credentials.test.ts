@@ -29,7 +29,7 @@ mock.module("expo-secure-store", () => ({
 mock.module("expo-crypto", () => ({ randomUUID: () => uuids.shift() }));
 
 async function getCredentials() {
-  return (await import("./AuthProvider")).getDeviceCredentials();
+  return (await import("../AuthProvider")).getDeviceCredentials();
 }
 
 function reset() {

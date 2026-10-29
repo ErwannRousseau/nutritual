@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { createPendingPairLinkCoordinator } from "./pending-pair-link";
+import { createPendingPairLinkCoordinator } from "../pending-pair-link";
 
 test("a newer QR link replaces the launch link and survives sign-in", async () => {
   const storedCodes: string[] = [];

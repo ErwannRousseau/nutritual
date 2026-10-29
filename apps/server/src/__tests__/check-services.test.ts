@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { expect, test } from "bun:test";
 
-const databaseCheck = new URL("./check-database.ts", import.meta.url).pathname;
+const databaseCheck = new URL("../check-database.ts", import.meta.url).pathname;
 
 test("database check reports missing configuration without secrets", () => {
   const result = spawnSync("bun", ["run", databaseCheck], {

@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { generateKeyPair, SignJWT, exportJWK, createLocalJWKSet } from "jose";
-import { createBrowserSessionVerifier } from "./browser-session.ts";
+import { createBrowserSessionVerifier } from "../browser-session.ts";
 
 test("Neon browser session verifier checks issuer, audience, role, and expiry", async () => {
   const issuer = "https://auth.test.invalid";

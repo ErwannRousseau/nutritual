@@ -65,7 +65,7 @@ const freshSession = (accessToken: string, refreshToken: string) => ({
 });
 
 async function loadSessionModule() {
-  return import("./session");
+  return import("../session");
 }
 
 test("a SecureStore read started before a login cannot replace the new session", async () => {

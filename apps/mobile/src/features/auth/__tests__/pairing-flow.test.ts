@@ -5,7 +5,7 @@ import {
   inspectPairingCode,
   pairingDecisionCode,
   type PairingFlowServices,
-} from "./pairing-flow";
+} from "../pairing-flow";
 
 const details: PairingOAuthRequestDetails = {
   clientId: "client.example",

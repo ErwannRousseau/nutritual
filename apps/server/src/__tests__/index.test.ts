@@ -1,6 +1,6 @@
 import { afterAll, expect, test } from "bun:test";
 import { CreateRoutineDeliveryStatus } from "@nutritual/protocol";
-import { createRoutineRelay } from "./routine-relay.ts";
+import { createRoutineRelay } from "../routine-relay.ts";
 
 process.env.DATABASE_URL = "postgres://test:test@127.0.0.1:1/test";
 
@@ -12,9 +12,9 @@ process.env.MOBILE_OAUTH_CLIENT_ID = "https://mobile.example.invalid/client.json
 
 process.env.NODE_ENV = "test";
 
-const { app } = await import("./app.ts");
-const { isRoutineToolError } = await import("./mcp-tools/create-intake-routine.ts");
-const { canUseMcpClient } = await import("./pairing-operations.ts");
+const { app } = await import("../app.ts");
+const { isRoutineToolError } = await import("../mcp-tools/create-intake-routine.ts");
+const { canUseMcpClient } = await import("../pairing-operations.ts");
 
 test("GET /health keeps its successful health response", async () => {
   const response = await app.request("/health");

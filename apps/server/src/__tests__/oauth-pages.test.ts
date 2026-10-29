@@ -11,8 +11,8 @@ process.env.PUBLIC_BASE_URL ??= "https://api.test.invalid";
 
 process.env.MOBILE_OAUTH_CLIENT_ID ??= "https://mobile.test.invalid/client.json";
 
-const { registerOAuthPages } = await import("./routes/oauth-pages.ts");
-const { config } = await import("./neon-auth.ts");
+const { registerOAuthPages } = await import("../routes/oauth-pages.ts");
+const { config } = await import("../neon-auth.ts");
 const mobileClientId = config.mobileClientId;
 
 type TestEvent = { preventDefault?: () => void; currentTarget?: object };

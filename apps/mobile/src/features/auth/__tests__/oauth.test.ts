@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { createCodeExchangeParams } from "./oauth";
+import { createCodeExchangeParams } from "../oauth";
 
 test("authorization code exchange includes the MCP resource and PKCE verifier", () => {
   expect(

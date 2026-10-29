@@ -1,11 +1,11 @@
 import { expect, test } from "bun:test";
 import { Pool } from "pg";
-import { createRoutineRelay } from "./routine-relay.ts";
+import { createRoutineRelay } from "../routine-relay.ts";
 
 process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/test";
 
-const { createPairingStore, digest } = await import("./pairing-store.ts");
-const { createPairingOperations } = await import("./pairing-operations.ts");
+const { createPairingStore, digest } = await import("../pairing-store.ts");
+const { createPairingOperations } = await import("../pairing-operations.ts");
 
 type Device = {
   device_id: string;

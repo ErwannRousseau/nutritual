@@ -1,7 +1,6 @@
 import type { Context } from "hono";
 import type { Hono, MiddlewareHandler } from "hono";
 import type { McpAuthVariables } from "@neon/oauth/mcp/hono";
-import { z } from "zod";
 import type {
   DeviceTicketResponse,
   PairingChallengeInspectionResponse,
@@ -9,22 +8,8 @@ import type {
 } from "@nutritual/protocol";
 import { authVerifier } from "../neon-auth.ts";
 import type { PairingOperations } from "../pairing-operations.ts";
+import { approvalRequestSchema, codeRequestSchema, deviceRequestSchema } from "./phone-schemas.ts";
 
-const codePattern = /^[A-Z0-9]{4}-[A-Z0-9]{4}$/;
-const idPattern = /^[A-Za-z0-9._:-]{1,128}$/;
-const secretPattern = /^[A-Za-z0-9_-]{32,256}$/;
-const codeRequestSchema = z.object({ code: z.string().regex(codePattern) });
-
-const approvalRequestSchema = z.object({
-  code: z.string().regex(codePattern),
-  deviceId: z.string().regex(idPattern),
-  deviceSecret: z.string().regex(secretPattern),
-});
-
-const deviceRequestSchema = z.object({
-  deviceId: z.string().regex(idPattern),
-  deviceSecret: z.string().regex(secretPattern),
-});
 
 type PhoneRouteDependencies = {
   authGuard: MiddlewareHandler<McpAuthVariables>;

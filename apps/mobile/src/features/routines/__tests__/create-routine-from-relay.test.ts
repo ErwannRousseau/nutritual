@@ -113,11 +113,11 @@ afterAll(() => {
 });
 
 test("relay creation deduplicates on SQLite and serializes reminder restoration", async () => {
-  const { createRoutineFromRelayHandler } = await import("./create-routine-from-relay");
+  const { createRoutineFromRelayHandler } = await import("../create-routine-from-relay");
 
-  const storage = await import("./storage");
+  const storage = await import("../storage");
 
-  const { removeReminders, restoreReminders } = await import("./reminders");
+  const { removeReminders, restoreReminders } = await import("../reminders");
 
   const makeHandler = () =>
     createRoutineFromRelayHandler({
@@ -230,7 +230,7 @@ test("device relay reconnects after the server closes its socket", async () => {
     deviceWebSocketUrl: (serverUrl: string, ticket: string) =>
       `${serverUrl}/device?ticket=${ticket}`,
   }));
-  const { connectToDeviceRelay } = await import("./relay");
+  const { connectToDeviceRelay } = await import("../relay");
 
   class FakeWebSocket {
     static OPEN = 1;

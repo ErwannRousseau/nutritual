@@ -11,11 +11,11 @@ process.env.PUBLIC_BASE_URL ??= "https://api.test.invalid";
 
 process.env.MOBILE_OAUTH_CLIENT_ID ??= "https://mobile.test.invalid/client.json";
 
-const { registerPairingRoutes } = await import("./routes/pairing.ts");
-const { registerOAuthPages } = await import("./routes/oauth-pages.ts");
-const { createPairingStore, digest } = await import("./pairing-store.ts");
-const { createPairingOperations } = await import("./pairing-operations.ts");
-const { createRoutineRelay } = await import("./routine-relay.ts");
+const { registerPairingRoutes } = await import("../routes/pairing.ts");
+const { registerOAuthPages } = await import("../routes/oauth-pages.ts");
+const { createPairingStore, digest } = await import("../pairing-store.ts");
+const { createPairingOperations } = await import("../pairing-operations.ts");
+const { createRoutineRelay } = await import("../routine-relay.ts");
 
 type StoredChallenge = {
   codeHash: string;

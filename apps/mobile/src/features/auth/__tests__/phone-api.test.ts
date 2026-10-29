@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { deviceWebSocketUrl } from "./relay-url";
-import { phoneResponses } from "./phone-responses";
+import { deviceWebSocketUrl } from "../relay-url";
+import { phoneResponses } from "../phone-responses";
 import type { PairingChallengeInspectionResponse } from "@nutritual/protocol";
 
 test("device relay URL includes the one-time ticket and uses secure WebSockets", () => {

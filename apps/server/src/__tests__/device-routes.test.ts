@@ -8,7 +8,7 @@ import {
   type CreateRoutineRequest,
   type CreateRoutineResultMessage,
 } from "@nutritual/protocol";
-import { createRoutineRelay } from "./routine-relay.ts";
+import { createRoutineRelay } from "../routine-relay.ts";
 
 process.env.DATABASE_URL ??= "postgres://test:test@127.0.0.1:1/test";
 
@@ -18,9 +18,9 @@ process.env.PUBLIC_BASE_URL ??= "https://api.test.invalid";
 
 process.env.MOBILE_OAUTH_CLIENT_ID ??= "https://mobile.test.invalid/client.json";
 
-const { registerDeviceRoutes } = await import("./routes/device.ts");
-const { createPairingStore, digest } = await import("./pairing-store.ts");
-const { createPairingOperations } = await import("./pairing-operations.ts");
+const { registerDeviceRoutes } = await import("../routes/device.ts");
+const { createPairingStore, digest } = await import("../pairing-store.ts");
+const { createPairingOperations } = await import("../pairing-operations.ts");
 
 const testTicket = "single-use-device-ticket";
 
