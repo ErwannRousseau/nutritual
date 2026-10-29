@@ -2,7 +2,7 @@
   "name": "server",
   "type": "module",
   "scripts": {
-    "db:check": "bun run src/check-database.ts",
+    "db:check": "bun run scripts/check-database.ts",
     "dev": "bun run --hot src/index.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit -p tsconfig.json",
