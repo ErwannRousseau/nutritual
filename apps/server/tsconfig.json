@@ -1,10 +1,11 @@
 {
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
     "strict": true,
-    "allowImportingTsExtensions": true,
-    "noEmit": true,
     "types": ["bun"],
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx"
-  }
+  },
+  "include": ["src/**/*.ts", "oxlint.config.mts"],
+  "exclude": ["src/__tests__"]
 }

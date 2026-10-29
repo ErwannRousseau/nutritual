@@ -12,12 +12,15 @@ export function registerCreateIntakeRoutineTool(
   relay: RoutineRelay,
   userId: string,
 ): void {
-  server.tool(
+  server.registerTool(
     "create_intake_routine",
-    "Create an as-needed intake routine on the paired Nutritual phone. If delivery is unconfirmed, retry with the same operationId.",
     {
-      productName: z.string().trim().min(1).max(120),
-      operationId: z.string().uuid(),
+      description:
+        "Create an as-needed intake routine on the paired Nutritual phone. If delivery is unconfirmed, retry with the same operationId.",
+      inputSchema: {
+        productName: z.string().trim().min(1).max(120),
+        operationId: z.uuid(),
+      },
     },
     async ({ productName, operationId }) => {
       const outcome = await relay.createRoutine(userId, {
