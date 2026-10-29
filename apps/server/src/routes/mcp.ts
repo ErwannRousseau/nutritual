@@ -19,7 +19,10 @@ export function registerMcpRoutes(
 
     if (!(await operations.canUseMcpClient(userId, c.get("auth").clientId, config.mobileClientId)))
       return c.json({ error: "forbidden" }, 403);
+
     const server = new McpServer({ name: "nutritual", version: "1.0.0" });
+
+    // Tools
     registerCreateIntakeRoutineTool(server, relay, userId);
 
     const transport = new WebStandardStreamableHTTPServerTransport({

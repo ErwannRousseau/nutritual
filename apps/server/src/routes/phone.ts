@@ -10,7 +10,6 @@ import { authVerifier } from "../neon-auth.ts";
 import type { PairingOperations } from "../pairing-operations.ts";
 import { approvalRequestSchema, codeRequestSchema, deviceRequestSchema } from "./phone-schemas.ts";
 
-
 type PhoneRouteDependencies = {
   authGuard: MiddlewareHandler<McpAuthVariables>;
 };
