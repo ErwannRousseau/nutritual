@@ -10,6 +10,7 @@ import {
   FrequencyKind,
   ReminderOutcomes,
   type CreateRoutineRequest,
+  type PairingDeviceRequest,
 } from "@nutritual/protocol";
 
 type TestBinding = SQLQueryBindings | SQLQueryBindings[];
@@ -217,11 +218,16 @@ test("device relay reconnects after the server closes its socket", async () => {
     setItemAsync: async () => undefined,
     deleteItemAsync: async () => undefined,
   }));
-  mock.module("@/features/auth/AuthProvider", () => ({
+  mock.module("@/features/auth/device-credentials", () => ({
     getDeviceCredentials: async () => ({ deviceId: "phone-test", deviceSecret: "secret-test" }),
   }));
   mock.module("@/features/auth/phone-api", () => ({
-    phoneRequest: async () => ({ ticket: `ticket-${++ticketRequests}` }),
+    phoneRequest: async (path: string, device: PairingDeviceRequest) => {
+      expect(path).toBe("/api/phone/device-ticket");
+      expect(device).toEqual({ deviceId: "phone-test", deviceSecret: "secret-test" });
+
+      return { ticket: `ticket-${++ticketRequests}` };
+    },
   }));
   mock.module("@/features/auth/phone-responses", () => ({
     phoneResponses: { ticket: () => true },

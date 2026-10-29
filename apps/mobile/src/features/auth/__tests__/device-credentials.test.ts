@@ -29,7 +29,7 @@ mock.module("expo-secure-store", () => ({
 mock.module("expo-crypto", () => ({ randomUUID: () => uuids.shift() }));
 
 async function getCredentials() {
-  return (await import("../AuthProvider")).getDeviceCredentials();
+  return (await import("../device-credentials")).getDeviceCredentials();
 }
 
 function reset() {
@@ -56,9 +56,19 @@ test("regenerates credentials when saved JSON is malformed", async () => {
   expect(writes).toEqual([{ key: deviceKey, value: JSON.stringify({ deviceId, deviceSecret }) }]);
 });
 
-test("regenerates credentials when saved fields are invalid", async () => {
+test.each([
+  null,
+  [],
+  {},
+  { deviceId: 123, deviceSecret },
+  { deviceId: "invalid", deviceSecret },
+  { deviceId, deviceSecret: "invalid" },
+  { deviceId: "00000000-0000-0000-0000-000000000000", deviceSecret },
+  { deviceId, deviceSecret: "ffffffff-ffff-ffff-ffff-ffffffffffff" },
+  { deviceId: "123e4567-e89b-12d3-a456-426614174000", deviceSecret },
+])("regenerates credentials when saved fields are invalid: %j", async (saved) => {
   reset();
-  storedValue = JSON.stringify({ deviceId: "invalid", deviceSecret });
+  storedValue = JSON.stringify(saved);
 
   expect(await getCredentials()).toEqual({ deviceId, deviceSecret });
   expect(writes).toEqual([{ key: deviceKey, value: JSON.stringify({ deviceId, deviceSecret }) }]);

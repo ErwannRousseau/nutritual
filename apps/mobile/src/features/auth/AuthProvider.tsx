@@ -7,24 +7,24 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import * as SecureStore from "expo-secure-store";
+import { AppState } from "react-native";
+import { AuthStatus } from "@/features/auth/auth-status";
 import { clearTokens, readTokens, subscribeToTokenUpdates } from "@/features/auth/session";
-import type { TokenSet } from "@/features/auth/session-model";
-import { isJsonObject, type JsonValue } from "@/features/auth/parse";
+import { hasActiveSession, sessionExpiryTime, type TokenSet } from "@/features/auth/session-model";
 
 type AuthValue = {
-  tokens: TokenSet | null;
-  restoring: boolean;
+  status: AuthStatus;
   signOut: () => Promise<void>;
   setSession: (tokens: TokenSet) => void;
 };
 
 const AuthContext = createContext<AuthValue | null>(null);
-const DEVICE_KEY = "nutritual.phone.device";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [tokens, setTokens] = useState<TokenSet | null>(null);
   const [restoring, setRestoring] = useState(true);
+  const [now, setNow] = useState(Date.now);
+
   useEffect(() => {
     const unsubscribe = subscribeToTokenUpdates(setTokens);
 
@@ -35,6 +35,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return unsubscribe;
   }, []);
+
+  const expiresAt = sessionExpiryTime(tokens);
+
+  const status: AuthStatus = restoring
+    ? AuthStatus.restoring
+    : hasActiveSession(tokens, now)
+      ? AuthStatus.authenticated
+      : AuthStatus.signedOut;
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") setNow(Date.now());
+    });
+
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    const expiryTimer =
+      expiresAt === undefined || expiresAt <= now
+        ? undefined
+        : setTimeout(
+            () => setNow(Date.now()),
+            Math.min(Math.max(0, expiresAt - Date.now()), 2_147_483_647),
+          );
+
+    return () => {
+      if (expiryTimer !== undefined) clearTimeout(expiryTimer);
+    };
+  }, [expiresAt, now]);
   const setSession = useCallback((value: TokenSet) => setTokens(value), []);
 
   const signOut = useCallback(async () => {
@@ -42,10 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setTokens(null);
   }, []);
 
-  const value = useMemo(
-    () => ({ tokens, restoring, signOut, setSession }),
-    [tokens, restoring, signOut, setSession],
-  );
+  const value = useMemo(() => ({ status, signOut, setSession }), [status, signOut, setSession]);
 
   return <AuthContext value={value}>{children}</AuthContext>;
 }
@@ -55,40 +82,10 @@ export function useAuth() {
 
   if (!value) throw new Error("AuthProvider is missing.");
 
-  return value;
-}
-
-export async function getDeviceCredentials(): Promise<{ deviceId: string; deviceSecret: string }> {
-  const existing = await SecureStore.getItemAsync(DEVICE_KEY);
-
-  if (existing) {
-    let parsed: JsonValue;
-
-    try {
-      parsed = JSON.parse(existing);
-    } catch {
-      parsed = null;
-    }
-
-    if (isJsonObject(parsed)) {
-      const deviceId = String(parsed.deviceId ?? "");
-      const deviceSecret = String(parsed.deviceSecret ?? "");
-      const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-      if (
-        uuid.test(deviceId) &&
-        deviceId === parsed.deviceId &&
-        uuid.test(deviceSecret) &&
-        deviceSecret === parsed.deviceSecret
-      ) {
-        return { deviceId, deviceSecret };
-      }
-    }
-  }
-
-  const { randomUUID } = await import("expo-crypto");
-  const value = { deviceId: randomUUID(), deviceSecret: randomUUID() };
-  await SecureStore.setItemAsync(DEVICE_KEY, JSON.stringify(value));
-
-  return value;
+  return {
+    ...value,
+    isAuthenticated: value.status === AuthStatus.authenticated,
+    isRestoring: value.status === AuthStatus.restoring,
+    isSignedOut: value.status === AuthStatus.signedOut,
+  };
 }

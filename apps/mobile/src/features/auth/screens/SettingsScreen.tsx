@@ -6,7 +6,8 @@ import ActionButton from "@/shared/ui/ActionButton";
 import Text from "@/shared/ui/Text";
 import Screen from "@/shared/ui/Screen";
 import { usePalette } from "@/shared/ui/palette";
-import { getDeviceCredentials, useAuth } from "@/features/auth/AuthProvider";
+import { getDeviceCredentials } from "@/features/auth/device-credentials";
+import { useAuth } from "@/features/auth/AuthProvider";
 import { phoneRequest } from "@/features/auth/phone-api";
 import { phoneResponses } from "@/features/auth/phone-responses";
 

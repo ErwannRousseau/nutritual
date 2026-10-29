@@ -5,7 +5,7 @@ import {
   type CreateRoutineResult,
   type CreateRoutineResultMessage,
 } from "@nutritual/protocol";
-import { getDeviceCredentials } from "@/features/auth/AuthProvider";
+import { getDeviceCredentials } from "@/features/auth/device-credentials";
 import { phoneRequest } from "@/features/auth/phone-api";
 import { phoneResponses } from "@/features/auth/phone-responses";
 import { deviceWebSocketUrl } from "@/features/auth/relay-url";

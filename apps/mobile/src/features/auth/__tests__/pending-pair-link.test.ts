@@ -58,6 +58,26 @@ test("a runtime QR event wins over a late initial URL and stale pending-code rea
   expect(storedCode).toBe("BBBB-BBBB");
 });
 
+test("a QR link that finishes storing after navigation unmounts does not navigate", async () => {
+  const stored = deferred<void>();
+  const navigations: Array<[string, boolean]> = [];
+
+  let ready = true;
+
+  const coordinator = createPendingPairLinkCoordinator(
+    async () => stored.promise,
+    () => ({ ready, authenticated: false }),
+    (code, authenticated) => navigations.push([code, authenticated]),
+  );
+
+  const handling = coordinator.handleUrl("nutritual:/pair?code=AAAA-AAAA");
+  ready = false;
+  stored.resolve();
+  await handling;
+
+  expect(navigations).toEqual([]);
+});
+
 function deferred<T>() {
   let resolve!: (value: T) => void;
 

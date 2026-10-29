@@ -2,7 +2,7 @@ import { useNativeState } from "@expo/ui";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import * as SecureStore from "expo-secure-store";
-import { getDeviceCredentials } from "@/features/auth/AuthProvider";
+import { getDeviceCredentials } from "@/features/auth/device-credentials";
 import { phoneRequest } from "@/features/auth/phone-api";
 import { phoneResponses } from "@/features/auth/phone-responses";
 import { normalizePairCode } from "@/features/auth/parse";
