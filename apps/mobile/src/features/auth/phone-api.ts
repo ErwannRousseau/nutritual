@@ -5,8 +5,9 @@ import type {
   PairingDeviceRequest,
 } from "@nutritual/protocol";
 import type { JsonValue } from "@/features/auth/parse";
+import { EXPO_PUBLIC_SERVER_URL } from "@/env";
 
-const base = process.env.EXPO_PUBLIC_SERVER_URL?.replace(/\/$/, "");
+const base = EXPO_PUBLIC_SERVER_URL.replace(/\/$/, "");
 
 type PhoneRequestBody = PairingCodeRequest | PairingApprovalRequest | PairingDeviceRequest;
 
@@ -15,7 +16,6 @@ export async function phoneRequest<T extends JsonValue>(
   body: PhoneRequestBody | undefined,
   responseGuard: (value: JsonValue) => value is T,
 ): Promise<T> {
-  if (!base) throw new Error("The server is not configured.");
   const tokens = await getUsableTokens();
 
   if (!tokens) throw new Error("Sign in again to continue.");

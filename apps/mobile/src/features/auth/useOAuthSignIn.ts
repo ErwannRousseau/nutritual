@@ -5,33 +5,38 @@ import { saveTokens } from "@/features/auth/session";
 import type { TokenSet } from "@/features/auth/session-model";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { createCodeExchangeParams } from "@/features/auth/oauth";
+import {
+  EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID,
+  EXPO_PUBLIC_NEON_AUTH_BASE_URL,
+  EXPO_PUBLIC_SERVER_URL,
+} from "@/env";
 
 WebBrowser.maybeCompleteAuthSession();
 
-const issuer = process.env.EXPO_PUBLIC_NEON_AUTH_BASE_URL;
-const clientId = process.env.EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID;
-const server = process.env.EXPO_PUBLIC_SERVER_URL;
-const callbackUri = server ? `${server.replace(/\/$/, "")}/oauth/mobile/callback` : "";
+const issuer = EXPO_PUBLIC_NEON_AUTH_BASE_URL;
+const clientId = EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID;
+const server = EXPO_PUBLIC_SERVER_URL;
+const callbackUri = `${server.replace(/\/$/, "")}/oauth/mobile/callback`;
 
 export function useOAuthSignIn(onError: (message: string) => void) {
   const { setSession } = useAuth();
-  const discovery = AuthSession.useAutoDiscovery(issuer ?? "https://invalid.local");
+  const discovery = AuthSession.useAutoDiscovery(issuer);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [request] = AuthSession.useAuthRequest(
     {
-      clientId: clientId ?? "",
+      clientId,
       responseType: AuthSession.ResponseType.Code,
       scopes: ["openid", "offline_access"],
       redirectUri: callbackUri,
       usePKCE: true,
-      extraParams: { resource: server ? `${server.replace(/\/$/, "")}/mcp` : "" },
+      extraParams: { resource: `${server.replace(/\/$/, "")}/mcp` },
     },
     discovery,
   );
 
   async function signIn() {
-    if (!request || !discovery || !issuer || !clientId || !callbackUri || !server) {
+    if (!request || !discovery) {
       onError("Mobile OAuth sign-in is not configured.");
 
       return;

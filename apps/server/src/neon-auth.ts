@@ -1,26 +1,19 @@
 import { createVerifier } from "@neon/oauth/verify";
 import { createMcpAuth } from "@neon/oauth/mcp";
-
-const authBaseUrl = process.env.NEON_AUTH_BASE_URL;
-const publicBaseUrl = process.env.PUBLIC_BASE_URL;
-const mobileClientId = process.env.MOBILE_OAUTH_CLIENT_ID;
-
-if (!authBaseUrl || !publicBaseUrl || !mobileClientId) {
-  throw new Error("NEON_AUTH_BASE_URL, PUBLIC_BASE_URL, and MOBILE_OAUTH_CLIENT_ID are required.");
-}
+import { MOBILE_OAUTH_CLIENT_ID, NEON_AUTH_BASE_URL, PUBLIC_BASE_URL } from "./env.ts";
 
 export const authVerifier = createVerifier({
-  baseUrl: authBaseUrl,
-  resource: `${publicBaseUrl.replace(/\/$/, "")}/mcp`,
+  baseUrl: NEON_AUTH_BASE_URL,
+  resource: `${PUBLIC_BASE_URL.replace(/\/$/, "")}/mcp`,
 });
 
 export const mcpAuth = createMcpAuth({
-  baseUrl: authBaseUrl,
-  resource: `${publicBaseUrl.replace(/\/$/, "")}/mcp`,
+  baseUrl: NEON_AUTH_BASE_URL,
+  resource: `${PUBLIC_BASE_URL.replace(/\/$/, "")}/mcp`,
 });
 
 export const config = {
-  authBaseUrl: authBaseUrl.replace(/\/$/, ""),
-  publicBaseUrl: publicBaseUrl.replace(/\/$/, ""),
-  mobileClientId,
+  authBaseUrl: NEON_AUTH_BASE_URL.replace(/\/$/, ""),
+  publicBaseUrl: PUBLIC_BASE_URL.replace(/\/$/, ""),
+  mobileClientId: MOBILE_OAUTH_CLIENT_ID,
 };

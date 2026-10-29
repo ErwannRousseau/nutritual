@@ -1,0 +1,19 @@
+import { z } from "zod";
+
+const env = z
+  .object({
+    EXPO_PUBLIC_SERVER_URL: z.url(),
+    EXPO_PUBLIC_NEON_AUTH_BASE_URL: z.url(),
+    EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID: z.string().min(1),
+  })
+  .parse({
+    EXPO_PUBLIC_SERVER_URL: process.env.EXPO_PUBLIC_SERVER_URL,
+    EXPO_PUBLIC_NEON_AUTH_BASE_URL: process.env.EXPO_PUBLIC_NEON_AUTH_BASE_URL,
+    EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID: process.env.EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID,
+  });
+
+export const {
+  EXPO_PUBLIC_SERVER_URL,
+  EXPO_PUBLIC_NEON_AUTH_BASE_URL,
+  EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID,
+} = env;

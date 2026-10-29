@@ -1,10 +1,7 @@
 import { Pool } from "pg";
+import { DATABASE_URL } from "./env.ts";
 
-const databaseUrl = process.env.DATABASE_URL;
-
-if (!databaseUrl) throw new Error("DATABASE_URL is required.");
-
-export const database = new Pool({ connectionString: databaseUrl, max: 5 });
+export const database = new Pool({ connectionString: DATABASE_URL, max: 5 });
 
 export type ChallengeStatus = "pending" | "approved" | "declined" | "mismatch" | "expired";
 

@@ -1,12 +1,13 @@
 import { SQL } from "bun";
+import { z } from "zod";
 
-const databaseUrl = process.env.DATABASE_URL;
+const result = z.url().safeParse(process.env.DATABASE_URL);
 
-if (!databaseUrl) {
+if (!result.success) {
   console.error("Postgres check failed: DATABASE_URL is not set.");
   process.exitCode = 1;
 } else {
-  const database = new SQL(databaseUrl, {
+  const database = new SQL(result.data, {
     connectionTimeout: 5,
     max: 1,
   });

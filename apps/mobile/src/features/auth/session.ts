@@ -1,6 +1,11 @@
 import * as SecureStore from "expo-secure-store";
 import { isJsonObject, type JsonValue } from "@/features/auth/parse";
 import { hasActiveSession, type TokenSet } from "@/features/auth/session-model";
+import {
+  EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID,
+  EXPO_PUBLIC_NEON_AUTH_BASE_URL,
+  EXPO_PUBLIC_SERVER_URL,
+} from "@/env";
 
 const TOKEN_KEY = "nutritual.oauth.tokens";
 
@@ -198,8 +203,8 @@ async function isDefinitiveGrantFailure(response: Response): Promise<boolean> {
 }
 
 async function refreshTokens(current: TokenSet, generation: number): Promise<TokenSet | null> {
-  const issuer = process.env.EXPO_PUBLIC_NEON_AUTH_BASE_URL;
-  const server = process.env.EXPO_PUBLIC_SERVER_URL?.replace(/\/$/, "");
+  const issuer = EXPO_PUBLIC_NEON_AUTH_BASE_URL;
+  const server = EXPO_PUBLIC_SERVER_URL.replace(/\/$/, "");
 
   if (!issuer || !server || !isCurrentSession(generation, current)) return null;
 
@@ -222,7 +227,7 @@ async function refreshTokens(current: TokenSet, generation: number): Promise<Tok
       body: new URLSearchParams({
         grant_type: "refresh_token",
         refresh_token: current.refreshToken,
-        client_id: process.env.EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID ?? "",
+        client_id: EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID,
         resource: `${server}/mcp`,
       }).toString(),
     });
