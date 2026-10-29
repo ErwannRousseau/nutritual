@@ -8,56 +8,6 @@ export const database = new Pool({ connectionString: databaseUrl, max: 5 });
 
 export type ChallengeStatus = "pending" | "approved" | "declined" | "mismatch" | "expired";
 
-let schemaReady: Promise<void> | undefined;
-
-export function ready(): Promise<void> {
-  schemaReady ??= database
-    .query(`
-  CREATE TABLE IF NOT EXISTS app_pairing_challenges (
-    code_hash text PRIMARY KEY,
-    poll_token_hash text NOT NULL,
-    oauth_query_hash text NOT NULL,
-    browser_sub text NOT NULL,
-    user_sub text,
-    client_id text NOT NULL,
-    redirect_host text NOT NULL,
-    scopes text[] NOT NULL,
-    resource text,
-    status text NOT NULL CHECK (status IN ('pending', 'approved', 'declined', 'mismatch')),
-    device_id text,
-    expires_at timestamptz NOT NULL,
-    consumed_at timestamptz,
-    created_at timestamptz NOT NULL DEFAULT now()
-  );
-  CREATE INDEX IF NOT EXISTS app_pairing_challenges_expiry_idx
-    ON app_pairing_challenges (expires_at);
-  CREATE TABLE IF NOT EXISTS app_paired_devices (
-    user_sub text PRIMARY KEY,
-    device_id text NOT NULL UNIQUE,
-    device_secret_hash text NOT NULL,
-    client_id text NOT NULL,
-    pairing_id text NOT NULL UNIQUE,
-    paired_at timestamptz NOT NULL DEFAULT now()
-  );
-  CREATE TABLE IF NOT EXISTS app_device_tickets (
-    ticket_hash text PRIMARY KEY,
-    user_sub text NOT NULL,
-    device_id text NOT NULL,
-    pairing_id text NOT NULL,
-    expires_at timestamptz NOT NULL,
-    consumed_at timestamptz
-  );
-  CREATE TABLE IF NOT EXISTS app_pairing_attempts (
-    attempt_key text PRIMARY KEY,
-    window_started_at timestamptz NOT NULL,
-    attempts integer NOT NULL
-  );
-`)
-    .then(() => undefined);
-
-  return schemaReady;
-}
-
 export function digest(value: string): string {
   return new Bun.CryptoHasher("sha256").update(value).digest("hex");
 }
@@ -65,8 +15,6 @@ export function digest(value: string): string {
 let lastCleanupAt = 0;
 
 export async function rateLimit(key: string): Promise<boolean> {
-  await ready();
-
   if (Date.now() - lastCleanupAt > 60 * 60_000) {
     lastCleanupAt = Date.now();
     await cleanExpired();
@@ -88,7 +36,6 @@ export async function rateLimit(key: string): Promise<boolean> {
 }
 
 export async function cleanExpired(): Promise<void> {
-  await ready();
   await database.query("DELETE FROM app_pairing_challenges WHERE expires_at <= now()");
   await database.query(
     "DELETE FROM app_device_tickets WHERE expires_at <= now() OR consumed_at IS NOT NULL",
@@ -108,7 +55,6 @@ export type PairedDevice = {
 type StoreOptions = {
   database?: Pool;
   digest?: typeof digest;
-  ready?: typeof ready;
   rateLimit?: typeof rateLimit;
 };
 
@@ -128,7 +74,6 @@ type ApprovalTransaction = {
 export function createPairingStore(options: StoreOptions = {}) {
   const pool = options.database ?? database;
   const hash = options.digest ?? digest;
-  const ensureReady = options.ready ?? ready;
   const checkRateLimit = options.rateLimit ?? rateLimit;
 
   return {
@@ -151,7 +96,6 @@ export function createPairingStore(options: StoreOptions = {}) {
       resource: string | null;
       expiresAt: Date;
     }) {
-      await ensureReady();
       await pool.query(
         `INSERT INTO app_pairing_challenges (
            code_hash, poll_token_hash, oauth_query_hash, browser_sub, user_sub,
@@ -172,8 +116,6 @@ export function createPairingStore(options: StoreOptions = {}) {
     },
 
     async challengeStatus(input: { code: string; pollToken: string; oauthQuery: string }) {
-      await ensureReady();
-
       const result = await pool.query<{
         status: string;
         expires_at: Date;
@@ -189,8 +131,6 @@ export function createPairingStore(options: StoreOptions = {}) {
     },
 
     async consumeChallengeStatus(input: { code: string; pollToken: string; oauthQuery: string }) {
-      await ensureReady();
-
       const result = await pool.query<{ status: string }>(
         `UPDATE app_pairing_challenges SET consumed_at = now()
          WHERE code_hash = $1 AND poll_token_hash = $2 AND oauth_query_hash = $3 AND consumed_at IS NULL
@@ -203,8 +143,6 @@ export function createPairingStore(options: StoreOptions = {}) {
     },
 
     async inspectChallenge(code: string, userSub: string) {
-      await ensureReady();
-
       const result = await pool.query<{
         browser_sub: string;
         client_id: string;
@@ -221,8 +159,6 @@ export function createPairingStore(options: StoreOptions = {}) {
     },
 
     async declineChallenge(code: string, userSub: string) {
-      await ensureReady();
-
       const result = await pool.query(
         `UPDATE app_pairing_challenges SET status = 'declined', user_sub = $2
          WHERE code_hash = $1 AND browser_sub = $2 AND status = 'pending' AND expires_at > now()`,
@@ -235,7 +171,6 @@ export function createPairingStore(options: StoreOptions = {}) {
     async withApprovalTransaction<T>(
       run: (transaction: ApprovalTransaction) => Promise<{ commit: boolean; value: T }>,
     ): Promise<T> {
-      await ensureReady();
       const client = await pool.connect();
 
       try {
@@ -294,8 +229,6 @@ export function createPairingStore(options: StoreOptions = {}) {
     },
 
     async hasDevice(userSub: string) {
-      await ensureReady();
-
       const result = await pool.query("SELECT 1 FROM app_paired_devices WHERE user_sub = $1", [
         userSub,
       ]);
@@ -304,8 +237,6 @@ export function createPairingStore(options: StoreOptions = {}) {
     },
 
     async disconnectDevice(userSub: string, deviceId: string, deviceSecret: string) {
-      await ensureReady();
-
       const result = await pool.query<{ pairing_id: string }>(
         `DELETE FROM app_paired_devices WHERE user_sub = $1 AND device_id = $2 AND device_secret_hash = $3
          RETURNING pairing_id`,
@@ -316,7 +247,6 @@ export function createPairingStore(options: StoreOptions = {}) {
     },
 
     async deleteDeviceTickets(userSub: string, pairingId: string) {
-      await ensureReady();
       await pool.query("DELETE FROM app_device_tickets WHERE user_sub = $1 AND pairing_id = $2", [
         userSub,
         pairingId,
@@ -324,8 +254,6 @@ export function createPairingStore(options: StoreOptions = {}) {
     },
 
     async pairingIdForDevice(userSub: string, deviceId: string, deviceSecret: string) {
-      await ensureReady();
-
       const result = await pool.query<{ pairing_id: string }>(
         `SELECT pairing_id FROM app_paired_devices
          WHERE user_sub = $1 AND device_id = $2 AND device_secret_hash = $3`,
@@ -342,7 +270,6 @@ export function createPairingStore(options: StoreOptions = {}) {
       pairingId: string,
       expiresAt: Date,
     ) {
-      await ensureReady();
       await pool.query(
         `INSERT INTO app_device_tickets (ticket_hash, user_sub, device_id, pairing_id, expires_at)
          VALUES ($1, $2, $3, $4, $5)`,
@@ -351,8 +278,6 @@ export function createPairingStore(options: StoreOptions = {}) {
     },
 
     async consumeDeviceTicket(ticket: string) {
-      await ensureReady();
-
       const result = await pool.query<{ user_sub: string; device_id: string; pairing_id: string }>(
         `UPDATE app_device_tickets AS ticket SET consumed_at = now()
          WHERE ticket.ticket_hash = $1 AND ticket.expires_at > now() AND ticket.consumed_at IS NULL
@@ -367,8 +292,6 @@ export function createPairingStore(options: StoreOptions = {}) {
     },
 
     async isPairingActive(userSub: string, deviceId: string, pairingId: string) {
-      await ensureReady();
-
       const result = await pool.query(
         `SELECT 1 FROM app_paired_devices WHERE user_sub = $1 AND device_id = $2 AND pairing_id = $3`,
         [userSub, deviceId, pairingId],
@@ -378,8 +301,6 @@ export function createPairingStore(options: StoreOptions = {}) {
     },
 
     async pairedClientId(userSub: string) {
-      await ensureReady();
-
       const result = await pool.query<{ client_id: string }>(
         "SELECT client_id FROM app_paired_devices WHERE user_sub = $1",
         [userSub],

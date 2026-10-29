@@ -68,7 +68,6 @@ function runningDeviceServer() {
   const store = createPairingStore({
     database: fakeDatabase,
     digest,
-    ready: async () => undefined,
   });
 
   registerDeviceRoutes(app, relay, createPairingOperations(store, relay));

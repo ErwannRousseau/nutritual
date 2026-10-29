@@ -142,7 +142,7 @@ function fixture(options: { device?: Device; failApproval?: boolean } = {}) {
     },
   });
 
-  const store = createPairingStore({ database, digest, ready: async () => undefined });
+  const store = createPairingStore({ database, digest });
   const relay = createRoutineRelay();
   const operations = createPairingOperations(store, relay);
 

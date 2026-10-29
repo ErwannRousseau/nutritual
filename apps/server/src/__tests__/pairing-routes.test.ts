@@ -109,7 +109,6 @@ const store = createPairingStore({
   database: fakeDatabase,
   digest,
   rateLimit: async () => true,
-  ready: async () => undefined,
 });
 
 registerPairingRoutes(app, createPairingOperations(store, createRoutineRelay()), {

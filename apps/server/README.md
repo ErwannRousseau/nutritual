@@ -24,7 +24,7 @@ The default address is `0.0.0.0:3000`. `GET /health` returns `{"status":"ok"}`.
 
 | Variable                 | Purpose                                                                                                         |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`           | Neon Postgres connection for pairing state. Tables are created on first use.                                    |
+| `DATABASE_URL`           | Neon Postgres connection for pairing state. The pairing tables must exist before the server starts.             |
 | `NEON_AUTH_BASE_URL`     | Managed Auth issuer URL                                                                                         |
 | `PUBLIC_BASE_URL`        | Public HTTPS origin without a trailing slash. The MCP resource and token audience are `${PUBLIC_BASE_URL}/mcp`. |
 | `MOBILE_OAUTH_CLIENT_ID` | Configured public mobile OAuth client ID                                                                        |
