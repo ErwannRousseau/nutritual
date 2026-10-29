@@ -3,7 +3,7 @@ import { Column, Row, Spacer, TextInput } from "@expo/ui";
 import { router, useLocalSearchParams } from "expo-router";
 import { StyleSheet, useWindowDimensions } from "react-native";
 import ActionButton from "@/shared/ui/ActionButton";
-import AppText from "@/shared/ui/AppText";
+import Text from "@/shared/ui/Text";
 import DateField from "@/shared/ui/DateField";
 import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
 import Screen from "@/shared/ui/Screen";
@@ -42,7 +42,7 @@ export default function RoutineScheduleScreen() {
   if (!ready || !draft)
     return (
       <Screen>
-        <AppText>{missing ? "Routine not found." : (error ?? "Loading…")}</AppText>
+        <Text>{missing ? "Routine not found." : (error ?? "Loading…")}</Text>
         <ActionButton
           label={error ? "Try again" : "Close"}
           onPress={() => (error ? void reload() : router.dismissAll())}
@@ -81,9 +81,9 @@ export default function RoutineScheduleScreen() {
       footer={
         <Column spacing={8}>
           {validationError && (
-            <AppText variant="footnote" color={colors.danger}>
+            <Text variant="footnote" color={colors.danger}>
               {validationError}
-            </AppText>
+            </Text>
           )}
           <ActionButton
             label="Continue"
@@ -93,9 +93,9 @@ export default function RoutineScheduleScreen() {
         </Column>
       }
     >
-      <AppText variant="largeTitle">How often?</AppText>
+      <Text variant="largeTitle">How often?</Text>
       <Column modifiers={fillAvailableWidth} spacing={12}>
-        <AppText variant="headline">Frequency</AppText>
+        <Text variant="headline">Frequency</Text>
         <Column spacing={0} style={styles.group}>
           <ChoiceRow
             label="Every day"
@@ -134,7 +134,7 @@ export default function RoutineScheduleScreen() {
 
       {frequency.kind === FrequencyKind.weekdays && !daily && (
         <Column modifiers={fillAvailableWidth} spacing={12}>
-          <AppText variant="headline">Intake days</AppText>
+          <Text variant="headline">Intake days</Text>
           <Column spacing={0} style={styles.group}>
             {week.map(([name, day], index) => (
               <Column key={day} spacing={0}>
@@ -159,10 +159,10 @@ export default function RoutineScheduleScreen() {
 
       {frequency.kind === FrequencyKind.interval && (
         <Column modifiers={fillAvailableWidth} spacing={12}>
-          <AppText variant="headline">Interval</AppText>
+          <Text variant="headline">Interval</Text>
           <Row spacing={12} alignment="center" style={styles.numberRow}>
             <Column alignment="start">
-              <AppText>Number of days</AppText>
+              <Text>Number of days</Text>
             </Column>
             <Spacer />
             <TextInput
@@ -188,7 +188,7 @@ export default function RoutineScheduleScreen() {
 
       {frequency.kind !== FrequencyKind.asNeeded && (
         <Column modifiers={fillAvailableWidth} spacing={12}>
-          <AppText variant="headline">Intake time</AppText>
+          <Text variant="headline">Intake time</Text>
           <DateField
             label="Take at"
             mode="time"

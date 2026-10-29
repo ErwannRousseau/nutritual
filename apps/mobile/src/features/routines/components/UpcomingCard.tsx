@@ -2,7 +2,7 @@ import { Button, Column, Row, Spacer } from "@expo/ui";
 import { useMemo } from "react";
 import { StyleSheet } from "react-native";
 import type { ReminderState, Routine } from "@/features/routines/model";
-import AppText from "@/shared/ui/AppText";
+import Text from "@/shared/ui/Text";
 import AppSymbol from "@/shared/ui/AppSymbol";
 import ProductBadge from "@/shared/ui/ProductBadge";
 import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
@@ -28,20 +28,20 @@ export default function UpcomingCard({
     <Button style={styles.button} variant="text" onPress={onPress} testID={`record-${routine.id}`}>
       <Column modifiers={fillAvailableWidth} spacing={10} style={styles.card}>
         <Row modifiers={fillAvailableWidth} alignment="center">
-          <AppText textStyle={styles.time}>
+          <Text textStyle={styles.time}>
             {routine.frequency.kind === FrequencyKind.asNeeded ? "As needed" : routine.time}
-          </AppText>
+          </Text>
           <Spacer />
           <AppSymbol name="plus" size={24} color={colors.blue} />
         </Row>
         <Row alignment="center" spacing={12}>
           <ProductBadge />
           <Column spacing={4}>
-            <AppText>{routine.productName}</AppText>
+            <Text>{routine.productName}</Text>
             {warning && (
-              <AppText variant="footnote" color={colors.danger}>
+              <Text variant="footnote" color={colors.danger}>
                 Reminder inactive
-              </AppText>
+              </Text>
             )}
           </Column>
         </Row>

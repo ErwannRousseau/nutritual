@@ -2,7 +2,7 @@ import { Column } from "@expo/ui";
 import { router } from "expo-router";
 import { useRoutineStore } from "@/features/routines/RoutinesProvider";
 import UpcomingCard from "@/features/routines/components/UpcomingCard";
-import AppText from "@/shared/ui/AppText";
+import Text from "@/shared/ui/Text";
 import Screen from "@/shared/ui/Screen";
 import { usePalette } from "@/shared/ui/palette";
 import { FrequencyKind } from "@nutritual/protocol";
@@ -17,9 +17,9 @@ export default function AsNeededScreen() {
 
   return (
     <Screen>
-      <AppText color={colors.secondary}>
+      <Text color={colors.secondary}>
         Record an intake when you need it. No automatic reminders.
-      </AppText>
+      </Text>
       <Column spacing={12}>
         {asNeeded.map((routine) => (
           <UpcomingCard
@@ -28,7 +28,7 @@ export default function AsNeededScreen() {
             onPress={() => router.push({ pathname: "/record/[id]", params: { id: routine.id } })}
           />
         ))}
-        {asNeeded.length === 0 && <AppText>No as-needed supplements.</AppText>}
+        {asNeeded.length === 0 && <Text>No as-needed supplements.</Text>}
       </Column>
     </Screen>
   );

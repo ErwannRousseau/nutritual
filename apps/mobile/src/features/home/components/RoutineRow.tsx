@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { StyleSheet } from "react-native";
 import type { ReminderState, Routine } from "@/features/routines/model";
 import { routineScheduleDisplay } from "@/features/routines/display";
-import AppText from "@/shared/ui/AppText";
+import Text from "@/shared/ui/Text";
 import AppSymbol from "@/shared/ui/AppSymbol";
 import ProductBadge from "@/shared/ui/ProductBadge";
 import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
@@ -27,21 +27,21 @@ export default function RoutineRow({
       <Row alignment="center" modifiers={fillAvailableWidth} spacing={12} style={styles.row}>
         <ProductBadge />
         <Column spacing={4}>
-          <AppText variant="headline">{routine.productName}</AppText>
-          <AppText variant="subhead" color={colors.secondary}>
+          <Text variant="headline">{routine.productName}</Text>
+          <Text variant="subhead" color={colors.secondary}>
             {routineScheduleDisplay(routine).label}
-          </AppText>
+          </Text>
           {routine.paused && (
-            <AppText variant="footnote" color={colors.secondary}>
+            <Text variant="footnote" color={colors.secondary}>
               Paused
-            </AppText>
+            </Text>
           )}
           {!routine.paused &&
             (reminder?.status === ReminderOutcomes.denied ||
               reminder?.status === ReminderOutcomes.failed) && (
-              <AppText variant="footnote" color={colors.danger}>
+              <Text variant="footnote" color={colors.danger}>
                 Routine saved · Reminder inactive
-              </AppText>
+              </Text>
             )}
         </Column>
         <Spacer />

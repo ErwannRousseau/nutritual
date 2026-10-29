@@ -2,7 +2,7 @@ import { Button, Column, Row, Spacer } from "@expo/ui";
 import { useMemo } from "react";
 import { StyleSheet } from "react-native";
 import AppSymbol from "@/shared/ui/AppSymbol";
-import AppText from "@/shared/ui/AppText";
+import Text from "@/shared/ui/Text";
 import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
 
@@ -24,11 +24,11 @@ export default function ChoiceRow({
     <Button style={styles.button} onPress={onPress} variant="text">
       <Row modifiers={fillAvailableWidth} spacing={12} alignment="center" style={styles.row}>
         <Column spacing={3}>
-          <AppText>{label}</AppText>
+          <Text>{label}</Text>
           {detail && (
-            <AppText variant="footnote" color={colors.secondary}>
+            <Text variant="footnote" color={colors.secondary}>
               {detail}
-            </AppText>
+            </Text>
           )}
         </Column>
         <Spacer />

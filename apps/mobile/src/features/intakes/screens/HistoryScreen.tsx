@@ -5,7 +5,7 @@ import { StyleSheet, useColorScheme } from "react-native";
 import { useRoutineStore } from "@/features/routines/RoutinesProvider";
 import type { Intake } from "@/features/routines/model";
 import { dateLabel, timeLabel } from "@/features/routines/display";
-import AppText from "@/shared/ui/AppText";
+import Text from "@/shared/ui/Text";
 import AppSymbol from "@/shared/ui/AppSymbol";
 import Screen from "@/shared/ui/Screen";
 import { usePalette } from "@/shared/ui/palette";
@@ -28,12 +28,12 @@ export default function HistoryScreen() {
           <ListItem.Leading>
             <AppSymbol name="checkmark" color={colors.cyan} />
           </ListItem.Leading>
-          <AppText>{item.productName}</AppText>
+          <Text>{item.productName}</Text>
           <ListItem.Supporting>
-            <AppText
+            <Text
               variant="subhead"
               color={colors.secondary}
-            >{`${dateLabel(date)} ${date.getFullYear()} at ${timeLabel(date)}`}</AppText>
+            >{`${dateLabel(date)} ${date.getFullYear()} at ${timeLabel(date)}`}</Text>
           </ListItem.Supporting>
           <ListItem.Trailing>
             <AppSymbol name="chevron.right" size={14} color={colors.secondary} />
@@ -47,7 +47,7 @@ export default function HistoryScreen() {
   if (history.length === 0)
     return (
       <Screen>
-        <AppText color={colors.secondary}>Your recorded intakes will appear here.</AppText>
+        <Text color={colors.secondary}>Your recorded intakes will appear here.</Text>
       </Screen>
     );
 

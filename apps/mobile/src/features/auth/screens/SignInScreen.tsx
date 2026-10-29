@@ -1,8 +1,8 @@
 import { Column, RNHostView } from "@expo/ui";
 import { useMemo, useState } from "react";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet, Text as NativeText } from "react-native";
 import ActionButton from "@/shared/ui/ActionButton";
-import AppText from "@/shared/ui/AppText";
+import Text from "@/shared/ui/Text";
 import Screen from "@/shared/ui/Screen";
 import { fillAvailableWidth } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
@@ -29,20 +29,20 @@ export default function SignInScreen() {
       }
     >
       <Column spacing={20} modifiers={fillAvailableWidth}>
-        <AppText variant="largeTitle">Sign in</AppText>
-        <AppText color={colors.secondary}>
+        <Text variant="largeTitle">Sign in</Text>
+        <Text color={colors.secondary}>
           Sign in with your Neon account to access your routines and pair ChatGPT.
-        </AppText>
+        </Text>
         {message ? (
           <RNHostView matchContents>
-            <Text
+            <NativeText
               accessibilityRole="alert"
               accessibilityLiveRegion="polite"
               style={styles.error}
               testID="sign-in-error"
             >
               {message}
-            </Text>
+            </NativeText>
           </RNHostView>
         ) : null}
       </Column>

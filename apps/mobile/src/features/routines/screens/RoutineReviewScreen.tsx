@@ -3,7 +3,7 @@ import { Column, Row, Spacer } from "@expo/ui";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { StyleSheet } from "react-native";
 import ActionButton from "@/shared/ui/ActionButton";
-import AppText from "@/shared/ui/AppText";
+import Text from "@/shared/ui/Text";
 import { fillParent } from "@/shared/ui/layout";
 import ProductBadge from "@/shared/ui/ProductBadge";
 import Screen from "@/shared/ui/Screen";
@@ -32,14 +32,14 @@ export default function RoutineReviewScreen() {
   if (!ready || !draft) {
     return (
       <Screen>
-        <AppText variant="title">{missing ? "Routine not found" : "Loading…"}</AppText>
+        <Text variant="title">{missing ? "Routine not found" : "Loading…"}</Text>
         {missing ? (
           <ActionButton label="Close" onPress={() => router.dismissAll()} kind="secondary" />
         ) : storeError ? (
           <>
-            <AppText variant="body" color={colors.secondary}>
+            <Text variant="body" color={colors.secondary}>
               {storeError}
-            </AppText>
+            </Text>
             <ActionButton label="Try again" onPress={() => void reload()} kind="secondary" />
           </>
         ) : null}
@@ -65,50 +65,50 @@ export default function RoutineReviewScreen() {
         <Column alignment="center" style={styles.hero}>
           <ProductBadge size={96} />
         </Column>
-        <AppText variant="largeTitle">Review your routine</AppText>
+        <Text variant="largeTitle">Review your routine</Text>
         <Column spacing={4} style={styles.summary}>
           <Row alignment="center">
-            <AppText variant="subhead" color={colors.secondary}>
+            <Text variant="subhead" color={colors.secondary}>
               Supplement
-            </AppText>
+            </Text>
             <Spacer />
           </Row>
-          <AppText variant="body">{draft.productName.trim()}</AppText>
+          <Text variant="body">{draft.productName.trim()}</Text>
         </Column>
         <Column spacing={4} style={styles.summary}>
           <Row alignment="center">
-            <AppText variant="subhead" color={colors.secondary}>
+            <Text variant="subhead" color={colors.secondary}>
               Frequency
-            </AppText>
+            </Text>
             <Spacer />
           </Row>
-          <AppText variant="body">{frequencyLabel(draft.frequency)}</AppText>
+          <Text variant="body">{frequencyLabel(draft.frequency)}</Text>
         </Column>
         {!isAsNeeded ? (
           <Column spacing={4} style={styles.summary}>
             <Row alignment="center">
-              <AppText variant="subhead" color={colors.secondary}>
+              <Text variant="subhead" color={colors.secondary}>
                 Heure
-              </AppText>
+              </Text>
               <Spacer />
             </Row>
-            <AppText variant="body">
+            <Text variant="body">
               {timeLabel(new Date(`${localDate(today)}T${draft.time}:00`))}
-            </AppText>
+            </Text>
           </Column>
         ) : null}
-        <AppText variant="footnote" color={colors.secondary}>
+        <Text variant="footnote" color={colors.secondary}>
           The routine will be saved. Reminder status will be shown after saving.
-        </AppText>
+        </Text>
         {saveError ? (
-          <AppText variant="footnote" textStyle={styles.error}>
+          <Text variant="footnote" textStyle={styles.error}>
             {saveError}
-          </AppText>
+          </Text>
         ) : null}
         {storeError ? (
-          <AppText variant="footnote" color={colors.secondary}>
+          <Text variant="footnote" color={colors.secondary}>
             {storeError}
-          </AppText>
+          </Text>
         ) : null}
       </Screen>
     </>

@@ -2,7 +2,7 @@ import DateTimePicker from "@expo/ui/community/datetime-picker";
 import { Column, RNHostView, Row, Spacer } from "@expo/ui";
 import { useMemo } from "react";
 import { StyleSheet, useColorScheme, useWindowDimensions } from "react-native";
-import AppText from "@/shared/ui/AppText";
+import Text from "@/shared/ui/Text";
 import { fillParent } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
 
@@ -45,14 +45,14 @@ export default function DateField({
   return largeText ? (
     <Column spacing={12} style={styles.field}>
       <Row alignment="center">
-        <AppText>{label}</AppText>
+        <Text>{label}</Text>
         <Spacer />
       </Row>
       {picker}
     </Column>
   ) : (
     <Row alignment="center" spacing={12} style={styles.field}>
-      <AppText>{label}</AppText>
+      <Text>{label}</Text>
       <Spacer />
       {picker}
     </Row>

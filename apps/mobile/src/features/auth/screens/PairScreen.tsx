@@ -1,9 +1,9 @@
 import { Column, RNHostView, TextInput } from "@expo/ui";
 import { useLocalSearchParams } from "expo-router";
 import { useMemo } from "react";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet, Text as NativeText } from "react-native";
 import ActionButton from "@/shared/ui/ActionButton";
-import AppText from "@/shared/ui/AppText";
+import Text from "@/shared/ui/Text";
 import Screen from "@/shared/ui/Screen";
 import { fillAvailableWidth } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
@@ -45,12 +45,12 @@ export default function PairScreen() {
       }
     >
       <Column spacing={18} modifiers={fillAvailableWidth}>
-        <AppText variant="largeTitle">Pair ChatGPT</AppText>
-        <AppText>
+        <Text variant="largeTitle">Pair ChatGPT</Text>
+        <Text>
           The app identified below can create routines on this phone. Routines and intakes stay
           stored locally. This authorization allows it to create future routines. Continue only if
           you recognize this app.
-        </AppText>
+        </Text>
         <TextInput
           autoCapitalize="characters"
           autoCorrect={false}
@@ -61,18 +61,18 @@ export default function PairScreen() {
         />
         {details ? (
           <Column spacing={8}>
-            <AppText variant="headline">App requesting access</AppText>
-            <AppText>{`Client ID: ${details.clientId}`}</AppText>
-            <AppText>{`Redirect host: ${details.redirectHost}`}</AppText>
-            <AppText>{`Requested permissions: ${details.scope.join(", ")}`}</AppText>
-            <AppText>{`Resource: ${details.resource ?? "None"}`}</AppText>
+            <Text variant="headline">App requesting access</Text>
+            <Text>{`Client ID: ${details.clientId}`}</Text>
+            <Text>{`Redirect host: ${details.redirectHost}`}</Text>
+            <Text>{`Requested permissions: ${details.scope.join(", ")}`}</Text>
+            <Text>{`Resource: ${details.resource ?? "None"}`}</Text>
           </Column>
         ) : null}
         {message ? (
           <RNHostView matchContents>
-            <Text accessibilityRole="alert" style={styles.error}>
+            <NativeText accessibilityRole="alert" style={styles.error}>
               {message}
-            </Text>
+            </NativeText>
           </RNHostView>
         ) : null}
       </Column>

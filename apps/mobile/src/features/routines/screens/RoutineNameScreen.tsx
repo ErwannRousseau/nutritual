@@ -4,7 +4,7 @@ import { TextInput } from "@expo/ui";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { StyleSheet, useWindowDimensions } from "react-native";
 import ActionButton from "@/shared/ui/ActionButton";
-import AppText from "@/shared/ui/AppText";
+import Text from "@/shared/ui/Text";
 import { fillAvailableWidth, fillContainerWidth, fillParent } from "@/shared/ui/layout";
 import ProductBadge from "@/shared/ui/ProductBadge";
 import Screen from "@/shared/ui/Screen";
@@ -42,14 +42,14 @@ export default function RoutineNameScreen() {
   if (!ready || !draft) {
     return (
       <Screen>
-        <AppText variant="title">{missing ? "Routine not found" : "Loading…"}</AppText>
+        <Text variant="title">{missing ? "Routine not found" : "Loading…"}</Text>
         {missing ? (
           <ActionButton label="Close" onPress={() => router.dismissAll()} kind="secondary" />
         ) : error ? (
           <>
-            <AppText variant="body" color={colors.secondary}>
+            <Text variant="body" color={colors.secondary}>
               {error}
-            </AppText>
+            </Text>
             <ActionButton label="Try again" onPress={() => void reload()} kind="secondary" />
           </>
         ) : null}
@@ -82,9 +82,9 @@ export default function RoutineNameScreen() {
         <Column alignment="center" style={styles.hero}>
           <ProductBadge size={96} />
         </Column>
-        <AppText variant="largeTitle">Which supplement?</AppText>
+        <Text variant="largeTitle">Which supplement?</Text>
         <Column spacing={8} style={styles.section} modifiers={fillContainerWidth}>
-          <AppText variant="headline">Supplement name</AppText>
+          <Text variant="headline">Supplement name</Text>
           <TextInput
             selectTextOnFocus
             autoCapitalize="sentences"
@@ -104,14 +104,14 @@ export default function RoutineNameScreen() {
             testID="product-name"
           />
           {validationError ? (
-            <AppText variant="footnote" textStyle={styles.error}>
+            <Text variant="footnote" textStyle={styles.error}>
               {validationError}
-            </AppText>
+            </Text>
           ) : null}
           {error ? (
-            <AppText variant="footnote" color={colors.danger}>
+            <Text variant="footnote" color={colors.danger}>
               {error}
-            </AppText>
+            </Text>
           ) : null}
         </Column>
       </Screen>

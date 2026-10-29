@@ -1,9 +1,9 @@
 import { Column, RNHostView } from "@expo/ui";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { Text } from "react-native";
+import { Text as NativeText } from "react-native";
 import ActionButton from "@/shared/ui/ActionButton";
-import AppText from "@/shared/ui/AppText";
+import Text from "@/shared/ui/Text";
 import Screen from "@/shared/ui/Screen";
 import { usePalette } from "@/shared/ui/palette";
 import { getDeviceCredentials, useAuth } from "@/features/auth/AuthProvider";
@@ -55,10 +55,10 @@ export default function SettingsScreen() {
   return (
     <Screen>
       <Column spacing={18}>
-        <AppText variant="largeTitle">ChatGPT pairing</AppText>
-        <AppText color={colors.secondary}>
+        <Text variant="largeTitle">ChatGPT pairing</Text>
+        <Text color={colors.secondary}>
           {paired ? "ChatGPT is paired with this phone." : "No phone is paired with ChatGPT."}
-        </AppText>
+        </Text>
         <ActionButton
           label="Enter pairing code"
           onPress={() => router.push("/pair")}
@@ -74,7 +74,7 @@ export default function SettingsScreen() {
         ) : null}
         {message ? (
           <RNHostView matchContents>
-            <Text accessibilityRole="alert">{message}</Text>
+            <NativeText accessibilityRole="alert">{message}</NativeText>
           </RNHostView>
         ) : null}
         <ActionButton label="Sign out" onPress={() => void signOut()} kind="secondary" />

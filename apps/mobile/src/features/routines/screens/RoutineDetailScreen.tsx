@@ -3,7 +3,7 @@ import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useMemo } from "react";
 import { Alert, StyleSheet } from "react-native";
 import ActionRow from "@/features/routines/components/ActionRow";
-import AppText from "@/shared/ui/AppText";
+import Text from "@/shared/ui/Text";
 import { centerAvailableWidth, fillParent } from "@/shared/ui/layout";
 import ProductBadge from "@/shared/ui/ProductBadge";
 import Screen from "@/shared/ui/Screen";
@@ -50,29 +50,29 @@ export default function RoutineDetailScreen() {
       <Stack.Screen options={{ title: "Supplement", headerShown: true }} />
       {!routine ? (
         <Screen grouped>
-          <AppText color={error ? colors.danger : colors.text}>
+          <Text color={error ? colors.danger : colors.text}>
             {busy ? "Loading routine…" : (error ?? "Routine not found.")}
-          </AppText>
+          </Text>
         </Screen>
       ) : (
         <Screen grouped>
           <Row alignment="center">
             <Column alignment="center" spacing={12} style={styles.content}>
               <ProductBadge size={96} />
-              <AppText
+              <Text
                 modifiers={centerAvailableWidth}
                 variant="largeTitle"
                 textStyle={styles.centeredText}
               >
                 {routine.productName}
-              </AppText>
-              <AppText
+              </Text>
+              <Text
                 color={colors.secondary}
                 modifiers={centerAvailableWidth}
                 textStyle={styles.centeredText}
               >
                 {routine.paused ? "Paused" : schedule}
-              </AppText>
+              </Text>
             </Column>
             <Spacer />
           </Row>
@@ -80,19 +80,19 @@ export default function RoutineDetailScreen() {
             <Column spacing={12} style={styles.card}>
               <Row alignment="center">
                 <Column spacing={4}>
-                  <AppText variant="footnote" color={colors.secondary}>
+                  <Text variant="footnote" color={colors.secondary}>
                     Schedule
-                  </AppText>
-                  <AppText variant="subhead">{schedule}</AppText>
+                  </Text>
+                  <Text variant="subhead">{schedule}</Text>
                 </Column>
                 <Spacer />
               </Row>
               <Row alignment="center">
                 <Column spacing={4}>
-                  <AppText variant="footnote" color={colors.secondary}>
+                  <Text variant="footnote" color={colors.secondary}>
                     Reminder
-                  </AppText>
-                  <AppText variant="subhead">{reminderLabel(reminder)}</AppText>
+                  </Text>
+                  <Text variant="subhead">{reminderLabel(reminder)}</Text>
                 </Column>
                 <Spacer />
               </Row>
@@ -100,13 +100,13 @@ export default function RoutineDetailScreen() {
             <Spacer />
           </Row>
           {errorMessage ? (
-            <AppText variant="subhead" color={colors.danger}>
+            <Text variant="subhead" color={colors.danger}>
               {errorMessage}
-            </AppText>
+            </Text>
           ) : null}
-          <AppText variant="footnote" color={colors.secondary}>
+          <Text variant="footnote" color={colors.secondary}>
             MANAGEMENT
-          </AppText>
+          </Text>
           <Row alignment="center">
             <Column spacing={0} style={styles.card}>
               <ActionRow

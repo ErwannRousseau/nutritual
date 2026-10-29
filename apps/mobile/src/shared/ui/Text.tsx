@@ -11,7 +11,7 @@ type Props = Omit<UniversalTextProps, "textStyle"> & {
   textStyle?: UniversalTextStyle;
 };
 
-export default function AppText({ variant = "body", color, textStyle, ...props }: Props) {
+export default function Text({ variant = "body", color, textStyle, ...props }: Props) {
   const { fontScale } = useWindowDimensions();
   const colors = usePalette();
   const resolvedStyle = createTextStyle(variant, color, textStyle, colors.text, fontScale);

@@ -1,7 +1,7 @@
 import { Button, Column } from "@expo/ui";
 import { useMemo } from "react";
 import { StyleSheet } from "react-native";
-import AppText from "@/shared/ui/AppText";
+import Text from "@/shared/ui/Text";
 import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
 
@@ -40,9 +40,9 @@ export default function ActionButton({
       variant="text"
     >
       <Column alignment="center" style={styles.label} modifiers={fillAvailableWidth}>
-        <AppText variant="headline" textStyle={styles.labelText}>
+        <Text variant="headline" textStyle={styles.labelText}>
           {label}
-        </AppText>
+        </Text>
       </Column>
     </Button>
   );

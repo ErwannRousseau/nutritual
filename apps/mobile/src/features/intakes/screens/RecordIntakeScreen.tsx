@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { StyleSheet } from "react-native";
 import ActionButton from "@/shared/ui/ActionButton";
 import AppSymbol from "@/shared/ui/AppSymbol";
-import AppText from "@/shared/ui/AppText";
+import Text from "@/shared/ui/Text";
 import { centerAvailableWidth, fillAvailableWidth, fillParent } from "@/shared/ui/layout";
 import SheetHeader from "@/shared/ui/SheetHeader";
 import ProductBadge from "@/shared/ui/ProductBadge";
@@ -30,9 +30,9 @@ export default function RecordIntakeScreen() {
   if (!routine) {
     return (
       <Screen grouped>
-        <AppText color={error ? colors.danger : colors.text}>
+        <Text color={error ? colors.danger : colors.text}>
           {busy ? "Loading routine…" : (error ?? "Routine not found.")}
-        </AppText>
+        </Text>
         {!busy ? (
           <ActionButton kind="secondary" label="Close" onPress={() => router.back()} />
         ) : null}
@@ -61,13 +61,13 @@ export default function RecordIntakeScreen() {
       <Row alignment="center">
         <Column alignment="center" spacing={14} style={styles.content}>
           <ProductBadge size={96} />
-          <AppText
+          <Text
             modifiers={centerAvailableWidth}
             variant="largeTitle"
             textStyle={styles.centeredText}
           >
             {schedule.time ? `Intake at ${schedule.time}` : "As needed"}
-          </AppText>
+          </Text>
         </Column>
         <Spacer />
       </Row>
@@ -76,10 +76,10 @@ export default function RecordIntakeScreen() {
           <Row alignment="center" modifiers={fillAvailableWidth} spacing={12}>
             <ProductBadge />
             <Column alignment="start" spacing={5}>
-              <AppText variant="headline">{routine.productName}</AppText>
-              <AppText variant="footnote" color={colors.secondary}>
+              <Text variant="headline">{routine.productName}</Text>
+              <Text variant="footnote" color={colors.secondary}>
                 {schedule.label}
-              </AppText>
+              </Text>
             </Column>
             <Spacer />
           </Row>
@@ -93,9 +93,9 @@ export default function RecordIntakeScreen() {
             <Row alignment="center" spacing={8}>
               <Spacer />
               <AppSymbol name="checkmark" color={isSelected ? colors.blue : colors.secondary} />
-              <AppText variant="headline" color={isSelected ? colors.blue : colors.text}>
+              <Text variant="headline" color={isSelected ? colors.blue : colors.text}>
                 Pris
-              </AppText>
+              </Text>
               <Spacer />
             </Row>
           </Button>
@@ -103,9 +103,9 @@ export default function RecordIntakeScreen() {
         <Spacer />
       </Row>
       {errorMessage ? (
-        <AppText variant="subhead" color={colors.danger}>
+        <Text variant="subhead" color={colors.danger}>
           {errorMessage}
-        </AppText>
+        </Text>
       ) : null}
     </Screen>
   );

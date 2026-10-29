@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { StyleSheet, useWindowDimensions } from "react-native";
 import type { Intake } from "@/features/routines/model";
 import { timeLabel } from "@/features/routines/display";
-import AppText from "@/shared/ui/AppText";
+import Text from "@/shared/ui/Text";
 import AppSymbol from "@/shared/ui/AppSymbol";
 import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
@@ -20,18 +20,18 @@ export default function IntakeRow({ intake, onPress }: { intake: Intake; onPress
           <AppSymbol name="checkmark" size={14} color={colors.background} />
         </Column>
         <Column spacing={2}>
-          <AppText>{intake.productName}</AppText>
+          <Text>{intake.productName}</Text>
           {fontScale > 1.3 && (
-            <AppText variant="subhead" color={colors.secondary}>
+            <Text variant="subhead" color={colors.secondary}>
               {timeLabel(new Date(intake.recordedAt))}
-            </AppText>
+            </Text>
           )}
         </Column>
         <Spacer />
         {fontScale <= 1.3 && (
-          <AppText variant="subhead" color={colors.secondary}>
+          <Text variant="subhead" color={colors.secondary}>
             {timeLabel(new Date(intake.recordedAt))}
-          </AppText>
+          </Text>
         )}
         <AppSymbol name="chevron.right" size={12} color={colors.secondary} />
       </Row>

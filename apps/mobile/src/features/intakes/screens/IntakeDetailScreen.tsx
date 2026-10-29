@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { StyleSheet } from "react-native";
 import ActionButton from "@/shared/ui/ActionButton";
 import AppSymbol from "@/shared/ui/AppSymbol";
-import AppText from "@/shared/ui/AppText";
+import Text from "@/shared/ui/Text";
 import { centerAvailableWidth, fillParent } from "@/shared/ui/layout";
 import ProductBadge from "@/shared/ui/ProductBadge";
 import Screen from "@/shared/ui/Screen";
@@ -33,9 +33,9 @@ export default function IntakeDetailScreen() {
   if (!intake) {
     return (
       <Screen grouped>
-        <AppText color={error ? colors.danger : colors.text}>
+        <Text color={error ? colors.danger : colors.text}>
           {busy ? "Loading intake…" : (error ?? "Intake not found.")}
-        </AppText>
+        </Text>
         {!busy ? (
           <ActionButton kind="secondary" label="Close" onPress={() => router.back()} />
         ) : null}
@@ -63,21 +63,21 @@ export default function IntakeDetailScreen() {
             <AppSymbol name="checkmark" size={40} color={colors.cyan} />
             <Spacer flexible />
           </Column>
-          <AppText
+          <Text
             modifiers={centerAvailableWidth}
             variant="largeTitle"
             textStyle={styles.centeredText}
           >
             {recordedAt ? timeLabel(recordedAt) : "Intake recorded"}
-          </AppText>
+          </Text>
           {recordedAt ? (
-            <AppText
+            <Text
               color={colors.secondary}
               modifiers={centerAvailableWidth}
               textStyle={styles.centeredText}
             >
               {dateLabel(recordedAt)}
-            </AppText>
+            </Text>
           ) : null}
         </Column>
         <Spacer />
@@ -86,19 +86,19 @@ export default function IntakeDetailScreen() {
         <Row alignment="center" spacing={12} style={styles.card}>
           <ProductBadge />
           <Column spacing={4}>
-            <AppText variant="footnote" color={colors.secondary}>
+            <Text variant="footnote" color={colors.secondary}>
               PRIS
-            </AppText>
-            <AppText variant="headline">{intake.productName}</AppText>
+            </Text>
+            <Text variant="headline">{intake.productName}</Text>
           </Column>
           <Spacer />
         </Row>
         <Spacer />
       </Row>
       {errorMessage ? (
-        <AppText variant="subhead" color={colors.danger}>
+        <Text variant="subhead" color={colors.danger}>
           {errorMessage}
-        </AppText>
+        </Text>
       ) : null}
     </Screen>
   );

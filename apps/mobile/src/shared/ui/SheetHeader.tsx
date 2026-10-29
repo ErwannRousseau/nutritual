@@ -2,7 +2,7 @@ import { Column, Row, Spacer } from "@expo/ui";
 import { router } from "expo-router";
 import { useMemo } from "react";
 import { StyleSheet } from "react-native";
-import AppText from "@/shared/ui/AppText";
+import Text from "@/shared/ui/Text";
 import IconButton from "@/shared/ui/IconButton";
 import { fillParent, sixtyPercent } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
@@ -17,9 +17,9 @@ export default function SheetHeader({ title }: { title: string }) {
         <IconButton name="xmark" label="Close" onPress={() => router.back()} />
       </Column>
       <Spacer flexible />
-      <AppText variant="subhead" style={styles.title} textStyle={styles.centered}>
+      <Text variant="subhead" style={styles.title} textStyle={styles.centered}>
         {title}
-      </AppText>
+      </Text>
       <Spacer flexible />
       <Column style={styles.spacer} />
     </Row>
