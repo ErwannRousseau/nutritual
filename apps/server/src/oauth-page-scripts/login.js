@@ -6,23 +6,7 @@ const isMobileClient = mobileClient && params.get("client_id") === mobileClient;
 const status = document.querySelector("#status");
 const title = document.querySelector("#title");
 const description = document.querySelector("#description");
-const password = document.querySelector("#password");
-const submit = document.querySelector("#submit");
-const toggle = document.querySelector("#toggle");
 const formElement = document.querySelector("#form");
-let creatingAccount = false;
-
-function setMode(signUp) {
-  creatingAccount = signUp;
-  title.textContent = signUp ? "Create a Nutritual account" : "Sign in to Nutritual";
-  description.textContent = signUp
-    ? "Choose an email address and password for your Nutritual account."
-    : "Use the Nutritual account associated with your phone.";
-  password.autocomplete = signUp ? "new-password" : "current-password";
-  submit.textContent = signUp ? "Create my account" : "Continue";
-  toggle.textContent = signUp ? "Already have an account? Sign in" : "Create an account";
-  status.textContent = "";
-}
 
 function completeLogin(url) {
   const next = new URL(url, location.href);
@@ -85,7 +69,6 @@ async function confirmPairing() {
   title.textContent = "Confirm your connection to Nutritual";
   description.textContent = "Scan this code with Nutritual to confirm the connection.";
   formElement.hidden = true;
-  toggle.hidden = true;
   pair.hidden = false;
   document.querySelector("#qr").src = challenge.qrUrl;
   document.querySelector("#code").textContent = challenge.code;
@@ -160,55 +143,24 @@ getSession().then((data) => {
   else if (data?.user) status.textContent = "Sign in again to confirm the connection.";
 });
 
-toggle.addEventListener("click", () => setMode(!creatingAccount));
-
 document.querySelector("#form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  status.textContent = creatingAccount ? "Creating account…" : "Signing in…";
+  status.textContent = "Signing in…";
   const form = new FormData(event.currentTarget);
   const email = String(form.get("email"));
   const userPassword = String(form.get("password"));
 
   try {
-    const response = await fetch(
-      `${authBase}${creatingAccount ? "/sign-up/email" : "/sign-in/email"}`,
-      {
-        method: "POST",
-        credentials: "include",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(
-          creatingAccount
-            ? { email, password: userPassword, name: email.split("@")[0] || "Nutritual" }
-            : { email, password: userPassword, oauth_query: query },
-        ),
-      },
-    );
+    const response = await fetch(`${authBase}/sign-in/email`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email, password: userPassword, oauth_query: query }),
+    });
 
     const data = await response.json().catch(() => ({}));
 
-    if (!response.ok)
-      throw new Error(
-        data.message ||
-          (creatingAccount ? "Account creation failed." : "Check your email address and password."),
-      );
-
-    if (creatingAccount) {
-      const session = await getSession();
-
-      if (!session?.user) {
-        setMode(false);
-        status.textContent =
-          "Account created. If Neon asks you to verify your email, check your inbox, then sign in again.";
-
-        return;
-      }
-
-      if (!isMobileClient && !(await confirmPairing())) return;
-
-      await continueOAuth();
-
-      return;
-    }
+    if (!response.ok) throw new Error(data.message || "Check your email address and password.");
 
     if (!data.url) throw new Error("The OAuth request cannot continue.");
 

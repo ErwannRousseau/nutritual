@@ -108,9 +108,21 @@ bun run --filter mobile ios:device "<device-name>"
 For an iOS simulator, use `bun run --filter mobile ios`. The app uses a
 development build, not Expo Go.
 
-At first sign-in, choose **Créer un compte** on the Nutritual login page.
-Register with an email address and password. This Nutritual account belongs to
-the selected Neon branch and is separate from Neon Console account.
+Sign in with the previously provisioned email/password account. Disable public
+registration on the Neon branch with:
+
+```sh
+neon neon-auth config email-password update --branch development --disable-sign-up true
+```
+
+The Nutritual account belongs to the selected Neon branch and is separate from
+the Neon Console account. Provisioning a new password account has not been
+verified with registration disabled.
+
+On 4 November 2026, the development branch contained one account. Neon rejected
+a synthetic signup request with `EMAIL_PASSWORD_SIGN_UP_DISABLED`. The real
+iPhone session restoration, offline access, expiry, data preservation, and
+reminder delivery still need verification.
 
 ## Connect ChatGPT
 
