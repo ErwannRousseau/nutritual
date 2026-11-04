@@ -123,9 +123,11 @@ the selected Neon branch and is separate from Neon Console account.
 4. Keep Nutritual open and connected. Ask ChatGPT to add a supplement routine,
    then confirm the action in ChatGPT.
 
-ChatGPT creates an as-needed routine without another approval on the phone. To
-add reminders, edit the routine's frequency and time in the app. Scheduling
-reminders through ChatGPT isn't implemented yet.
+ChatGPT can create an as-needed routine or a routine scheduled on selected
+weekdays or every N calendar days. Scheduled times use the phone's local time.
+The response distinguishes saving the routine from scheduling its reminder.
+Scheduling acceptance does not mean a notification was delivered or an intake
+was recorded.
 
 ## Fix setup problems
 
@@ -135,7 +137,7 @@ reminders through ChatGPT isn't implemented yet.
 | OAuth doesn't return to the app       | Use the exact HTTPS callback registered in Neon and keep the native scheme in the development build.     |
 | The phone cannot reach the server     | Use the ngrok HTTPS origin and keep the tunnel and server running.                                       |
 | ChatGPT reports the phone unavailable | Reopen Nutritual and sign in with the paired account.                                                    |
-| Creation is unconfirmed               | Retry with the same `operationId`. A new ID can create another routine.                                  |
+| Creation is unconfirmed               | Ask ChatGPT to retry the same request. It must reuse the original operation ID and inputs.               |
 
 See the [server reference](../apps/server/README.md) for authentication,
 pairing, and relay behavior.
@@ -157,3 +159,7 @@ delivery, and preserving pairing links through sign-in.
 On 26 October 2026, the maintainer confirmed that the real ChatGPT-to-iPhone
 routine creation flow works. The code review did not repeat that live flow or
 recheck the tunnel and provider settings.
+
+Scheduled creation, persistence after relaunch, unavailable-phone recovery,
+denied permission, local-time behavior, and actual reminder delivery remain to
+be verified on the iPhone by the maintainer.

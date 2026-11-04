@@ -11,6 +11,7 @@ import {
   ReminderOutcomes,
   type CreateRoutineRequest,
   type PairingDeviceRequest,
+  type ReminderOutcome,
 } from "@nutritual/protocol";
 
 type TestBinding = SQLQueryBindings | SQLQueryBindings[];
@@ -37,6 +38,8 @@ let nextId = 0;
 let scheduleCalls = 0;
 let scheduled = new Map<string, { identifier: string }>();
 let nextScheduleGate: { entered(): void; promise: Promise<void> } | undefined;
+let notificationPermission: "granted" | "denied" = "granted";
+let failNextSchedule = false;
 
 function bindings(parameters: TestBinding[]): SQLQueryBindings[] {
   const values: SQLQueryBindings[] = [];
@@ -89,10 +92,22 @@ mock.module("expo-notifications", () => ({
   cancelScheduledNotificationAsync: async (identifier: string) => {
     scheduled.delete(identifier);
   },
-  getPermissionsAsync: async () => ({ status: "granted", ios: { status: 1 } }),
-  requestPermissionsAsync: async () => ({ status: "granted", ios: { status: 1 } }),
+  getPermissionsAsync: async () => ({
+    status: notificationPermission,
+    ios: { status: notificationPermission === "granted" ? 1 : 0 },
+  }),
+  requestPermissionsAsync: async () => ({
+    status: notificationPermission,
+    ios: { status: notificationPermission === "granted" ? 1 : 0 },
+  }),
   scheduleNotificationAsync: async (request: { identifier?: string }) => {
     scheduleCalls += 1;
+
+    if (failNextSchedule) {
+      failNextSchedule = false;
+      throw new Error("Notification scheduling failed.");
+    }
+
     const gate = nextScheduleGate;
 
     if (gate) {
@@ -120,11 +135,18 @@ test("relay creation deduplicates on SQLite and serializes reminder restoration"
 
   const { removeReminders, restoreReminders } = await import("../reminders");
 
+  let latestData: Awaited<ReturnType<typeof storage.loadData>> | undefined;
+  const reminderOutcomes: string[] = [];
+
   const makeHandler = () =>
     createRoutineFromRelayHandler({
-      onData: () => undefined,
+      onData: (data) => {
+        latestData = data;
+      },
       onError: () => undefined,
-      onReminder: () => undefined,
+      onReminder: (state) => {
+        reminderOutcomes.push(state.status);
+      },
     });
 
   const request: CreateRoutineRequest = {
@@ -209,6 +231,211 @@ test("relay creation deduplicates on SQLite and serializes reminder restoration"
   expect(afterDelete.status).toBe(CreateRoutineStatus.alreadyProcessed);
   expect((await storage.loadData()).routines).toHaveLength(1);
   expect(scheduleCalls).toBe(3);
+
+  const intervalRequest: CreateRoutineRequest = {
+    operationId: "operation-interval",
+    productName: "Vitamin C",
+    frequency: { kind: FrequencyKind.interval, every: 2, startDate: "2026-11-04" },
+    time: "08:30",
+  };
+
+  const callsBeforeInterval = scheduleCalls;
+  const intervalResult = await restartedHandler(intervalRequest);
+
+  expect(intervalResult.status).toBe(CreateRoutineStatus.created);
+
+  if (intervalResult.status !== CreateRoutineStatus.created)
+    throw new Error("Interval routine was not created.");
+  expect(intervalResult.reminder).toBe(ReminderOutcomes.scheduled);
+  expect(scheduleCalls).toBeGreaterThan(callsBeforeInterval);
+  expect(
+    (await storage.loadData()).routines.find(({ id }) => id === intervalResult.routineId),
+  ).toMatchObject({
+    productName: "Vitamin C",
+    frequency: { kind: FrequencyKind.interval, every: 2, startDate: "2026-11-04" },
+    time: "08:30",
+  });
+
+  const asNeededRequest: CreateRoutineRequest = {
+    operationId: "operation-as-needed",
+    productName: "Pain relief",
+    frequency: { kind: FrequencyKind.asNeeded },
+    time: "",
+  };
+
+  const callsBeforeAsNeeded = scheduleCalls;
+  const asNeededResult = await restartedHandler(asNeededRequest);
+
+  expect(asNeededResult.status).toBe(CreateRoutineStatus.created);
+
+  if (asNeededResult.status !== CreateRoutineStatus.created)
+    throw new Error("As-needed routine was not created.");
+  expect(asNeededResult.reminder).toBe(ReminderOutcomes.none);
+  expect(scheduleCalls).toBe(callsBeforeAsNeeded);
+  expect(
+    (await storage.loadData()).routines.find(({ id }) => id === asNeededResult.routineId),
+  ).toMatchObject({
+    productName: "Pain relief",
+    frequency: { kind: FrequencyKind.asNeeded },
+    time: "",
+  });
+
+  const callsBeforeReplay = scheduleCalls;
+  const scheduledBeforeReplay = scheduled.size;
+
+  const operationsBeforeReplay = await sqlite.getFirstAsync<{ count: number }>(
+    "SELECT COUNT(*) AS count FROM routine_operations",
+  );
+
+  database.close();
+  database = new Database(databasePath);
+  const recoveredHandler = makeHandler();
+  const intervalReplay = await recoveredHandler(intervalRequest);
+  const asNeededReplay = await recoveredHandler(asNeededRequest);
+
+  expect(intervalReplay).toEqual({
+    status: CreateRoutineStatus.alreadyProcessed,
+    operationId: intervalRequest.operationId,
+    routineId: intervalResult.routineId,
+    reminder: ReminderOutcomes.scheduled,
+  });
+  expect(asNeededReplay).toEqual({
+    status: CreateRoutineStatus.alreadyProcessed,
+    operationId: asNeededRequest.operationId,
+    routineId: asNeededResult.routineId,
+    reminder: ReminderOutcomes.none,
+  });
+  expect(scheduleCalls).toBe(callsBeforeReplay);
+  expect(scheduled.size).toBe(scheduledBeforeReplay);
+  expect((await storage.loadData()).routines).toHaveLength(3);
+
+  async function assertReplayPreservesRoutine(
+    replayRequest: CreateRoutineRequest,
+    routineId: string,
+    reminder: ReminderOutcome,
+    modifiedName: string,
+  ) {
+    const conflictingRequest = {
+      ...replayRequest,
+      productName: `${replayRequest.productName} changed`,
+    };
+
+    expect(await recoveredHandler(conflictingRequest)).toMatchObject({
+      status: CreateRoutineStatus.conflict,
+      operationId: replayRequest.operationId,
+    });
+
+    const persisted = (await storage.loadData()).routines.find(({ id }) => id === routineId);
+
+    if (!persisted) throw new Error("Routine was not found before edit.");
+    await storage.saveRoutine({ ...persisted, productName: modifiedName });
+
+    const afterEdit = await recoveredHandler(replayRequest);
+    expect(afterEdit).toEqual({
+      status: CreateRoutineStatus.alreadyProcessed,
+      operationId: replayRequest.operationId,
+      routineId,
+      reminder,
+    });
+    expect(
+      (await storage.loadData()).routines.find(({ id }) => id === routineId)?.productName,
+    ).toBe(modifiedName);
+
+    await removeReminders(routineId);
+    await storage.deleteRoutine(routineId);
+    expect(await recoveredHandler(replayRequest)).toEqual({
+      status: CreateRoutineStatus.alreadyProcessed,
+      operationId: replayRequest.operationId,
+      routineId,
+      reminder,
+    });
+    expect((await storage.loadData()).routines.some(({ id }) => id === routineId)).toBe(false);
+  }
+
+  await assertReplayPreservesRoutine(
+    intervalRequest,
+    intervalResult.routineId,
+    ReminderOutcomes.scheduled,
+    "Edited Vitamin C",
+  );
+  await assertReplayPreservesRoutine(
+    asNeededRequest,
+    asNeededResult.routineId,
+    ReminderOutcomes.none,
+    "Edited pain relief",
+  );
+  expect(scheduleCalls).toBe(callsBeforeReplay);
+  expect(scheduled.size).toBe(1);
+  expect((await storage.loadData()).routines).toHaveLength(1);
+  expect(
+    await sqlite.getFirstAsync<{ count: number }>(
+      "SELECT COUNT(*) AS count FROM routine_operations",
+    ),
+  ).toEqual(operationsBeforeReplay);
+
+  notificationPermission = "denied";
+  const deniedRequest = { ...request, operationId: "operation-denied" };
+  const deniedResult = await restartedHandler(deniedRequest);
+  expect(deniedResult.status).toBe(CreateRoutineStatus.created);
+
+  if (deniedResult.status !== CreateRoutineStatus.created)
+    throw new Error("Routine with denied reminders was not created.");
+  expect(deniedResult.reminder).toBe(ReminderOutcomes.denied);
+  expect(
+    await sqlite.getFirstAsync<{ reminder_outcome: string }>(
+      "SELECT reminder_outcome FROM routine_operations WHERE operation_id = ?",
+      deniedRequest.operationId,
+    ),
+  ).toEqual({ reminder_outcome: ReminderOutcomes.denied });
+
+  notificationPermission = "granted";
+  failNextSchedule = true;
+  const failedRequest = { ...request, operationId: "operation-reminder-failed" };
+  const failedResult = await restartedHandler(failedRequest);
+  expect(failedResult.status).toBe(CreateRoutineStatus.created);
+
+  if (failedResult.status !== CreateRoutineStatus.created)
+    throw new Error("Routine with failed reminders was not created.");
+  expect(failedResult.reminder).toBe(ReminderOutcomes.failed);
+  expect(
+    await sqlite.getFirstAsync<{ reminder_outcome: string }>(
+      "SELECT reminder_outcome FROM routine_operations WHERE operation_id = ?",
+      failedRequest.operationId,
+    ),
+  ).toEqual({ reminder_outcome: ReminderOutcomes.failed });
+
+  database.exec(`
+    CREATE TRIGGER fail_reminder_outcome_update
+    BEFORE UPDATE OF reminder_outcome ON routine_operations
+    BEGIN
+      SELECT RAISE(ABORT, 'forced reminder outcome persistence failure');
+    END;
+  `);
+  const unconfirmedRequest = { ...request, operationId: "operation-reminder-unconfirmed" };
+  const unconfirmedResult = await restartedHandler(unconfirmedRequest);
+  expect(unconfirmedResult.status).toBe(CreateRoutineStatus.created);
+
+  if (unconfirmedResult.status !== CreateRoutineStatus.created)
+    throw new Error("Routine with unconfirmed reminders was not created.");
+  expect(unconfirmedResult.reminder).toBe(ReminderOutcomes.unconfirmed);
+  database.exec("DROP TRIGGER fail_reminder_outcome_update");
+
+  database.close();
+  database = new Database(databasePath);
+  const retryHandler = makeHandler();
+  const retriedUnconfirmed = await retryHandler(unconfirmedRequest);
+  expect(retriedUnconfirmed).toEqual({
+    status: CreateRoutineStatus.alreadyProcessed,
+    operationId: unconfirmedRequest.operationId,
+    routineId: unconfirmedResult.routineId,
+    reminder: ReminderOutcomes.unconfirmed,
+  });
+  expect((await storage.loadData()).routines).toHaveLength(4);
+  expect(latestData?.routines).toHaveLength(4);
+  expect(reminderOutcomes).toContain(ReminderOutcomes.none);
+  expect(reminderOutcomes).toContain(ReminderOutcomes.denied);
+  expect(reminderOutcomes).toContain(ReminderOutcomes.failed);
+  expect(reminderOutcomes.at(-1)).toBe(ReminderOutcomes.scheduled);
 });
 
 test("device relay reconnects after the server closes its socket", async () => {

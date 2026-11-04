@@ -35,15 +35,18 @@ Use [`.env.example`](../../.env.example) as the workspace configuration referenc
 
 ## MCP tool
 
-`create_intake_routine` creates an as-needed routine on the paired phone.
+`create_intake_routine` creates a routine on the paired phone.
 
-| Input         | Constraint                                                  |
-| ------------- | ----------------------------------------------------------- |
-| `productName` | Nonempty after trimming, at most 120 characters             |
-| `operationId` | Caller-supplied UUID, reused when retrying the same request |
+| Input         | Constraint                                                                      |
+| ------------- | ------------------------------------------------------------------------------- |
+| `productName` | Nonempty after trimming, at most 120 characters                                 |
+| `operationId` | Assistant-generated UUID, reused with the original inputs when retrying         |
+| `frequency`   | As needed, selected weekdays, or an interval in calendar days with a start date |
+| `time`        | Phone-local time in HH:mm for scheduled routines, empty for as needed           |
 
-The tool doesn't accept a reminder schedule. It returns the phone's creation
-outcome as JSON in the MCP text content.
+The tool returns the phone's creation outcome and reminder scheduling status as
+JSON in the MCP text content. Scheduling acceptance does not confirm delivery
+or a recorded intake.
 
 Requests must belong to the paired ChatGPT OAuth client for the authenticated
 Neon user. The first-party mobile OAuth client cannot call this tool.
