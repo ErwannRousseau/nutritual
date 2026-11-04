@@ -1,5 +1,5 @@
 import { upgradeWebSocket } from "@hono/bun";
-import { isCreateRoutineResultMessage } from "@nutritual/protocol";
+import { isCreateRoutineResultMessage, isListRoutinesResultMessage } from "@nutritual/protocol";
 import type { Hono } from "hono";
 import type { McpAuthVariables } from "@neon/oauth/mcp/hono";
 import type { DeviceConnection, RoutineRelay } from "../routine-relay.ts";
@@ -46,6 +46,9 @@ export function registerDeviceRoutes(
         } catch {
           return;
         }
+
+        if (isListRoutinesResultMessage(value))
+          relay.receiveListResult(userId, connectionId, value);
 
         if (isCreateRoutineResultMessage(value))
           relay.receivePhoneResult(userId, connectionId, value);
