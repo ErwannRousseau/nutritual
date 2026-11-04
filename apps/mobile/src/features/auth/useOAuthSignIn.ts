@@ -2,7 +2,7 @@ import { useState } from "react";
 import * as AuthSession from "expo-auth-session";
 import * as WebBrowser from "expo-web-browser";
 import { saveTokens } from "@/features/auth/session";
-import type { TokenSet } from "@/features/auth/session-model";
+import { createTokenSet } from "@/features/auth/session-model";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { createCodeExchangeParams } from "@/features/auth/oauth";
 import {
@@ -71,16 +71,14 @@ export function useOAuthSignIn(onError: (message: string) => void) {
         discovery,
       );
 
-      const now = Date.now();
+      if (!tokens.refreshToken) throw new Error("No refresh token was returned.");
 
-      const session: TokenSet = {
+      const session = createTokenSet({
         accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken ?? "",
-        accessTokenExpiresAt: now + (tokens.expiresIn ?? 3600) * 1000,
-        refreshTokenExpiresAt: now + 30 * 24 * 60 * 60 * 1000,
-      };
+        refreshToken: tokens.refreshToken,
+        expiresIn: tokens.expiresIn,
+      });
 
-      if (!session.refreshToken) throw new Error("No refresh token was returned.");
       const persisted = await saveTokens(session);
 
       if (!persisted) throw new Error("A newer session replaced this login.");

@@ -1,6 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 import { isJsonObject, type JsonValue } from "@/features/auth/parse";
-import { hasActiveSession, type TokenSet } from "@/features/auth/session-model";
+import { createTokenSet, hasActiveSession, type TokenSet } from "@/features/auth/session-model";
 import {
   EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID,
   EXPO_PUBLIC_NEON_AUTH_BASE_URL,
@@ -245,14 +245,7 @@ async function refreshTokens(current: TokenSet, generation: number): Promise<Tok
 
     if (!result) return null;
 
-    const next: TokenSet = {
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-      accessTokenExpiresAt: Date.now() + result.expiresIn * 1000,
-      refreshTokenExpiresAt: result.refreshTokenExpiresIn
-        ? Date.now() + result.refreshTokenExpiresIn * 1000
-        : Date.now() + 30 * 24 * 60 * 60 * 1000,
-    };
+    const next = createTokenSet(result);
 
     const committed = await enqueueSecureStoreWrite(async () => {
       if (!isCurrentSession(generation, current)) return false;
