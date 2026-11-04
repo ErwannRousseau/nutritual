@@ -9,6 +9,12 @@ export type RoutineInput = {
 
 export type CreateRoutineRequest = RoutineInput & { operationId: string };
 
+export type EditRoutineRequest = {
+  operationId: string;
+  expected: ListedRoutine;
+  changes: Partial<RoutineInput>;
+};
+
 export const CreateRoutineStatus = {
   created: "created",
   alreadyProcessed: "already_processed",
@@ -113,6 +119,53 @@ export function isCreateRoutineRequest(value: unknown): value is CreateRoutineRe
   );
 }
 
+export function isEditRoutineRequest(value: unknown): value is EditRoutineRequest {
+  if (
+    !isRecord(value) ||
+    typeof value.operationId !== "string" ||
+    !value.operationId.trim() ||
+    !isListedRoutine(value.expected) ||
+    !isRecord(value.changes)
+  ) {
+    return false;
+  }
+
+  const changeKeys = Object.keys(value.changes);
+
+  if (
+    changeKeys.length === 0 ||
+    changeKeys.some((key) => !["productName", "frequency", "time"].includes(key))
+  ) {
+    return false;
+  }
+
+  const changes: Partial<RoutineInput> = {};
+
+  if ("productName" in value.changes) {
+    if (typeof value.changes.productName !== "string") return false;
+    changes.productName = value.changes.productName;
+  }
+
+  if ("frequency" in value.changes) {
+    if (!isFrequency(value.changes.frequency)) return false;
+    changes.frequency = value.changes.frequency;
+  }
+
+  if ("time" in value.changes) {
+    if (typeof value.changes.time !== "string") return false;
+    changes.time = value.changes.time;
+  }
+
+  const merged = {
+    operationId: value.operationId,
+    productName: changes.productName ?? value.expected.productName,
+    frequency: changes.frequency ?? value.expected.frequency,
+    time: changes.time ?? value.expected.time,
+  } satisfies CreateRoutineRequest;
+
+  return validateRoutineInput(merged) === null;
+}
+
 export function isReminderOutcome(value: unknown): value is ReminderOutcome {
   return Object.values(ReminderOutcomes).some((outcome) => outcome === value);
 }
@@ -147,6 +200,28 @@ export function isCreateRoutineResult(value: unknown): value is CreateRoutineRes
 
 export type ListedRoutine = RoutineInput & { id: string; paused: boolean };
 
+function isListedRoutine(value: unknown): value is ListedRoutine {
+  if (
+    !isRecord(value) ||
+    typeof value.id !== "string" ||
+    !value.id ||
+    typeof value.productName !== "string" ||
+    typeof value.time !== "string" ||
+    typeof value.paused !== "boolean" ||
+    !isFrequency(value.frequency)
+  ) {
+    return false;
+  }
+
+  return (
+    validateRoutineInput({
+      productName: value.productName,
+      frequency: value.frequency,
+      time: value.time,
+    }) === null
+  );
+}
+
 export const ListRoutinesStatus = {
   ok: "ok",
   failed: "failed",
@@ -157,6 +232,48 @@ export type ListRoutinesResult =
   | { status: typeof ListRoutinesStatus.ok; routines: ListedRoutine[] }
   | { status: typeof ListRoutinesStatus.failed; message: string };
 
+export const EditRoutineStatus = {
+  updated: "updated",
+  alreadyProcessed: "already_processed",
+  conflict: "conflict",
+  invalid: "invalid",
+  failed: "failed",
+} as const;
+
+export type EditRoutineResult =
+  | {
+      status: typeof EditRoutineStatus.updated | typeof EditRoutineStatus.alreadyProcessed;
+      operationId: string;
+      routineId: string;
+      reminder: ReminderOutcome;
+    }
+  | { status: typeof EditRoutineStatus.conflict; operationId: string; message: string }
+  | {
+      status: typeof EditRoutineStatus.invalid | typeof EditRoutineStatus.failed;
+      operationId: string;
+      message: string;
+    };
+
+export function isEditRoutineResult(value: unknown): value is EditRoutineResult {
+  if (!isRecord(value) || typeof value.operationId !== "string") return false;
+
+  if (
+    value.status === EditRoutineStatus.updated ||
+    value.status === EditRoutineStatus.alreadyProcessed
+  ) {
+    return (
+      typeof value.routineId === "string" && !!value.routineId && isReminderOutcome(value.reminder)
+    );
+  }
+
+  return (
+    (value.status === EditRoutineStatus.conflict ||
+      value.status === EditRoutineStatus.invalid ||
+      value.status === EditRoutineStatus.failed) &&
+    typeof value.message === "string"
+  );
+}
+
 export function isListRoutinesResult(value: unknown): value is ListRoutinesResult {
   if (!isRecord(value)) return false;
 
@@ -165,25 +282,6 @@ export function isListRoutinesResult(value: unknown): value is ListRoutinesResul
   return (
     value.status === ListRoutinesStatus.ok &&
     Array.isArray(value.routines) &&
-    value.routines.every((routine) => {
-      if (
-        !isRecord(routine) ||
-        typeof routine.id !== "string" ||
-        !routine.id ||
-        typeof routine.productName !== "string" ||
-        typeof routine.time !== "string" ||
-        typeof routine.paused !== "boolean" ||
-        !isFrequency(routine.frequency)
-      )
-        return false;
-
-      return (
-        validateRoutineInput({
-          productName: routine.productName,
-          frequency: routine.frequency,
-          time: routine.time,
-        }) === null
-      );
-    })
+    value.routines.every(isListedRoutine)
   );
 }

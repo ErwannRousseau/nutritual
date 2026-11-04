@@ -15,13 +15,17 @@ type RelayCallbacks = {
   onData(data: Awaited<ReturnType<typeof storage.loadData>>): void;
   onError(message: string): void;
   onReminder(reminder: ReminderState): void;
+  serialize?<T>(action: () => Promise<T>): Promise<T>;
 };
 
 export function createRoutineFromRelayHandler({
   onData,
   onError,
   onReminder,
+  serialize,
 }: RelayCallbacks): (request: CreateRoutineRequest) => Promise<CreateRoutineResult> {
+  const serializeAction = serialize ?? (<T>(action: () => Promise<T>) => action());
+
   const operations = new Map<
     string,
     { requestJson: string; promise: Promise<CreateRoutineResult> }
@@ -46,6 +50,8 @@ export function createRoutineFromRelayHandler({
       paused: false,
     };
 
+    let committedRoutine: Routine | undefined;
+
     try {
       const operation = await storage.createRoutineOperation(request, routine);
 
@@ -65,6 +71,8 @@ export function createRoutineFromRelayHandler({
           reminder: operation.reminder,
         };
       }
+
+      committedRoutine = operation.routine;
 
       const reminderState = await updateReminder(operation.routine, true);
 
@@ -92,6 +100,15 @@ export function createRoutineFromRelayHandler({
         reminder,
       };
     } catch {
+      if (committedRoutine) {
+        return {
+          status: CreateRoutineStatus.created,
+          operationId: request.operationId,
+          routineId: committedRoutine.id,
+          reminder: ReminderOutcomes.unconfirmed,
+        };
+      }
+
       return {
         status: CreateRoutineStatus.failed,
         operationId: request.operationId,
@@ -120,7 +137,7 @@ export function createRoutineFromRelayHandler({
       );
     }
 
-    const promise = createOnce(request).finally(() => {
+    const promise = serializeAction(() => createOnce(request)).finally(() => {
       if (operations.get(request.operationId)?.promise === promise) {
         operations.delete(request.operationId);
       }

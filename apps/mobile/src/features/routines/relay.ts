@@ -1,10 +1,15 @@
 import {
   CreateRoutineStatus,
   isCreateRoutineCommandMessage,
+  isEditRoutineCommandMessage,
   isListRoutinesCommandMessage,
   type CreateRoutineRequest,
   type CreateRoutineResult,
   type CreateRoutineResultMessage,
+  EditRoutineStatus,
+  type EditRoutineRequest,
+  type EditRoutineResult,
+  type EditRoutineResultMessage,
 } from "@nutritual/protocol";
 import { getDeviceCredentials } from "@/features/auth/device-credentials";
 import { phoneRequest } from "@/features/auth/phone-api";
@@ -15,6 +20,7 @@ import { deviceWebSocketUrl } from "@/features/auth/relay-url";
 export function connectToDeviceRelay(
   serverUrl: string,
   createRoutine: (request: CreateRoutineRequest) => Promise<CreateRoutineResult>,
+  editRoutine: (request: EditRoutineRequest) => Promise<EditRoutineResult>,
 ): () => void {
   try {
     new URL(serverUrl);
@@ -80,6 +86,36 @@ export function connectToDeviceRelay(
               // The server reports a missing response.
             }
           });
+
+          return;
+        }
+
+        if (isEditRoutineCommandMessage(message)) {
+          const sendEditResult = (result: EditRoutineResult) => {
+            if (disposed || nextSocket.readyState !== WebSocket.OPEN) return;
+
+            const response: EditRoutineResultMessage = {
+              type: "edit_routine_result",
+              requestId: message.requestId,
+              result,
+            };
+
+            try {
+              nextSocket.send(JSON.stringify(response));
+            } catch {
+              /* Unacknowledged operations remain retryable server-side. */
+            }
+          };
+
+          void editRoutine(message.command)
+            .then(sendEditResult)
+            .catch(() =>
+              sendEditResult({
+                status: EditRoutineStatus.failed,
+                operationId: message.command.operationId,
+                message: "Unable to save the routine on this phone.",
+              }),
+            );
 
           return;
         }

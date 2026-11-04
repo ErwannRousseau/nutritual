@@ -11,10 +11,15 @@ export function RoutinesProvider({ children }: { children: ReactNode }) {
   const routines = useRoutines();
   const [paired, setPaired] = useState(false);
   const createRoutineRef = useRef(routines.createRoutineFromRelay);
+  const editRoutineRef = useRef(routines.editRoutineFromRelay);
 
   useEffect(() => {
     createRoutineRef.current = routines.createRoutineFromRelay;
   }, [routines.createRoutineFromRelay]);
+
+  useEffect(() => {
+    editRoutineRef.current = routines.editRoutineFromRelay;
+  }, [routines.editRoutineFromRelay]);
 
   useEffect(() => {
     let active = true;
@@ -41,8 +46,10 @@ export function RoutinesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!routines.ready || !paired) return;
 
-    return connectToDeviceRelay(EXPO_PUBLIC_SERVER_URL, (request) =>
-      createRoutineRef.current(request),
+    return connectToDeviceRelay(
+      EXPO_PUBLIC_SERVER_URL,
+      (request) => createRoutineRef.current(request),
+      (request) => editRoutineRef.current(request),
     );
   }, [routines.ready, paired]);
 
