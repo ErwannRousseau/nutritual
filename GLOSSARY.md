@@ -23,10 +23,9 @@ up on missed reminders.
 **Reminder**: A notification scheduled to signal an intake as part of an intake
 routine. _Avoid_: Routine
 
-**Paired phone**: The phone designated to receive intake routine creation
-requests from the user's authorized ChatGPT connection. Only one phone is paired
-at a time.
+**Paired phone**: The phone designated to receive intake routine requests from
+the user's authorized ChatGPT connection. Only one phone is paired at a time.
 
-**ChatGPT connection**: The user's authorization for ChatGPT to create intake
-routines on their paired phone. Revoking this authorization preserves the
-phone's existing routines and intake history.
+**ChatGPT connection**: The user's authorization for ChatGPT to access and
+manage intake routines on their paired phone. Revoking this authorization
+preserves the phone's existing routines and intake history.
