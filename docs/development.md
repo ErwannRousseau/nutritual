@@ -115,15 +115,6 @@ registration on the Neon branch with:
 neon neon-auth config email-password update --branch development --disable-sign-up true
 ```
 
-The Nutritual account belongs to the selected Neon branch and is separate from
-the Neon Console account. Provisioning a new password account has not been
-verified with registration disabled.
-
-On 4 November 2026, the development branch contained one account. Neon rejected
-a synthetic signup request with `EMAIL_PASSWORD_SIGN_UP_DISABLED`. The real
-iPhone session restoration, offline access, expiry, data preservation, and
-reminder delivery still need verification.
-
 ## Connect ChatGPT
 
 1. In the ChatGPT Business workspace, add a custom MCP app at
