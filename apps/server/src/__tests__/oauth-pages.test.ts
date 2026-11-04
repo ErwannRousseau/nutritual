@@ -75,11 +75,10 @@ async function runLoginPage(
   options: {
     query?: string;
     sessionAtStart?: boolean;
-    signUp?: boolean;
-    sessionAfterSignup?: boolean;
     pairingStatus?: "approved" | "declined" | "mismatch" | "expired";
     nextUrl?: string;
     denialFails?: boolean;
+    invalidCredentials?: boolean;
   } = {},
 ) {
   const query = options.query ?? oauthQuery;
@@ -87,6 +86,7 @@ async function runLoginPage(
   registerOAuthPages(app);
   const { page, script } = await getServedPageScript(app, `/oauth/login?${query}`);
   expect(page).toContain(`data-auth-base-url="${config.authBaseUrl}"`);
+  expect(page).not.toContain("Create an account");
 
   const elements = new Map<string, TestElement>();
 
@@ -96,7 +96,6 @@ async function runLoginPage(
     "#description",
     "#password",
     "#submit",
-    "#toggle",
     "#form",
     "#pair",
     "#qr",
@@ -157,13 +156,8 @@ async function runLoginPage(
           json: async () => (hasSession ? { user: { id: "synthetic" } } : {}),
         };
 
-      if (url.endsWith("/sign-up/email")) {
-        hasSession = options.sessionAfterSignup ?? false;
-
-        return { ok: true, json: async () => ({}) };
-      }
-
       if (url.endsWith("/sign-in/email")) {
+        if (options.invalidCredentials) return { ok: false, json: async () => ({}) };
         hasSession = true;
 
         return { ok: true, json: async () => ({ url: options.nextUrl ?? authorizationUrl }) };
@@ -211,8 +205,6 @@ async function runLoginPage(
     elements,
     sessionStorageValues,
     async submit() {
-      if (options.signUp) await elements.get("#toggle")?.listener?.({});
-
       await elements.get("#form")?.listener?.({
         preventDefault() {},
         currentTarget: {},
@@ -305,37 +297,13 @@ async function runConsentPage(
   return { calls, destination, replacement, elements, sessionStorageValues };
 }
 
-test("OAuth signup creates an account then continues the original authorization request", async () => {
-  const flow = await runLoginPage({ signUp: true, sessionAfterSignup: true, nextUrl: consentUrl });
+test("OAuth login rejects invalid credentials without continuing", async () => {
+  const flow = await runLoginPage({ invalidCredentials: true });
   await flow.submit();
 
-  expect(flow.calls.find((call) => call.url.endsWith("/sign-up/email"))?.body).toEqual({
-    email: "person@example.test",
-    password: "synthetic-password",
-    name: "person",
-  });
-  expect(flow.calls.find((call) => call.url.endsWith("/oauth2/continue"))?.body).toEqual({
-    selected: true,
-    oauth_query: oauthQuery,
-  });
-  expect(flow.calls.findIndex((call) => call.url === "/pairing/challenges/status")).toBeLessThan(
-    flow.calls.findIndex((call) => call.url.endsWith("/oauth2/continue")),
-  );
-  const pairedQuery = flow.sessionStorageValues.get("nutritual-paired-oauth-query");
-  expect(pairedQuery).toBe(consentQuery);
-  expect(flow.destination).toBe(consentUrl);
-  const consent = await runConsentPage(consentQuery, { pairedQuery });
-  expect(consent.replacement).toBe("");
-  expect(consent.destination).toBe(authorizationUrl);
-});
-
-test("OAuth signup waits for email verification when Neon has not created a session", async () => {
-  const flow = await runLoginPage({ signUp: true, sessionAfterSignup: false });
-  await flow.submit();
-
-  expect(flow.calls.some((call) => call.url.endsWith("/oauth2/continue"))).toBe(false);
+  expect(flow.elements.get("#status")?.textContent).toBe("Check your email address and password.");
   expect(flow.destination).toBe("");
-  expect(flow.elements.get("#status")?.textContent).toContain("verify your email");
+  expect(flow.calls.some((call) => call.url === "/pairing/challenges")).toBe(false);
 });
 
 test("OAuth login does not continue a ChatGPT request from an existing Neon session", async () => {
@@ -376,27 +344,21 @@ test("OAuth login does not continue a ChatGPT request from an existing Neon sess
   expect(consent.destination).toBe(authorizationUrl);
 });
 
-test("OAuth login sends the phone refusal to the provider after signup or sign-in", async () => {
-  for (const signUp of [true, false]) {
-    const flow = await runLoginPage({
-      signUp,
-      sessionAfterSignup: true,
-      pairingStatus: "declined",
-    });
+test("OAuth login sends the phone refusal to the provider", async () => {
+  const flow = await runLoginPage({ pairingStatus: "declined" });
 
-    await flow.submit();
+  await flow.submit();
 
-    expect(flow.calls.find((call) => call.url.endsWith("/oauth2/consent"))?.body).toEqual({
-      accept: false,
-      oauth_query: oauthQuery,
-    });
-    expect(flow.calls.findIndex((call) => call.url === "/pairing/challenges/status")).toBeLessThan(
-      flow.calls.findIndex((call) => call.url.endsWith("/oauth2/consent")),
-    );
-    expect(flow.calls.some((call) => call.url.endsWith("/oauth2/continue"))).toBe(false);
-    expect(flow.destination).toBe(deniedUrl);
-    expect(flow.sessionStorageValues.size).toBe(0);
-  }
+  expect(flow.calls.find((call) => call.url.endsWith("/oauth2/consent"))?.body).toEqual({
+    accept: false,
+    oauth_query: oauthQuery,
+  });
+  expect(flow.calls.findIndex((call) => call.url === "/pairing/challenges/status")).toBeLessThan(
+    flow.calls.findIndex((call) => call.url.endsWith("/oauth2/consent")),
+  );
+  expect(flow.calls.some((call) => call.url.endsWith("/oauth2/continue"))).toBe(false);
+  expect(flow.destination).toBe(deniedUrl);
+  expect(flow.sessionStorageValues.size).toBe(0);
 });
 
 test("OAuth login reports a failed refusal without continuing authorization", async () => {
@@ -412,7 +374,7 @@ test("OAuth login stops if the phone has a different account or the challenge ex
     ["mismatch", "do not match"],
     ["expired", "expired"],
   ] as const) {
-    const flow = await runLoginPage({ signUp: true, sessionAfterSignup: true, pairingStatus });
+    const flow = await runLoginPage({ pairingStatus });
     await flow.submit();
 
     expect(flow.calls.some((call) => call.url.endsWith("/oauth2/continue"))).toBe(false);

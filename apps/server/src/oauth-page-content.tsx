@@ -88,9 +88,6 @@ export function renderOAuthLoginPage(authBaseUrl: string, mobileClientId: string
         />
         <button id="submit">Continue</button>
       </form>
-      <button id="toggle" class="secondary" type="button">
-        Create an account
-      </button>
       <section id="pair" hidden>
         <img id="qr" alt="Pairing QR code" />
         <p>Scan this code with Nutritual to confirm the connection.</p>
