@@ -1,6 +1,7 @@
 import {
   CreateRoutineStatus,
   isCreateRoutineCommandMessage,
+  isListRoutinesCommandMessage,
   type CreateRoutineRequest,
   type CreateRoutineResult,
   type CreateRoutineResultMessage,
@@ -8,6 +9,7 @@ import {
 import { getDeviceCredentials } from "@/features/auth/device-credentials";
 import { phoneRequest } from "@/features/auth/phone-api";
 import { phoneResponses } from "@/features/auth/phone-responses";
+import { listRoutinesFromRelay } from "@/features/routines/list-routines-from-relay";
 import { deviceWebSocketUrl } from "@/features/auth/relay-url";
 
 export function connectToDeviceRelay(
@@ -59,6 +61,26 @@ export function connectToDeviceRelay(
         try {
           message = JSON.parse(event.data);
         } catch {
+          return;
+        }
+
+        if (isListRoutinesCommandMessage(message)) {
+          void listRoutinesFromRelay().then((result) => {
+            if (disposed || nextSocket.readyState !== WebSocket.OPEN) return;
+
+            try {
+              nextSocket.send(
+                JSON.stringify({
+                  type: "list_routines_result",
+                  requestId: message.requestId,
+                  result,
+                }),
+              );
+            } catch {
+              // The server reports a missing response.
+            }
+          });
+
           return;
         }
 
