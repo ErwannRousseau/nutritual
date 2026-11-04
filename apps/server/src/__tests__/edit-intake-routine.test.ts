@@ -49,12 +49,16 @@ async function withTool(
   }
 }
 
-test("edit MCP tool relays one exact routine snapshot and explains ambiguity and retries", async () => {
+test("MCP edits multiple routines in separate calls with independent outcomes", async () => {
   const inputs: EditRoutineRequest[] = [];
+  const longProductName = "A".repeat(121);
   await withTool(
     async (userId, input) => {
       expect(userId).toBe("authenticated-user");
       inputs.push(input);
+
+      if (input.expected.id === "routine-2")
+        return { status: "conflict", operationId: input.operationId, message: "Routine changed." };
 
       return {
         status: "updated",
@@ -74,18 +78,130 @@ test("edit MCP tool relays one exact routine snapshot and explains ambiguity and
       expect(tool?.description).toContain("routine change was saved");
       expect(tool?.description).toContain("does not confirm notification delivery or an intake");
 
-      const input = { operationId, expected, changes: { productName: "Magnesium glycinate" } };
-      const result = await client.callTool({ name: "edit_intake_routine", arguments: input });
-      expect(result.isError).toBe(false);
-      expect(resultJson(result)).toEqual({
+      const firstInput = { operationId, expected, changes: { productName: longProductName } };
+      const first = await client.callTool({ name: "edit_intake_routine", arguments: firstInput });
+      expect(first.isError).toBe(false);
+      expect(resultJson(first)).toEqual({
         status: "updated",
         operationId,
         routineId: expected.id,
         reminder: "none",
       });
-      expect(inputs).toEqual([input]);
+
+      const secondInput = {
+        operationId: "ad230ba3-c3a0-4eb6-b67a-e794e08385e2",
+        expected: { ...expected, id: "routine-2", productName: "Vitamin D" },
+        changes: { productName: "Vitamin D3" },
+      };
+
+      const second = await client.callTool({ name: "edit_intake_routine", arguments: secondInput });
+      expect(second.isError).toBe(true);
+      expect(resultJson(second)).toEqual({
+        status: "conflict",
+        operationId: secondInput.operationId,
+        message: "Routine changed.",
+      });
+      expect(inputs).toEqual([firstInput, secondInput]);
     },
   );
+});
+
+test("edit relay reports unavailable before delivery and unconfirmed after a lost acknowledgment", async () => {
+  const relay = createRoutineRelay();
+
+  const input: EditRoutineRequest = {
+    operationId,
+    expected,
+    changes: { productName: "Magnesium glycinate" },
+  };
+
+  expect(await relay.editRoutine("authenticated-user", input)).toEqual({
+    status: "unavailable",
+    message: "No phone is connected.",
+  });
+
+  await relay.connectPhone(
+    "authenticated-user",
+    {
+      id: "first-socket",
+      deviceId: "phone",
+      pairingId: "pairing",
+      close: () => undefined,
+      send: () => undefined,
+    },
+    async () => true,
+  );
+
+  const firstAttempt = relay.editRoutine("authenticated-user", input);
+  relay.disconnectPhone("authenticated-user", "first-socket");
+  expect(await firstAttempt).toMatchObject({ status: "unconfirmed", operationId });
+});
+
+test("retrying an edit after a lost acknowledgment reuses its exact command and returns prior outcome", async () => {
+  const relay = createRoutineRelay();
+
+  const input: EditRoutineRequest = {
+    operationId,
+    expected,
+    changes: { productName: "Magnesium glycinate" },
+  };
+
+  let firstCommand: EditRoutineCommandMessage | undefined;
+  let sendCount = 0;
+
+  const connectPhone = async (id: string) =>
+    relay.connectPhone(
+      "authenticated-user",
+      {
+        id,
+        deviceId: "phone",
+        pairingId: "pairing",
+        close: () => undefined,
+        send: (raw) => {
+          const value: unknown = JSON.parse(raw);
+
+          if (!isEditRoutineCommandMessage(value)) throw new Error("Invalid edit command.");
+          sendCount += 1;
+
+          if (sendCount === 1) {
+            firstCommand = value;
+
+            return;
+          }
+
+          if (!firstCommand) throw new Error("First edit command was not sent.");
+          expect(value.command).toEqual(firstCommand.command);
+          relay.receiveEditResult("authenticated-user", id, {
+            type: "edit_routine_result",
+            requestId: value.requestId,
+            result: {
+              status: "already_processed",
+              operationId,
+              routineId: expected.id,
+              reminder: "none",
+            },
+          });
+        },
+      },
+      async () => true,
+    );
+
+  await connectPhone("first-socket");
+  const firstAttempt = relay.editRoutine("authenticated-user", input);
+
+  if (!firstCommand) throw new Error("First edit command was not sent.");
+
+  relay.disconnectPhone("authenticated-user", "first-socket");
+  expect(await firstAttempt).toMatchObject({ status: "unconfirmed", operationId });
+
+  await connectPhone("second-socket");
+  expect(await relay.editRoutine("authenticated-user", input)).toEqual({
+    status: "already_processed",
+    operationId,
+    routineId: expected.id,
+    reminder: "none",
+  });
+  expect(sendCount).toBe(2);
 });
 
 test("edit relay ignores success acknowledgments for another routine and rejects empty success IDs", async () => {
@@ -145,6 +261,7 @@ test("edit relay ignores success acknowledgments for another routine and rejects
 
 test("edit MCP tool validates snapshots and preserves unconfirmed/conflict outcomes", async () => {
   const outcomes: EditRoutineDeliveryResult[] = [
+    { status: "unavailable", message: "Phone is offline." },
     { status: "unconfirmed", operationId, message: "No acknowledgment." },
     { status: "conflict", operationId, message: "Routine changed." },
   ];
@@ -165,7 +282,7 @@ test("edit MCP tool validates snapshots and preserves unconfirmed/conflict outco
       expect(invalid.isError).toBe(true);
       expect(calls).toBe(0);
 
-      for (const status of ["unconfirmed", "conflict"]) {
+      for (const status of ["unavailable", "unconfirmed", "conflict"]) {
         const result = await client.callTool({
           name: "edit_intake_routine",
           arguments: { operationId, expected, changes: { productName: "New name" } },
@@ -178,7 +295,7 @@ test("edit MCP tool validates snapshots and preserves unconfirmed/conflict outco
         });
       }
 
-      expect(calls).toBe(2);
+      expect(calls).toBe(3);
     },
   );
 });

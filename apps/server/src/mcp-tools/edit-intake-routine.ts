@@ -22,7 +22,7 @@ const editRoutineSchema = z
     operationId: z.uuid(),
     expected: routineSchema,
     changes: z.object({
-      productName: z.string().trim().min(1).max(120).optional(),
+      productName: z.string().trim().min(1).optional(),
       frequency: frequencySchema.optional(),
       time: z.string().optional(),
     }),
