@@ -11,6 +11,8 @@ test("device relay URL includes the one-time ticket and uses secure WebSockets",
 
 test("disconnect accepts the server's paired=false response", () => {
   expect(phoneResponses.disconnected({ paired: false })).toBe(true);
+  expect(phoneResponses.disconnected({ paired: true })).toBe(false);
+  expect(phoneResponses.disconnected({})).toBe(false);
 });
 
 test("pairing inspection validates and accepts the complete OAuth request details", () => {

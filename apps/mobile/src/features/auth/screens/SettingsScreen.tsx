@@ -12,7 +12,10 @@ import { phoneRequest } from "@/features/auth/phone-api";
 import { phoneResponses } from "@/features/auth/phone-responses";
 
 export default function SettingsScreen() {
-  const [paired, setPaired] = useState(false);
+  const [pairingStatus, setPairingStatus] = useState<
+    "loading" | "paired" | "not-paired" | "unavailable"
+  >("loading");
+
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const colors = usePalette();
@@ -20,12 +23,17 @@ export default function SettingsScreen() {
   useFocusEffect(
     useCallback(() => {
       let active = true;
+      setPairingStatus("loading");
+      setMessage(null);
       void phoneRequest("/api/phone/pairing-status", undefined, phoneResponses.paired)
         .then((value) => {
-          if (active) setPaired(value.paired);
+          if (active) setPairingStatus(value.paired ? "paired" : "not-paired");
         })
         .catch(() => {
-          if (active) setMessage("Pairing status is unavailable.");
+          if (active) {
+            setPairingStatus("unavailable");
+            setMessage("Pairing status is unavailable.");
+          }
         });
 
       return () => {
@@ -44,9 +52,10 @@ export default function SettingsScreen() {
         await getDeviceCredentials(),
         phoneResponses.disconnected,
       );
-      setPaired(false);
+      setPairingStatus("not-paired");
       setMessage("ChatGPT has been disconnected.");
     } catch {
+      setPairingStatus("unavailable");
       setMessage("Unable to disconnect ChatGPT.");
     } finally {
       setBusy(false);
@@ -58,14 +67,20 @@ export default function SettingsScreen() {
       <Column spacing={18}>
         <Text variant="largeTitle">ChatGPT pairing</Text>
         <Text color={colors.secondary}>
-          {paired ? "ChatGPT is paired with this phone." : "No phone is paired with ChatGPT."}
+          {pairingStatus === "loading"
+            ? "Checking ChatGPT connection…"
+            : pairingStatus === "paired"
+              ? "ChatGPT is paired with this phone."
+              : pairingStatus === "not-paired"
+                ? "No phone is paired with ChatGPT."
+                : "ChatGPT connection status is unavailable."}
         </Text>
         <ActionButton
           label="Enter pairing code"
           onPress={() => router.push("/pair")}
           kind="secondary"
         />
-        {paired ? (
+        {pairingStatus === "paired" || pairingStatus === "unavailable" ? (
           <ActionButton
             label={busy ? "Disconnecting…" : "Disconnect ChatGPT"}
             onPress={() => void disconnect()}
