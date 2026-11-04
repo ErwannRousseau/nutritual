@@ -147,17 +147,23 @@ export function isCreateRoutineResult(value: unknown): value is CreateRoutineRes
 
 export type ListedRoutine = RoutineInput & { id: string; paused: boolean };
 
+export const ListRoutinesStatus = {
+  ok: "ok",
+  failed: "failed",
+  unavailable: "unavailable",
+} as const;
+
 export type ListRoutinesResult =
-  | { status: "ok"; routines: ListedRoutine[] }
-  | { status: "failed"; message: string };
+  | { status: typeof ListRoutinesStatus.ok; routines: ListedRoutine[] }
+  | { status: typeof ListRoutinesStatus.failed; message: string };
 
 export function isListRoutinesResult(value: unknown): value is ListRoutinesResult {
   if (!isRecord(value)) return false;
 
-  if (value.status === "failed") return typeof value.message === "string";
+  if (value.status === ListRoutinesStatus.failed) return typeof value.message === "string";
 
   return (
-    value.status === "ok" &&
+    value.status === ListRoutinesStatus.ok &&
     Array.isArray(value.routines) &&
     value.routines.every((routine) => {
       if (

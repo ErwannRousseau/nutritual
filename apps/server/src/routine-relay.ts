@@ -1,5 +1,6 @@
 import {
   CreateRoutineDeliveryStatus,
+  ListRoutinesStatus,
   type CreateRoutineDeliveryResult,
   type CreateRoutineCommandMessage,
   type CreateRoutineRequest,
@@ -34,7 +35,11 @@ export function createRoutineRelay() {
     {
       userId: string;
       connectionId: string;
-      finish: (result: ListRoutinesResult | { status: "unavailable"; message: string }) => void;
+      finish: (
+        result:
+          | ListRoutinesResult
+          | { status: typeof ListRoutinesStatus.unavailable; message: string },
+      ) => void;
     }
   >();
 
@@ -48,7 +53,10 @@ export function createRoutineRelay() {
   function finishPendingForPhone(userId: string, phoneId: string): void {
     for (const pending of pendingLists.values()) {
       if (pending.userId === userId && pending.connectionId === phoneId)
-        pending.finish({ status: "unavailable", message: "Phone disconnected before responding." });
+        pending.finish({
+          status: ListRoutinesStatus.unavailable,
+          message: "Phone disconnected before responding.",
+        });
     }
 
     for (const pending of pendingRequests.values()) {
@@ -141,14 +149,21 @@ export function createRoutineRelay() {
 
   async function listRoutines(
     userId: string,
-  ): Promise<ListRoutinesResult | { status: "unavailable"; message: string }> {
+  ): Promise<
+    ListRoutinesResult | { status: typeof ListRoutinesStatus.unavailable; message: string }
+  > {
     const phone = connectedPhones.get(userId);
 
-    if (!phone) return { status: "unavailable", message: "No phone is connected." };
+    if (!phone)
+      return { status: ListRoutinesStatus.unavailable, message: "No phone is connected." };
     const requestId = crypto.randomUUID();
 
     return new Promise((resolve) => {
-      const finish = (result: ListRoutinesResult | { status: "unavailable"; message: string }) => {
+      const finish = (
+        result:
+          | ListRoutinesResult
+          | { status: typeof ListRoutinesStatus.unavailable; message: string },
+      ) => {
         if (!pendingLists.delete(requestId)) return;
         clearTimeout(timeout);
         resolve(result);
@@ -156,7 +171,10 @@ export function createRoutineRelay() {
 
       const timeout = setTimeout(
         () =>
-          finish({ status: "unavailable", message: "Phone did not respond within 10 seconds." }),
+          finish({
+            status: ListRoutinesStatus.unavailable,
+            message: "Phone did not respond within 10 seconds.",
+          }),
         acknowledgementTimeoutMs,
       );
 
@@ -165,7 +183,7 @@ export function createRoutineRelay() {
       try {
         phone.send(JSON.stringify({ type: "list_routines", requestId }));
       } catch {
-        finish({ status: "unavailable", message: "Phone could not be reached." });
+        finish({ status: ListRoutinesStatus.unavailable, message: "Phone could not be reached." });
       }
     });
   }

@@ -1,3 +1,4 @@
+import { ListRoutinesStatus } from "@nutritual/protocol";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { RoutineRelay } from "../routine-relay.ts";
 
@@ -18,7 +19,7 @@ export function registerListIntakeRoutinesTool(
 
       return {
         content: [{ type: "text", text: JSON.stringify(result) }],
-        isError: result.status !== "ok",
+        isError: result.status !== ListRoutinesStatus.ok,
       };
     },
   );
