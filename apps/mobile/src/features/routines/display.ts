@@ -1,7 +1,7 @@
 import type { ReminderState, Routine } from "@/features/routines/model";
 import type { Frequency } from "@nutritual/protocol";
 import { FrequencyKind, ReminderOutcomes } from "@nutritual/protocol";
-import { describeFrequency } from "@/features/routines/model";
+import { describeFrequency, ReminderStatus } from "@/features/routines/model";
 
 export function dateLabel(date: Date): string {
   return date.toLocaleDateString("en-GB", {
@@ -57,7 +57,7 @@ export function reminderLabel(reminder?: ReminderState): string {
       return "Notifications are disabled. The routine is saved.";
     case ReminderOutcomes.failed:
       return "Routine saved. The reminder could not be scheduled.";
-    case "paused":
+    case ReminderStatus.paused:
       return "Reminders paused";
     case ReminderOutcomes.none:
       return "No automatic reminders";

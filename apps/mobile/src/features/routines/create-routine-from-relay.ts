@@ -8,6 +8,7 @@ import {
   type ReminderOutcome,
 } from "@nutritual/protocol";
 import type { ReminderState, Routine } from "./model";
+import { ReminderStatus } from "./model";
 import * as storage from "./storage";
 import { updateReminder } from "./reminders";
 
@@ -77,7 +78,9 @@ export function createRoutineFromRelayHandler({
       const reminderState = await updateReminder(operation.routine, true);
 
       let reminder: ReminderOutcome =
-        reminderState.status === "paused" ? ReminderOutcomes.failed : reminderState.status;
+        reminderState.status === ReminderStatus.paused
+          ? ReminderOutcomes.failed
+          : reminderState.status;
 
       try {
         await storage.updateRoutineOperationReminder(request.operationId, reminder);
