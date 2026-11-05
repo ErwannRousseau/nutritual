@@ -474,6 +474,7 @@ test("device relay reconnects after the server closes its socket", async () => {
       `${serverUrl}/device?ticket=${ticket}`,
   }));
   const { connectToDeviceRelay } = await import("../relay");
+  const { EXPO_PUBLIC_SERVER_URL } = await import("@/env");
 
   class FakeWebSocket {
     static OPEN = 1;
@@ -514,7 +515,6 @@ test("device relay reconnects after the server closes its socket", async () => {
     FakeWebSocket.instances = [];
 
     disconnect = connectToDeviceRelay(
-      "http://localhost:3000",
       async (request) => ({
         status: CreateRoutineStatus.failed,
         operationId: request.operationId,
@@ -554,8 +554,8 @@ test("device relay reconnects after the server closes its socket", async () => {
     expect(FakeWebSocket.instances).toHaveLength(2);
     expect(ticketRequests).toBe(2);
     expect(FakeWebSocket.instances.map((socket) => socket.url)).toEqual([
-      "http://localhost:3000/device?ticket=ticket-1",
-      "http://localhost:3000/device?ticket=ticket-2",
+      `${EXPO_PUBLIC_SERVER_URL}/device?ticket=ticket-1`,
+      `${EXPO_PUBLIC_SERVER_URL}/device?ticket=ticket-2`,
     ]);
   } finally {
     disconnect?.();

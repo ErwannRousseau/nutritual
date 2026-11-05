@@ -3,7 +3,6 @@ import { connectToDeviceRelay } from "@/features/routines/relay";
 import { useRoutines } from "@/features/routines/useRoutines";
 import { phoneRequest } from "@/features/auth/phone-api";
 import { phoneResponses } from "@/features/auth/phone-responses";
-import { EXPO_PUBLIC_SERVER_URL } from "@/env";
 
 const RoutinesContext = createContext<ReturnType<typeof useRoutines> | null>(null);
 
@@ -47,7 +46,6 @@ export function RoutinesProvider({ children }: { children: ReactNode }) {
     if (!routines.ready || !paired) return;
 
     return connectToDeviceRelay(
-      EXPO_PUBLIC_SERVER_URL,
       (request) => createRoutineRef.current(request),
       (request) => editRoutineRef.current(request),
     );

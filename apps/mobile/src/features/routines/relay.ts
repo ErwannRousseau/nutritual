@@ -16,18 +16,12 @@ import { phoneRequest } from "@/features/auth/phone-api";
 import { phoneResponses } from "@/features/auth/phone-responses";
 import { listRoutinesFromRelay } from "@/features/routines/list-routines-from-relay";
 import { deviceWebSocketUrl } from "@/features/auth/relay-url";
+import { EXPO_PUBLIC_SERVER_URL } from "@/env";
 
 export function connectToDeviceRelay(
-  serverUrl: string,
   createRoutine: (request: CreateRoutineRequest) => Promise<CreateRoutineResult>,
   editRoutine: (request: EditRoutineRequest) => Promise<EditRoutineResult>,
 ): () => void {
-  try {
-    new URL(serverUrl);
-  } catch {
-    return () => {};
-  }
-
   let disposed = false;
   let retryDelay = 1_000;
   let retryTimer: ReturnType<typeof setTimeout> | undefined;
@@ -53,7 +47,7 @@ export function connectToDeviceRelay(
       );
 
       if (disposed) return;
-      const nextSocket = new WebSocket(deviceWebSocketUrl(serverUrl, ticket));
+      const nextSocket = new WebSocket(deviceWebSocketUrl(EXPO_PUBLIC_SERVER_URL, ticket));
       socket = nextSocket;
       nextSocket.onopen = () => {
         retryDelay = 1_000;
