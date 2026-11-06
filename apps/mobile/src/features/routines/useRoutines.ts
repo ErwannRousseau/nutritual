@@ -1,5 +1,5 @@
 import { randomUUID } from "expo-crypto";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppState } from "react-native";
 import type { Intake, ReminderState, Routine, RoutineDraft } from "@/features/routines/model";
 import { validateRoutine } from "@/features/routines/model";
@@ -7,6 +7,7 @@ import * as storage from "@/features/routines/storage";
 import { removeReminders, restoreReminders, updateReminder } from "@/features/routines/reminders";
 import { createRoutineFromRelayHandler } from "@/features/routines/create-routine-from-relay";
 import { editRoutineFromRelayHandler } from "@/features/routines/edit-routine-from-relay";
+import { createActionQueue } from "@/features/routines/action-queue";
 
 export function useRoutines() {
   const [data, setData] = useState<{ routines: Routine[]; intakes: Intake[] }>({
@@ -18,37 +19,21 @@ export function useRoutines() {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reminders, setReminders] = useState<ReminderState[]>([]);
-  const actionQueue = useRef({ pending: 1, tail: Promise.resolve() });
-
-  const serialize = useCallback(<T>(action: () => Promise<T>): Promise<T> => {
-    const previous = actionQueue.current.tail;
-    let release!: () => void;
-    actionQueue.current.tail = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    actionQueue.current.pending += 1;
-    setBusy(true);
-
-    return previous.then(action).finally(() => {
-      actionQueue.current.pending -= 1;
-      setBusy(actionQueue.current.pending > 0);
-      release();
-    });
-  }, []);
+  const [actionQueue] = useState(() => createActionQueue(setBusy));
 
   const createRoutineFromRelay = useMemo(
     () =>
       createRoutineFromRelayHandler({
         onData: setData,
         onError: setError,
-        serialize,
+        serialize: actionQueue.run,
         onReminder: (reminder) =>
           setReminders((current) => [
             ...current.filter((item) => item.routineId !== reminder.routineId),
             reminder,
           ]),
       }),
-    [serialize],
+    [actionQueue],
   );
 
   const editRoutineFromRelay = useMemo(
@@ -56,21 +41,21 @@ export function useRoutines() {
       editRoutineFromRelayHandler({
         onData: setData,
         onError: setError,
-        serialize,
+        serialize: actionQueue.run,
         onReminder: (reminder) =>
           setReminders((current) => [
             ...current.filter((item) => item.routineId !== reminder.routineId),
             reminder,
           ]),
       }),
-    [serialize],
+    [actionQueue],
   );
 
   const run = useCallback(
     async (action: () => Promise<void>): Promise<boolean> => {
-      if (actionQueue.current.pending > 0) return false;
+      if (actionQueue.isBusy()) return false;
 
-      return serialize(async () => {
+      return actionQueue.run(async () => {
         setError(null);
 
         try {
@@ -85,7 +70,7 @@ export function useRoutines() {
         }
       });
     },
-    [serialize],
+    [actionQueue],
   );
 
   const reload = useCallback(async (): Promise<void> => {
@@ -112,8 +97,7 @@ export function useRoutines() {
       })
       .finally(() => {
         if (active) {
-          actionQueue.current.pending -= 1;
-          setBusy(actionQueue.current.pending > 0);
+          actionQueue.finishLoading();
           setReady(true);
         }
       });
@@ -126,7 +110,7 @@ export function useRoutines() {
       active = false;
       subscription.remove();
     };
-  }, [reload]);
+  }, [actionQueue, reload]);
 
   async function save(draft: RoutineDraft, id?: string): Promise<boolean> {
     const validation = validateRoutine(draft);

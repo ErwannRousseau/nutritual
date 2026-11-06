@@ -14,6 +14,7 @@ import {
   type PairingDeviceRequest,
   type ReminderOutcome,
 } from "@nutritual/protocol";
+import { createActionQueue } from "../action-queue";
 
 type TestBinding = SQLQueryBindings | SQLQueryBindings[];
 
@@ -147,9 +148,12 @@ test("relay creation deduplicates on SQLite and serializes reminder restoration"
 
   let latestData: Awaited<ReturnType<typeof storage.loadData>> | undefined;
   const reminderOutcomes: string[] = [];
+  const queue = createActionQueue(() => undefined);
+  queue.finishLoading();
 
   const makeHandler = () =>
     createRoutineFromRelayHandler({
+      serialize: queue.run,
       onData: (data) => {
         latestData = data;
       },
@@ -580,8 +584,11 @@ test("relay edits compare snapshots, preserve paused state, and never replay aft
   await storage.saveRoutine(original);
 
   const reminderStates: string[] = [];
+  const queue = createActionQueue(() => undefined);
+  queue.finishLoading();
 
   const handler = editRoutineFromRelayHandler({
+    serialize: queue.run,
     onData: () => undefined,
     onError: () => undefined,
     onReminder: ({ status }) => reminderStates.push(status),
@@ -679,6 +686,71 @@ test("relay edits compare snapshots, preserve paused state, and never replay aft
   expect(
     (await storage.loadData()).routines.find(({ id }) => id === concurrentRoutine.id),
   ).not.toEqual(concurrentRoutine);
+});
+
+test("creation and editing wait for each other through the shared action queue", async () => {
+  const { createRoutineFromRelayHandler } = await import("../create-routine-from-relay");
+  const { editRoutineFromRelayHandler } = await import("../edit-routine-from-relay");
+  const storage = await import("../storage");
+  const queue = createActionQueue(() => undefined);
+  queue.finishLoading();
+
+  const callbacks = {
+    serialize: queue.run,
+    onData: () => undefined,
+    onError: () => undefined,
+    onReminder: () => undefined,
+  };
+
+  const create = createRoutineFromRelayHandler(callbacks);
+  const edit = editRoutineFromRelayHandler(callbacks);
+
+  const routine = {
+    id: "queue-edit",
+    productName: "Before",
+    frequency: { kind: FrequencyKind.asNeeded },
+    time: "",
+    paused: false,
+  };
+
+  await storage.saveRoutine(routine);
+
+  let entered!: () => void;
+  let release!: () => void;
+
+  const started = new Promise<void>((resolve) => {
+    entered = resolve;
+  });
+
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  nextScheduleGate = { entered, promise: gate };
+
+  const creation = create({
+    operationId: "queue-create-op",
+    productName: "Queued creation",
+    frequency: { kind: FrequencyKind.weekdays, days: [1] },
+    time: "09:00",
+  });
+
+  await started;
+
+  const editing = edit({
+    operationId: "queue-edit-op",
+    expected: routine,
+    changes: { productName: "After" },
+  });
+
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  expect((await storage.loadData()).routines.find(({ id }) => id === routine.id)).toEqual(routine);
+  release();
+  expect((await creation).status).toBe(CreateRoutineStatus.created);
+  expect((await editing).status).toBe(EditRoutineStatus.updated);
+  expect((await storage.loadData()).routines.find(({ id }) => id === routine.id)?.productName).toBe(
+    "After",
+  );
 });
 
 test("listing reads current, distinct routines and reports storage failures", async () => {

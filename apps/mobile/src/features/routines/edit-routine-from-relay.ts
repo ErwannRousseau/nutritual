@@ -14,7 +14,7 @@ type RelayCallbacks = {
   onData(data: Awaited<ReturnType<typeof storage.loadData>>): void;
   onError(message: string): void;
   onReminder(reminder: ReminderState): void;
-  serialize?<T>(action: () => Promise<T>): Promise<T>;
+  serialize<T>(action: () => Promise<T>): Promise<T>;
 };
 
 export function editRoutineFromRelayHandler({
@@ -23,7 +23,6 @@ export function editRoutineFromRelayHandler({
   onReminder,
   serialize,
 }: RelayCallbacks): (request: EditRoutineRequest) => Promise<EditRoutineResult> {
-  const serializeAction = serialize ?? (<T>(action: () => Promise<T>) => action());
   const operations = new Map<string, { request: string; promise: Promise<EditRoutineResult> }>();
 
   async function editOnce(request: EditRoutineRequest): Promise<EditRoutineResult> {
@@ -116,7 +115,7 @@ export function editRoutineFromRelayHandler({
       );
     }
 
-    const promise = serializeAction(() => editOnce(request)).finally(() => {
+    const promise = serialize(() => editOnce(request)).finally(() => {
       if (operations.get(request.operationId)?.promise === promise)
         operations.delete(request.operationId);
     });
