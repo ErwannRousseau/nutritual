@@ -524,11 +524,15 @@ test("device relay reconnects after the server closes its socket", async () => {
         operationId: request.operationId,
         message: "unused",
       }),
-      async (request) => ({
-        status: EditRoutineStatus.failed,
-        operationId: request.operationId,
-        message: "unused",
-      }),
+      async (request) => {
+        if (request.operationId === "edit-error") throw new Error("storage error");
+
+        return {
+          status: EditRoutineStatus.failed,
+          operationId: request.operationId,
+          message: "unused",
+        };
+      },
     );
 
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -550,6 +554,76 @@ test("device relay reconnects after the server closes its socket", async () => {
           routines: (await (await import("../storage")).loadData()).routines,
         },
       }),
+    ]);
+    firstSocket.onmessage?.({ data: "not json" });
+    firstSocket.onmessage?.({ data: JSON.stringify({ type: "create_routine", requestId: "bad" }) });
+    firstSocket.onmessage?.({
+      data: JSON.stringify({
+        type: "create_routine",
+        requestId: "create-request",
+        command: {
+          operationId: "create-op",
+          productName: "Magnesium",
+          frequency: { kind: FrequencyKind.asNeeded },
+          time: "",
+        },
+      }),
+    });
+    firstSocket.onmessage?.({
+      data: JSON.stringify({
+        type: "edit_routine",
+        requestId: "error-request",
+        command: {
+          operationId: "edit-error",
+          expected: {
+            id: "routine-id",
+            productName: "Magnesium",
+            frequency: { kind: FrequencyKind.asNeeded },
+            time: "",
+            paused: false,
+          },
+          changes: { productName: "Zinc" },
+        },
+      }),
+    });
+    firstSocket.onmessage?.({
+      data: JSON.stringify({
+        type: "edit_routine",
+        requestId: "edit-request",
+        command: {
+          operationId: "edit-op",
+          expected: {
+            id: "routine-id",
+            productName: "Magnesium",
+            frequency: { kind: FrequencyKind.asNeeded },
+            time: "",
+            paused: false,
+          },
+          changes: { productName: "Zinc" },
+        },
+      }),
+    });
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    expect(firstSocket.sent.slice(1).map((value) => JSON.parse(value))).toEqual([
+      {
+        type: "create_routine_result",
+        requestId: "create-request",
+        result: { status: CreateRoutineStatus.failed, operationId: "create-op", message: "unused" },
+      },
+      {
+        type: "edit_routine_result",
+        requestId: "edit-request",
+        result: { status: EditRoutineStatus.failed, operationId: "edit-op", message: "unused" },
+      },
+      {
+        type: "edit_routine_result",
+        requestId: "error-request",
+        result: {
+          status: EditRoutineStatus.failed,
+          operationId: "edit-error",
+          message: "Unable to save the routine on this phone.",
+        },
+      },
     ]);
     firstSocket.drop();
     await new Promise<void>((resolve) => setTimeout(resolve, 1_100));
