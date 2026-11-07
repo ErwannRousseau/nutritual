@@ -7,12 +7,14 @@ import { afterAll, expect, mock, test } from "bun:test";
 import { Database, type SQLQueryBindings } from "bun:sqlite";
 import {
   CreateRoutineStatus,
+  EditRoutineStatus,
   FrequencyKind,
   ReminderOutcomes,
   type CreateRoutineRequest,
   type PairingDeviceRequest,
   type ReminderOutcome,
 } from "@nutritual/protocol";
+import { createActionQueue } from "../action-queue";
 
 type TestBinding = SQLQueryBindings | SQLQueryBindings[];
 
@@ -34,6 +36,7 @@ type ScheduleGate = {
 const directory = mkdtempSync(join(tmpdir(), "nutritual-mobile-test-"));
 const databasePath = join(directory, "phone.sqlite");
 let database = new Database(databasePath);
+let transactionTail = Promise.resolve();
 let nextId = 0;
 let scheduleCalls = 0;
 let scheduled = new Map<string, { identifier: string }>();
@@ -68,6 +71,12 @@ const sqlite: TestSqlite = {
     database.query(sql).run(...bindings(parameters));
   },
   async withExclusiveTransactionAsync(callback) {
+    const previous = transactionTail;
+    let release!: () => void;
+    transactionTail = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await previous;
     database.exec("BEGIN EXCLUSIVE");
 
     try {
@@ -76,6 +85,8 @@ const sqlite: TestSqlite = {
     } catch (error) {
       database.exec("ROLLBACK");
       throw error;
+    } finally {
+      release();
     }
   },
 };
@@ -137,9 +148,12 @@ test("relay creation deduplicates on SQLite and serializes reminder restoration"
 
   let latestData: Awaited<ReturnType<typeof storage.loadData>> | undefined;
   const reminderOutcomes: string[] = [];
+  const queue = createActionQueue(() => undefined);
+  queue.finishLoading();
 
   const makeHandler = () =>
     createRoutineFromRelayHandler({
+      serialize: queue.run,
       onData: (data) => {
         latestData = data;
       },
@@ -464,6 +478,7 @@ test("device relay reconnects after the server closes its socket", async () => {
       `${serverUrl}/device?ticket=${ticket}`,
   }));
   const { connectToDeviceRelay } = await import("../relay");
+  const { EXPO_PUBLIC_SERVER_URL } = await import("@/env");
 
   class FakeWebSocket {
     static OPEN = 1;
@@ -503,11 +518,22 @@ test("device relay reconnects after the server closes its socket", async () => {
   try {
     FakeWebSocket.instances = [];
 
-    disconnect = connectToDeviceRelay("http://localhost:3000", async (request) => ({
-      status: CreateRoutineStatus.failed,
-      operationId: request.operationId,
-      message: "unused",
-    }));
+    disconnect = connectToDeviceRelay(
+      async (request) => ({
+        status: CreateRoutineStatus.failed,
+        operationId: request.operationId,
+        message: "unused",
+      }),
+      async (request) => {
+        if (request.operationId === "edit-error") throw new Error("storage error");
+
+        return {
+          status: EditRoutineStatus.failed,
+          operationId: request.operationId,
+          message: "unused",
+        };
+      },
+    );
 
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
     const [firstSocket] = FakeWebSocket.instances;
@@ -529,6 +555,76 @@ test("device relay reconnects after the server closes its socket", async () => {
         },
       }),
     ]);
+    firstSocket.onmessage?.({ data: "not json" });
+    firstSocket.onmessage?.({ data: JSON.stringify({ type: "create_routine", requestId: "bad" }) });
+    firstSocket.onmessage?.({
+      data: JSON.stringify({
+        type: "create_routine",
+        requestId: "create-request",
+        command: {
+          operationId: "create-op",
+          productName: "Magnesium",
+          frequency: { kind: FrequencyKind.asNeeded },
+          time: "",
+        },
+      }),
+    });
+    firstSocket.onmessage?.({
+      data: JSON.stringify({
+        type: "edit_routine",
+        requestId: "error-request",
+        command: {
+          operationId: "edit-error",
+          expected: {
+            id: "routine-id",
+            productName: "Magnesium",
+            frequency: { kind: FrequencyKind.asNeeded },
+            time: "",
+            paused: false,
+          },
+          changes: { productName: "Zinc" },
+        },
+      }),
+    });
+    firstSocket.onmessage?.({
+      data: JSON.stringify({
+        type: "edit_routine",
+        requestId: "edit-request",
+        command: {
+          operationId: "edit-op",
+          expected: {
+            id: "routine-id",
+            productName: "Magnesium",
+            frequency: { kind: FrequencyKind.asNeeded },
+            time: "",
+            paused: false,
+          },
+          changes: { productName: "Zinc" },
+        },
+      }),
+    });
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    expect(firstSocket.sent.slice(1).map((value) => JSON.parse(value))).toEqual([
+      {
+        type: "create_routine_result",
+        requestId: "create-request",
+        result: { status: CreateRoutineStatus.failed, operationId: "create-op", message: "unused" },
+      },
+      {
+        type: "edit_routine_result",
+        requestId: "edit-request",
+        result: { status: EditRoutineStatus.failed, operationId: "edit-op", message: "unused" },
+      },
+      {
+        type: "edit_routine_result",
+        requestId: "error-request",
+        result: {
+          status: EditRoutineStatus.failed,
+          operationId: "edit-error",
+          message: "Unable to save the routine on this phone.",
+        },
+      },
+    ]);
     firstSocket.drop();
     await new Promise<void>((resolve) => setTimeout(resolve, 1_100));
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -536,8 +632,8 @@ test("device relay reconnects after the server closes its socket", async () => {
     expect(FakeWebSocket.instances).toHaveLength(2);
     expect(ticketRequests).toBe(2);
     expect(FakeWebSocket.instances.map((socket) => socket.url)).toEqual([
-      "http://localhost:3000/device?ticket=ticket-1",
-      "http://localhost:3000/device?ticket=ticket-2",
+      `${EXPO_PUBLIC_SERVER_URL}/device?ticket=ticket-1`,
+      `${EXPO_PUBLIC_SERVER_URL}/device?ticket=ticket-2`,
     ]);
   } finally {
     disconnect?.();
@@ -545,6 +641,190 @@ test("device relay reconnects after the server closes its socket", async () => {
     if (previousWebSocket) Object.defineProperty(globalThis, "WebSocket", previousWebSocket);
     else Reflect.deleteProperty(globalThis, "WebSocket");
   }
+});
+
+test("relay edits compare snapshots, preserve paused state, and never replay after later changes", async () => {
+  const { editRoutineFromRelayHandler } = await import("../edit-routine-from-relay");
+  const storage = await import("../storage");
+
+  const original = {
+    id: "relay-edit-paused",
+    productName: "Magnesium",
+    frequency: { kind: FrequencyKind.weekdays, days: [1, 3] },
+    time: "09:00",
+    paused: true,
+  };
+
+  await storage.saveRoutine(original);
+
+  const reminderStates: string[] = [];
+  const queue = createActionQueue(() => undefined);
+  queue.finishLoading();
+
+  const handler = editRoutineFromRelayHandler({
+    serialize: queue.run,
+    onData: () => undefined,
+    onError: () => undefined,
+    onReminder: ({ status }) => reminderStates.push(status),
+  });
+
+  const request = {
+    operationId: "edit-paused-op",
+    expected: original,
+    changes: { productName: "Updated magnesium" },
+  };
+
+  expect(await handler(request)).toEqual({
+    status: "updated",
+    operationId: request.operationId,
+    routineId: original.id,
+    reminder: ReminderOutcomes.none,
+  });
+  expect((await storage.loadData()).routines).toContainEqual({
+    ...original,
+    productName: "Updated magnesium",
+  });
+  expect(reminderStates).toEqual(["paused"]);
+
+  const updated = (await storage.loadData()).routines.find(({ id }) => id === original.id);
+
+  if (!updated) throw new Error("Updated routine is missing.");
+  await storage.saveRoutine({ ...updated, productName: "Changed later" });
+  expect(await handler(request)).toEqual({
+    status: "already_processed",
+    operationId: request.operationId,
+    routineId: original.id,
+    reminder: ReminderOutcomes.none,
+  });
+  expect(
+    (await storage.loadData()).routines.find(({ id }) => id === original.id)?.productName,
+  ).toBe("Changed later");
+
+  await storage.deleteRoutine(original.id);
+  expect(await handler(request)).toMatchObject({ status: "already_processed" });
+  expect((await storage.loadData()).routines.some(({ id }) => id === original.id)).toBe(false);
+
+  const staleRoutine = { ...original, id: "relay-edit-stale", paused: false };
+  await storage.saveRoutine(staleRoutine);
+  await storage.saveRoutine({ ...staleRoutine, time: "10:00" });
+  expect(
+    await handler({
+      operationId: "edit-stale-op",
+      expected: staleRoutine,
+      changes: { productName: "Should not apply" },
+    }),
+  ).toMatchObject({ status: "conflict", operationId: "edit-stale-op" });
+  expect((await storage.loadData()).routines.find(({ id }) => id === staleRoutine.id)?.time).toBe(
+    "10:00",
+  );
+
+  const createRequest: CreateRoutineRequest = {
+    operationId: "shared-operation-id",
+    productName: "Created by create",
+    frequency: { kind: FrequencyKind.asNeeded },
+    time: "",
+  };
+
+  await storage.createRoutineOperation(createRequest, {
+    id: "relay-edit-id-collision",
+    productName: createRequest.productName,
+    frequency: createRequest.frequency,
+    time: createRequest.time,
+    paused: false,
+  });
+  expect(
+    await handler({
+      operationId: createRequest.operationId,
+      expected: staleRoutine,
+      changes: { productName: "Operation ID collision" },
+    }),
+  ).toMatchObject({ status: "conflict", operationId: createRequest.operationId });
+
+  const concurrentRoutine = { ...original, id: "relay-edit-concurrent", paused: false };
+  await storage.saveRoutine(concurrentRoutine);
+
+  const concurrentResults = await Promise.all([
+    handler({
+      operationId: "edit-concurrent-a",
+      expected: concurrentRoutine,
+      changes: { productName: "Concurrent A" },
+    }),
+    handler({
+      operationId: "edit-concurrent-b",
+      expected: concurrentRoutine,
+      changes: { time: "10:00" },
+    }),
+  ]);
+
+  expect(concurrentResults.map(({ status }) => status).sort()).toEqual(["conflict", "updated"]);
+  expect(
+    (await storage.loadData()).routines.find(({ id }) => id === concurrentRoutine.id),
+  ).not.toEqual(concurrentRoutine);
+});
+
+test("creation and editing wait for each other through the shared action queue", async () => {
+  const { createRoutineFromRelayHandler } = await import("../create-routine-from-relay");
+  const { editRoutineFromRelayHandler } = await import("../edit-routine-from-relay");
+  const storage = await import("../storage");
+  const queue = createActionQueue(() => undefined);
+  queue.finishLoading();
+
+  const callbacks = {
+    serialize: queue.run,
+    onData: () => undefined,
+    onError: () => undefined,
+    onReminder: () => undefined,
+  };
+
+  const create = createRoutineFromRelayHandler(callbacks);
+  const edit = editRoutineFromRelayHandler(callbacks);
+
+  const routine = {
+    id: "queue-edit",
+    productName: "Before",
+    frequency: { kind: FrequencyKind.asNeeded },
+    time: "",
+    paused: false,
+  };
+
+  await storage.saveRoutine(routine);
+
+  let entered!: () => void;
+  let release!: () => void;
+
+  const started = new Promise<void>((resolve) => {
+    entered = resolve;
+  });
+
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  nextScheduleGate = { entered, promise: gate };
+
+  const creation = create({
+    operationId: "queue-create-op",
+    productName: "Queued creation",
+    frequency: { kind: FrequencyKind.weekdays, days: [1] },
+    time: "09:00",
+  });
+
+  await started;
+
+  const editing = edit({
+    operationId: "queue-edit-op",
+    expected: routine,
+    changes: { productName: "After" },
+  });
+
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  expect((await storage.loadData()).routines.find(({ id }) => id === routine.id)).toEqual(routine);
+  release();
+  expect((await creation).status).toBe(CreateRoutineStatus.created);
+  expect((await editing).status).toBe(EditRoutineStatus.updated);
+  expect((await storage.loadData()).routines.find(({ id }) => id === routine.id)?.productName).toBe(
+    "After",
+  );
 });
 
 test("listing reads current, distinct routines and reports storage failures", async () => {

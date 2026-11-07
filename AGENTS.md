@@ -6,6 +6,8 @@ the phone, with routine creation from ChatGPT through an authenticated relay.
 ## Workspace
 
 - Use Bun workspaces. Run workspace commands from the repository root.
+- Define status values as constants and use those constants in comparisons and
+  switch cases. Reuse existing status constants when available.
 
 ## Architecture and ownership
 

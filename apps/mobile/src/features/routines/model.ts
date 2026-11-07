@@ -23,9 +23,13 @@ export type Intake = {
   recordedAt: string;
 };
 
+export const ReminderStatus = { paused: "paused" } as const;
+
 export type ReminderState = {
   routineId: string;
-  status: Exclude<ReminderOutcome, typeof ReminderOutcomes.unconfirmed> | "paused";
+  status:
+    | Exclude<ReminderOutcome, typeof ReminderOutcomes.unconfirmed>
+    | typeof ReminderStatus.paused;
   message: string;
 };
 

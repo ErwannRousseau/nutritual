@@ -35,7 +35,11 @@ Use [`.env.example`](../../.env.example) as the workspace configuration referenc
 
 ## MCP tool
 
-`create_intake_routine` creates a routine on the paired phone.
+`create_intake_routine` creates a routine and `edit_intake_routine` updates one
+routine on the paired phone. Use `list_intake_routines` to obtain an exact
+routine snapshot before editing. If the target is ambiguous, clarify it with
+the user. For requests affecting multiple routines, make one edit call per
+routine.
 
 | Input         | Constraint                                                                      |
 | ------------- | ------------------------------------------------------------------------------- |
@@ -47,6 +51,11 @@ Use [`.env.example`](../../.env.example) as the workspace configuration referenc
 The tool returns the phone's creation outcome and reminder scheduling status as
 JSON in the MCP text content. Scheduling acceptance does not confirm delivery
 or a recorded intake.
+
+An edit includes the expected snapshot and only the fields to change. A stale
+snapshot returns `conflict`. Each edit has a UUID `operationId`; retry an
+unconfirmed request with the exact same ID and input to retrieve the phone's
+prior outcome without applying it twice.
 
 Requests must belong to the paired ChatGPT OAuth client for the authenticated
 Neon user. The first-party mobile OAuth client cannot call this tool.
@@ -61,8 +70,8 @@ results can be consumed once. Relay tickets are single-use and expire after
 There is no persistent command queue. A request without a live paired phone
 returns `unavailable`. A missing acknowledgment within 10 seconds, a disconnect,
 or a send error returns `unconfirmed`. An unconfirmed result doesn't prove that
-creation failed. Retry with the same `operationId` so the phone can deduplicate
-the request, including after a restart.
+creation or edit failed. Retry with the same `operationId` and original input so
+the phone can deduplicate the request, including after a restart.
 
 Disconnecting ChatGPT removes the pairing and closes its relay. Existing phone
 data remains. Neon controls token expiry and refresh. Removing the pairing

@@ -5,6 +5,7 @@ import { Hono } from "hono";
 import type { RoutineRelay } from "../routine-relay.ts";
 import { registerListIntakeRoutinesTool } from "../mcp-tools/list-intake-routines.ts";
 import { registerCreateIntakeRoutineTool } from "../mcp-tools/create-intake-routine.ts";
+import { registerEditIntakeRoutineTool } from "../mcp-tools/edit-intake-routine.ts";
 import { mcpAuth } from "../neon-auth.ts";
 import { config } from "../neon-auth.ts";
 import type { PairingOperations } from "../pairing-operations.ts";
@@ -26,6 +27,7 @@ export function registerMcpRoutes(
     // Tools
     registerCreateIntakeRoutineTool(server, relay, userId);
     registerListIntakeRoutinesTool(server, relay, userId);
+    registerEditIntakeRoutineTool(server, relay, userId);
 
     const transport = new WebStandardStreamableHTTPServerTransport({
       sessionIdGenerator: undefined,

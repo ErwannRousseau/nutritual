@@ -1,6 +1,11 @@
 import {
   CreateRoutineDeliveryStatus,
+  EditRoutineDeliveryStatus,
   ListRoutinesStatus,
+  type EditRoutineDeliveryResult,
+  type EditRoutineCommandMessage,
+  type EditRoutineRequest,
+  type EditRoutineResultMessage,
   type CreateRoutineDeliveryResult,
   type CreateRoutineCommandMessage,
   type CreateRoutineRequest,
@@ -27,8 +32,17 @@ type PendingRequest = {
   finish: (result: CreateRoutineDeliveryResult) => void;
 };
 
+type PendingEditRequest = {
+  userId: string;
+  connectionId: string;
+  operationId: string;
+  routineId: string;
+  finish: (result: EditRoutineDeliveryResult) => void;
+};
+
 export function createRoutineRelay() {
   const pendingRequests = new Map<string, PendingRequest>();
+  const pendingEdits = new Map<string, PendingEditRequest>();
 
   const pendingLists = new Map<
     string,
@@ -66,6 +80,16 @@ export function createRoutineRelay() {
         );
       }
     }
+
+    for (const pending of pendingEdits.values()) {
+      if (pending.userId === userId && pending.connectionId === phoneId) {
+        pending.finish({
+          status: EditRoutineDeliveryStatus.unconfirmed,
+          operationId: pending.operationId,
+          message: "Phone disconnected before acknowledgment.",
+        });
+      }
+    }
   }
 
   function resultMatchesRequest(result: CreateRoutineResult, operationId: string): boolean {
@@ -89,6 +113,68 @@ export function createRoutineRelay() {
     }
 
     pending.finish(message.result);
+  }
+
+  function receiveEditResult(
+    userId: string,
+    phoneId: string,
+    message: EditRoutineResultMessage,
+  ): void {
+    const pending = pendingEdits.get(message.requestId);
+
+    if (
+      pending?.userId === userId &&
+      pending.connectionId === phoneId &&
+      message.result.operationId === pending.operationId &&
+      (!("routineId" in message.result) || message.result.routineId === pending.routineId)
+    )
+      pending.finish(message.result);
+  }
+
+  function deliverEditToPhone(
+    phone: DeviceConnection,
+    userId: string,
+    command: EditRoutineRequest,
+  ): Promise<EditRoutineDeliveryResult> {
+    const requestId = crypto.randomUUID();
+
+    return new Promise((resolve) => {
+      let timeout: ReturnType<typeof setTimeout>;
+
+      const pending: PendingEditRequest = {
+        userId,
+        connectionId: phone.id,
+        operationId: command.operationId,
+        routineId: command.expected.id,
+        finish: (result) => {
+          if (!pendingEdits.delete(requestId)) return;
+          clearTimeout(timeout);
+          resolve(result);
+        },
+      };
+
+      timeout = setTimeout(
+        () =>
+          pending.finish({
+            status: EditRoutineDeliveryStatus.unconfirmed,
+            operationId: command.operationId,
+            message: "No phone acknowledgment within 10 seconds.",
+          }),
+        acknowledgementTimeoutMs,
+      );
+      pendingEdits.set(requestId, pending);
+
+      try {
+        const message: EditRoutineCommandMessage = { type: "edit_routine", requestId, command };
+        phone.send(JSON.stringify(message));
+      } catch {
+        pending.finish({
+          status: EditRoutineDeliveryStatus.unconfirmed,
+          operationId: command.operationId,
+          message: "Command delivery could not be confirmed.",
+        });
+      }
+    });
   }
 
   function deliverToPhone(
@@ -277,14 +363,29 @@ export function createRoutineRelay() {
     return deliverToPhone(phone, userId, command);
   }
 
+  async function editRoutine(
+    userId: string,
+    command: EditRoutineRequest,
+  ): Promise<EditRoutineDeliveryResult> {
+    const phone = connectedPhones.get(userId);
+
+    if (!phone) {
+      return { status: EditRoutineDeliveryStatus.unavailable, message: "No phone is connected." };
+    }
+
+    return deliverEditToPhone(phone, userId, command);
+  }
+
   return {
     connectPhone,
     disconnectPhone,
     disconnectPairedPhone,
     receivePhoneResult,
+    receiveEditResult,
     receiveListResult,
     listRoutines,
     createRoutine,
+    editRoutine,
   };
 }
 
