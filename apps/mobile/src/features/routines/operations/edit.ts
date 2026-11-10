@@ -56,16 +56,17 @@ export async function editRoutineOperation(
     );
 
     if (existing) {
-      result =
-        existing.request_json === requestJson
-          ? isPausedOnlyEdit(request)
-            ? { status: EditRoutineStatus.unchanged, routineId: existing.routine_id }
-            : {
-                status: EditRoutineStatus.alreadyProcessed,
-                routineId: existing.routine_id,
-                reminder: parseReminderOutcome(existing.reminder_outcome),
-              }
-          : { status: EditRoutineStatus.conflict };
+      if (existing.request_json !== requestJson) return;
+
+      if (isPausedOnlyEdit(request)) {
+        result = { status: EditRoutineStatus.unchanged, routineId: existing.routine_id };
+      } else {
+        result = {
+          status: EditRoutineStatus.alreadyProcessed,
+          routineId: existing.routine_id,
+          reminder: parseReminderOutcome(existing.reminder_outcome),
+        };
+      }
 
       return;
     }
