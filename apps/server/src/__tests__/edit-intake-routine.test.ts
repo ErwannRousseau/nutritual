@@ -299,3 +299,96 @@ test("edit MCP tool validates snapshots and preserves unconfirmed/conflict outco
     },
   );
 });
+
+test("MCP pauses and resumes routines and treats unchanged as a successful no-op", async () => {
+  const inputs: EditRoutineRequest[] = [];
+  await withTool(
+    async (_userId, input) => {
+      inputs.push(input);
+
+      if (input.expected.paused === input.changes.paused) {
+        return {
+          status: "unchanged",
+          operationId: input.operationId,
+          routineId: input.expected.id,
+          reminder: "unconfirmed",
+        };
+      }
+
+      return {
+        status: "updated",
+        operationId: input.operationId,
+        routineId: input.expected.id,
+        reminder: "none",
+      };
+    },
+    async (client) => {
+      const tool = (await client.listTools()).tools.find(
+        (item) => item.name === "edit_intake_routine",
+      );
+
+      expect(tool?.description).toContain("Pause or resume");
+      expect(tool?.description).toContain("unchanged");
+      expect(
+        isEditRoutineResult({
+          status: "unchanged",
+          operationId,
+          routineId: expected.id,
+          reminder: "unconfirmed",
+        }),
+      ).toBe(true);
+
+      for (const [index, paused] of [true, false].entries()) {
+        const input = {
+          operationId: index === 0 ? operationId : "ad230ba3-c3a0-4eb6-b67a-e794e08385e2",
+          expected: { ...expected, paused: !paused },
+          changes: { paused },
+        };
+
+        const result = await client.callTool({ name: "edit_intake_routine", arguments: input });
+        expect(result.isError).toBe(false);
+        expect(resultJson(result)).toEqual({
+          status: "updated",
+          operationId: input.operationId,
+          routineId: expected.id,
+          reminder: "none",
+        });
+      }
+
+      const alreadyPaused = {
+        operationId: "455aa7c9-c62b-442d-8974-4ac1de0e8992",
+        expected: { ...expected, paused: true },
+        changes: { paused: true },
+      };
+
+      const noOp = await client.callTool({ name: "edit_intake_routine", arguments: alreadyPaused });
+      expect(noOp.isError).toBe(false);
+      expect(resultJson(noOp)).toEqual({
+        status: "unchanged",
+        operationId: alreadyPaused.operationId,
+        routineId: expected.id,
+        reminder: "unconfirmed",
+      });
+
+      const invalid = await client.callTool({
+        name: "edit_intake_routine",
+        arguments: { operationId, expected, changes: { paused: "yes" } },
+      });
+
+      expect(invalid.isError).toBe(true);
+      expect(inputs).toEqual([
+        {
+          operationId,
+          expected: { ...expected, paused: false },
+          changes: { paused: true },
+        },
+        {
+          operationId: "ad230ba3-c3a0-4eb6-b67a-e794e08385e2",
+          expected: { ...expected, paused: true },
+          changes: { paused: false },
+        },
+        alreadyPaused,
+      ]);
+    },
+  );
+});

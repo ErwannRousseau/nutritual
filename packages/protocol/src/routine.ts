@@ -12,7 +12,7 @@ export type CreateRoutineRequest = RoutineInput & { operationId: string };
 export type EditRoutineRequest = {
   operationId: string;
   expected: ListedRoutine;
-  changes: Partial<RoutineInput>;
+  changes: Partial<RoutineInput> & { paused?: boolean };
 };
 
 export const CreateRoutineStatus = {
@@ -134,7 +134,7 @@ export function isEditRoutineRequest(value: unknown): value is EditRoutineReques
 
   if (
     changeKeys.length === 0 ||
-    changeKeys.some((key) => !["productName", "frequency", "time"].includes(key))
+    changeKeys.some((key) => !["productName", "frequency", "time", "paused"].includes(key))
   ) {
     return false;
   }
@@ -155,6 +155,8 @@ export function isEditRoutineRequest(value: unknown): value is EditRoutineReques
     if (typeof value.changes.time !== "string") return false;
     changes.time = value.changes.time;
   }
+
+  if ("paused" in value.changes && typeof value.changes.paused !== "boolean") return false;
 
   const merged = {
     operationId: value.operationId,
@@ -235,6 +237,7 @@ export type ListRoutinesResult =
 export const EditRoutineStatus = {
   updated: "updated",
   alreadyProcessed: "already_processed",
+  unchanged: "unchanged",
   conflict: "conflict",
   invalid: "invalid",
   failed: "failed",
@@ -242,7 +245,10 @@ export const EditRoutineStatus = {
 
 export type EditRoutineResult =
   | {
-      status: typeof EditRoutineStatus.updated | typeof EditRoutineStatus.alreadyProcessed;
+      status:
+        | typeof EditRoutineStatus.updated
+        | typeof EditRoutineStatus.alreadyProcessed
+        | typeof EditRoutineStatus.unchanged;
       operationId: string;
       routineId: string;
       reminder: ReminderOutcome;
@@ -259,7 +265,8 @@ export function isEditRoutineResult(value: unknown): value is EditRoutineResult 
 
   if (
     value.status === EditRoutineStatus.updated ||
-    value.status === EditRoutineStatus.alreadyProcessed
+    value.status === EditRoutineStatus.alreadyProcessed ||
+    value.status === EditRoutineStatus.unchanged
   ) {
     return (
       typeof value.routineId === "string" && !!value.routineId && isReminderOutcome(value.reminder)

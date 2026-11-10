@@ -41,6 +41,15 @@ export function editRoutineFromRelayHandler({
         };
       }
 
+      if (operation.status === EditRoutineStatus.unchanged) {
+        return {
+          status: EditRoutineStatus.unchanged,
+          operationId: request.operationId,
+          routineId: operation.routineId,
+          reminder: ReminderOutcomes.unconfirmed,
+        };
+      }
+
       if (operation.status === EditRoutineStatus.alreadyProcessed) {
         return {
           status: EditRoutineStatus.alreadyProcessed,
