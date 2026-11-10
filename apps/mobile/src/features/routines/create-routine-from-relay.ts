@@ -10,6 +10,7 @@ import {
 import type { ReminderState, Routine } from "./model";
 import { ReminderStatus } from "./model";
 import * as storage from "./storage";
+import * as relayOperations from "./relay-operations";
 import { updateReminder } from "./reminders";
 
 type RelayCallbacks = {
@@ -52,7 +53,7 @@ export function createRoutineFromRelayHandler({
     let committedRoutine: Routine | undefined;
 
     try {
-      const operation = await storage.createRoutineOperation(request, routine);
+      const operation = await relayOperations.createRoutineOperation(request, routine);
 
       if (operation.status === CreateRoutineStatus.conflict) {
         return {
@@ -81,7 +82,7 @@ export function createRoutineFromRelayHandler({
           : reminderState.status;
 
       try {
-        await storage.updateRoutineOperationReminder(request.operationId, reminder);
+        await relayOperations.updateRoutineOperationReminder(request.operationId, reminder);
       } catch {
         reminder = ReminderOutcomes.unconfirmed;
       }
@@ -119,7 +120,7 @@ export function createRoutineFromRelayHandler({
   }
 
   return (request) => {
-    const requestJson = storage.createRoutineRequestJson(request);
+    const requestJson = relayOperations.createRoutineRequestJson(request);
     const existing = operations.get(request.operationId);
 
     if (existing) {
