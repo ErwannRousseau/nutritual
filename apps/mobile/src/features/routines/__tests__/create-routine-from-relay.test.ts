@@ -584,6 +584,25 @@ test("device relay reconnects after the server closes its socket", async () => {
     firstSocket.onmessage?.({
       data: JSON.stringify({
         type: "create_routine",
+        requestId: "invalid-create",
+        command: {
+          operationId: "invalid",
+          productName: "",
+          frequency: { kind: FrequencyKind.asNeeded },
+          time: "",
+        },
+      }),
+    });
+    firstSocket.onmessage?.({
+      data: JSON.stringify({
+        type: "delete_routine",
+        requestId: "invalid-delete",
+        command: { operationId: "invalid", expected: { id: "routine-id" } },
+      }),
+    });
+    firstSocket.onmessage?.({
+      data: JSON.stringify({
+        type: "create_routine",
         requestId: "create-request",
         command: {
           operationId: "create-op",

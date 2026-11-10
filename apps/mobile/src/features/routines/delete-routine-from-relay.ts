@@ -1,7 +1,6 @@
 import {
   DeleteRoutineStatus,
   ReminderOutcomes,
-  isDeleteRoutineRequest,
   type DeleteRoutineRequest,
   type DeleteRoutineResult,
 } from "@nutritual/protocol";
@@ -26,22 +25,12 @@ export function deleteRoutineFromRelayHandler({
   const operations = new Map<string, { request: string; promise: Promise<DeleteRoutineResult> }>();
 
   async function deleteOnce(request: DeleteRoutineRequest): Promise<DeleteRoutineResult> {
-    const input: unknown = request;
-
     let committed:
       | {
           status: typeof DeleteRoutineStatus.deleted | typeof DeleteRoutineStatus.alreadyProcessed;
           routineId: string;
         }
       | undefined;
-
-    if (!isDeleteRoutineRequest(input)) {
-      return {
-        status: DeleteRoutineStatus.invalid,
-        operationId: request.operationId,
-        message: "Choose a valid routine to delete.",
-      };
-    }
 
     try {
       const operation = await relayOperations.deleteRoutineOperation(request);
