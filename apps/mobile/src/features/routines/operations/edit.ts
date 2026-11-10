@@ -6,7 +6,13 @@ import {
 } from "@nutritual/protocol";
 import type { Routine } from "../model";
 import { getDatabase } from "../database";
-import { routineFromRow, routineValues, type RoutineRow } from "../storage";
+import {
+  routineFromRow,
+  routineValues,
+  saveRoutineDetails,
+  type RoutineDetailsRow,
+  type RoutineRow,
+} from "../storage";
 import { parseReminderOutcome, type RoutineOperationRow } from "./shared";
 
 export type EditRoutineOperationResult =
@@ -80,6 +86,19 @@ export async function editRoutineOperation(
 
     const current = routineFromRow(row);
 
+    const details = await transaction.getFirstAsync<RoutineDetailsRow>(
+      "SELECT form, quantity_amount, quantity_unit FROM routine_details WHERE routine_id = ?",
+      request.expected.id,
+    );
+
+    if (details) {
+      if (details.form !== null) current.form = details.form;
+
+      if (details.quantity_amount !== null && details.quantity_unit !== null) {
+        current.quantity = { amount: details.quantity_amount, unit: details.quantity_unit };
+      }
+    }
+
     if (!sameRoutine(current, request.expected)) return;
 
     if (isPausedOnlyEdit(request)) {
@@ -102,6 +121,7 @@ export async function editRoutineOperation(
       "UPDATE routines SET product_name = ?, frequency_kind = ?, weekday_mask = ?, interval_days = ?, start_date = ?, time = ?, paused = ? WHERE id = ?",
       routineValues(routine).slice(1).concat(routine.id),
     );
+    await saveRoutineDetails(transaction, routine);
     await transaction.runAsync(
       "INSERT INTO routine_operations (operation_id, request_json, routine_id, reminder_outcome) VALUES (?, ?, ?, NULL)",
       [request.operationId, requestJson, routine.id],

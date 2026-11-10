@@ -31,6 +31,11 @@ export default function RoutineRow({
           <Text variant="subhead" color={colors.secondary}>
             {routineScheduleDisplay(routine).label}
           </Text>
+          {routine.quantity ? (
+            <Text variant="footnote" color={colors.secondary}>
+              {`${routine.quantity.amount} ${routine.quantity.unit}`}
+            </Text>
+          ) : null}
           {routine.paused && (
             <Text variant="footnote" color={colors.secondary}>
               Paused

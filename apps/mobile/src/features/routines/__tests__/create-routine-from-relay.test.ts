@@ -41,9 +41,10 @@ let transactionTail = Promise.resolve();
 let nextId = 0;
 let scheduleCalls = 0;
 let cancelCalls = 0;
-let scheduled = new Map<string, { identifier: string }>();
+let scheduled = new Map<string, { identifier: string; content?: { body?: string } }>();
 
 const scheduledRequests: {
+  content?: { body?: string };
   trigger?: { type?: string; weekday?: number; hour?: number; minute?: number };
 }[] = [];
 
@@ -128,6 +129,7 @@ mock.module("expo-notifications", () => ({
   }),
   scheduleNotificationAsync: async (request: {
     identifier?: string;
+    content?: { body?: string };
     trigger?: { type?: string; weekday?: number; hour?: number; minute?: number };
   }) => {
     scheduleCalls += 1;
@@ -146,8 +148,8 @@ mock.module("expo-notifications", () => ({
     }
 
     const identifier = request.identifier ?? `scheduled-${scheduleCalls}`;
-    scheduled.set(identifier, { identifier });
-    scheduledRequests.push({ trigger: request.trigger });
+    scheduled.set(identifier, { identifier, content: request.content });
+    scheduledRequests.push({ content: request.content, trigger: request.trigger });
 
     return identifier;
   },
@@ -1319,16 +1321,27 @@ test("listing reads current, distinct routines and reports storage failures", as
     frequency: { kind: FrequencyKind.weekdays, days: [1, 3] },
     time: "08:30",
     paused: false,
+    form: "capsule",
+    quantity: { amount: 1, unit: "capsule" },
   };
 
   await storage.saveRoutine(first);
   await storage.saveRoutine(second);
-  expect(await listRoutinesFromRelay()).toEqual({ status: "ok", routines: [first, second] });
+
+  const listedSecond = {
+    id: second.id,
+    productName: second.productName,
+    frequency: second.frequency,
+    time: second.time,
+    paused: second.paused,
+  };
+
+  expect(await listRoutinesFromRelay()).toEqual({ status: "ok", routines: [first, listedSecond] });
   await storage.saveRoutine({ ...second, time: "09:30" });
   await storage.deleteRoutine(first.id);
   expect(await listRoutinesFromRelay()).toEqual({
     status: "ok",
-    routines: [{ ...second, time: "09:30" }],
+    routines: [{ ...listedSecond, time: "09:30" }],
   });
   database.close();
   expect(await listRoutinesFromRelay()).toEqual({
@@ -1336,4 +1349,107 @@ test("listing reads current, distinct routines and reports storage failures", as
     message: "Unable to read routines on this phone.",
   });
   database = new Database(databasePath);
+});
+
+test("routine details persist, clear independently, survive relay edits, and refresh reminders", async () => {
+  const storage = await import("../storage");
+  const { validateRoutine } = await import("../model");
+  const { editRoutineFromRelayHandler } = await import("../edit-routine-from-relay");
+  const { updateReminder } = await import("../reminders");
+
+  const routine = {
+    id: "routine-details-round-trip",
+    productName: "Magnesium",
+    frequency: { kind: FrequencyKind.weekdays, days: [1] },
+    time: "09:00",
+    paused: false,
+    form: "capsule",
+    quantity: { amount: 1.5, unit: "tablets" },
+  };
+
+  expect(validateRoutine(routine)).toBeNull();
+  expect(validateRoutine({ ...routine, form: "  " })).toBe("Form cannot be empty.");
+  expect(validateRoutine({ ...routine, quantity: { amount: Infinity, unit: "tablets" } })).toBe(
+    "Quantity must be a finite number greater than zero.",
+  );
+  expect(validateRoutine({ ...routine, quantity: { amount: 1, unit: "  " } })).toBe(
+    "Quantity unit cannot be empty.",
+  );
+
+  await storage.saveRoutine(routine);
+  expect((await storage.loadData()).routines.find(({ id }) => id === routine.id)).toEqual(routine);
+
+  await storage.saveRoutine({ ...routine, form: undefined });
+  expect((await storage.loadData()).routines.find(({ id }) => id === routine.id)).toEqual({
+    id: routine.id,
+    productName: routine.productName,
+    frequency: routine.frequency,
+    time: routine.time,
+    paused: routine.paused,
+    quantity: routine.quantity,
+  });
+  await storage.saveRoutine({ ...routine, quantity: undefined });
+  expect((await storage.loadData()).routines.find(({ id }) => id === routine.id)).toEqual({
+    id: routine.id,
+    productName: routine.productName,
+    frequency: routine.frequency,
+    time: routine.time,
+    paused: routine.paused,
+    form: routine.form,
+  });
+  await storage.saveRoutine({ ...routine, form: undefined, quantity: undefined });
+  expect(
+    await sqlite.getFirstAsync<{ count: number }>(
+      "SELECT COUNT(*) AS count FROM routine_details WHERE routine_id = ?",
+      routine.id,
+    ),
+  ).toEqual({ count: 0 });
+  await storage.saveRoutine(routine);
+
+  const queue = createActionQueue(() => undefined);
+  queue.finishLoading();
+
+  const edit = editRoutineFromRelayHandler({
+    serialize: queue.run,
+    onData: () => undefined,
+    onError: () => undefined,
+    onReminder: () => undefined,
+  });
+
+  const result = await edit({
+    operationId: "routine-details-edit",
+    expected: {
+      id: routine.id,
+      productName: routine.productName,
+      frequency: routine.frequency,
+      time: routine.time,
+      paused: routine.paused,
+    },
+    changes: { time: "10:30" },
+  });
+
+  expect(result.status).toBe(EditRoutineStatus.updated);
+  expect((await storage.loadData()).routines.find(({ id }) => id === routine.id)).toEqual({
+    ...routine,
+    time: "10:30",
+  });
+  expect(scheduledRequests.at(-1)?.content?.body).toBe(
+    "Time to take 1.5 tablets of Magnesium (capsule).",
+  );
+
+  await updateReminder(
+    { ...routine, form: "powder", quantity: { amount: 2, unit: "grams" } },
+    false,
+  );
+  expect(scheduledRequests.at(-1)?.content?.body).toBe(
+    "Time to take 2 grams of Magnesium (powder).",
+  );
+  await storage.deleteRoutine(routine.id);
+  expect((await storage.loadData()).routines.some(({ id }) => id === routine.id)).toBe(false);
+  expect(
+    await sqlite.getFirstAsync<{ count: number }>(
+      "SELECT COUNT(*) AS count FROM routine_details WHERE routine_id = ?",
+      routine.id,
+    ),
+  ).toEqual({ count: 0 });
 });

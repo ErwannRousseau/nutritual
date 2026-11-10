@@ -75,6 +75,22 @@ export default function RoutineReviewScreen() {
           </Row>
           <Text variant="body">{draft.productName.trim()}</Text>
         </Column>
+        {draft.form ? (
+          <Column spacing={4} style={styles.summary}>
+            <Text variant="subhead" color={colors.secondary}>
+              Product form
+            </Text>
+            <Text variant="body">{draft.form}</Text>
+          </Column>
+        ) : null}
+        {draft.quantity ? (
+          <Column spacing={4} style={styles.summary}>
+            <Text variant="subhead" color={colors.secondary}>
+              Planned amount
+            </Text>
+            <Text variant="body">{`${draft.quantity.amount} ${draft.quantity.unit}`}</Text>
+          </Column>
+        ) : null}
         <Column spacing={4} style={styles.summary}>
           <Row alignment="center">
             <Text variant="subhead" color={colors.secondary}>

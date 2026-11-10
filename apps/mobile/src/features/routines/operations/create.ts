@@ -6,7 +6,7 @@ import {
 } from "@nutritual/protocol";
 import type { Routine } from "../model";
 import { getDatabase } from "../database";
-import { routineValues } from "../storage";
+import { routineValues, saveRoutineDetails } from "../storage";
 import { parseReminderOutcome, type RoutineOperationRow } from "./shared";
 
 export function createRoutineRequestJson(request: CreateRoutineRequest): string {
@@ -76,6 +76,7 @@ export async function createRoutineOperation(
       "INSERT INTO routines (id, product_name, frequency_kind, weekday_mask, interval_days, start_date, time, paused) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       routineValues(routine),
     );
+    await saveRoutineDetails(transaction, routine);
     await transaction.runAsync(
       "INSERT INTO routine_operations (operation_id, request_json, routine_id, reminder_outcome) VALUES (?, ?, ?, NULL)",
       [request.operationId, requestJson, routine.id],

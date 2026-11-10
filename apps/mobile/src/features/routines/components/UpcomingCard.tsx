@@ -38,6 +38,11 @@ export default function UpcomingCard({
           <ProductBadge />
           <Column spacing={4}>
             <Text>{routine.productName}</Text>
+            {routine.quantity ? (
+              <Text variant="footnote" color={colors.secondary}>
+                {`${routine.quantity.amount} ${routine.quantity.unit}`}
+              </Text>
+            ) : null}
             {warning && (
               <Text variant="footnote" color={colors.danger}>
                 Reminder inactive
