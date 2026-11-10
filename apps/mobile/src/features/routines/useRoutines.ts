@@ -7,6 +7,7 @@ import * as storage from "@/features/routines/storage";
 import { removeReminders, restoreReminders, updateReminder } from "@/features/routines/reminders";
 import { createRoutineFromRelayHandler } from "@/features/routines/create-routine-from-relay";
 import { editRoutineFromRelayHandler } from "@/features/routines/edit-routine-from-relay";
+import { deleteRoutineFromRelayHandler } from "@/features/routines/delete-routine-from-relay";
 import { createActionQueue } from "@/features/routines/action-queue";
 
 export function useRoutines() {
@@ -47,6 +48,18 @@ export function useRoutines() {
             ...current.filter((item) => item.routineId !== reminder.routineId),
             reminder,
           ]),
+      }),
+    [actionQueue],
+  );
+
+  const deleteRoutineFromRelay = useMemo(
+    () =>
+      deleteRoutineFromRelayHandler({
+        onData: setData,
+        onError: setError,
+        onDeleted: (routineId) =>
+          setReminders((current) => current.filter((item) => item.routineId !== routineId)),
+        serialize: actionQueue.run,
       }),
     [actionQueue],
   );
@@ -217,6 +230,7 @@ export function useRoutines() {
     save,
     createRoutineFromRelay,
     editRoutineFromRelay,
+    deleteRoutineFromRelay,
     remove,
     pause,
     record,

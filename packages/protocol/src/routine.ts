@@ -15,6 +15,8 @@ export type EditRoutineRequest = {
   changes: Partial<RoutineInput> & { paused?: boolean };
 };
 
+export type DeleteRoutineRequest = { operationId: string; expected: ListedRoutine };
+
 export const CreateRoutineStatus = {
   created: "created",
   alreadyProcessed: "already_processed",
@@ -168,6 +170,15 @@ export function isEditRoutineRequest(value: unknown): value is EditRoutineReques
   return validateRoutineInput(merged) === null;
 }
 
+export function isDeleteRoutineRequest(value: unknown): value is DeleteRoutineRequest {
+  return (
+    isRecord(value) &&
+    typeof value.operationId === "string" &&
+    !!value.operationId.trim() &&
+    isListedRoutine(value.expected)
+  );
+}
+
 export function isReminderOutcome(value: unknown): value is ReminderOutcome {
   return Object.values(ReminderOutcomes).some((outcome) => outcome === value);
 }
@@ -277,6 +288,53 @@ export function isEditRoutineResult(value: unknown): value is EditRoutineResult 
     (value.status === EditRoutineStatus.conflict ||
       value.status === EditRoutineStatus.invalid ||
       value.status === EditRoutineStatus.failed) &&
+    typeof value.message === "string"
+  );
+}
+
+export const DeleteRoutineStatus = {
+  deleted: "deleted",
+  alreadyProcessed: "already_processed",
+  notFound: "not_found",
+  conflict: "conflict",
+  invalid: "invalid",
+  failed: "failed",
+} as const;
+
+export type DeleteRoutineResult =
+  | {
+      status: typeof DeleteRoutineStatus.deleted | typeof DeleteRoutineStatus.alreadyProcessed;
+      operationId: string;
+      routineId: string;
+      reminder: ReminderOutcome;
+    }
+  | {
+      status:
+        | typeof DeleteRoutineStatus.notFound
+        | typeof DeleteRoutineStatus.conflict
+        | typeof DeleteRoutineStatus.invalid
+        | typeof DeleteRoutineStatus.failed;
+      operationId: string;
+      message: string;
+    };
+
+export function isDeleteRoutineResult(value: unknown): value is DeleteRoutineResult {
+  if (!isRecord(value) || typeof value.operationId !== "string") return false;
+
+  if (
+    value.status === DeleteRoutineStatus.deleted ||
+    value.status === DeleteRoutineStatus.alreadyProcessed
+  ) {
+    return (
+      typeof value.routineId === "string" && !!value.routineId && isReminderOutcome(value.reminder)
+    );
+  }
+
+  return (
+    (value.status === DeleteRoutineStatus.notFound ||
+      value.status === DeleteRoutineStatus.conflict ||
+      value.status === DeleteRoutineStatus.invalid ||
+      value.status === DeleteRoutineStatus.failed) &&
     typeof value.message === "string"
   );
 }

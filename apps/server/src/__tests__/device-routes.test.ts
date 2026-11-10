@@ -6,10 +6,13 @@ import type { McpAuthVariables } from "@neon/oauth/mcp/hono";
 import {
   isCreateRoutineCommandMessage,
   isEditRoutineCommandMessage,
+  isDeleteRoutineCommandMessage,
   type CreateRoutineRequest,
   type CreateRoutineResultMessage,
   type EditRoutineRequest,
   type EditRoutineResultMessage,
+  type DeleteRoutineRequest,
+  type DeleteRoutineResultMessage,
 } from "@nutritual/protocol";
 import { createRoutineRelay } from "../routine-relay.ts";
 
@@ -199,6 +202,68 @@ test("device route relays an edit and accepts its acknowledgment only from the p
     phone.send(JSON.stringify(await commandPromise));
     expect(await delivery).toEqual({
       status: "updated",
+      operationId: request.operationId,
+      routineId: request.expected.id,
+      reminder: "none",
+    });
+  } finally {
+    phone.close();
+    server.stop(true);
+  }
+});
+
+test("device route relays a routine deletion and accepts the phone outcome", async () => {
+  consumedTickets.clear();
+  pairingCheck = async () => true;
+  const { relay, server } = runningDeviceServer();
+  const phone = socketFor(server, testTicket);
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      phone.addEventListener("open", () => resolve(), { once: true });
+      phone.addEventListener("error", () => reject(new Error("WebSocket failed.")), { once: true });
+    });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    const request: DeleteRoutineRequest = {
+      operationId: "7a98fdf5-bc7a-4641-b7b7-f932f9ed8901",
+      expected: {
+        id: "routine-1",
+        productName: "Magnesium",
+        frequency: { kind: "as-needed" },
+        time: "",
+        paused: false,
+      },
+    };
+
+    const commandPromise = new Promise<DeleteRoutineResultMessage>((resolve, reject) => {
+      phone.addEventListener(
+        "message",
+        (event) => {
+          const value: unknown = JSON.parse(String(event.data));
+
+          if (!isDeleteRoutineCommandMessage(value))
+            return reject(new Error("Invalid deletion command."));
+
+          resolve({
+            type: "delete_routine_result",
+            requestId: value.requestId,
+            result: {
+              status: "deleted",
+              operationId: request.operationId,
+              routineId: request.expected.id,
+              reminder: "none",
+            },
+          });
+        },
+        { once: true },
+      );
+    });
+
+    const delivery = relay.deleteRoutine("user-1", request);
+    phone.send(JSON.stringify(await commandPromise));
+    expect(await delivery).toEqual({
+      status: "deleted",
       operationId: request.operationId,
       routineId: request.expected.id,
       reminder: "none",

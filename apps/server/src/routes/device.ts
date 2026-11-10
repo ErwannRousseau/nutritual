@@ -2,6 +2,7 @@ import { upgradeWebSocket } from "@hono/bun";
 import {
   isCreateRoutineResultMessage,
   isEditRoutineResultMessage,
+  isDeleteRoutineResultMessage,
   isListRoutinesResultMessage,
 } from "@nutritual/protocol";
 import type { Hono } from "hono";
@@ -58,6 +59,9 @@ export function registerDeviceRoutes(
           relay.receivePhoneResult(userId, connectionId, value);
 
         if (isEditRoutineResultMessage(value)) relay.receiveEditResult(userId, connectionId, value);
+
+        if (isDeleteRoutineResultMessage(value))
+          relay.receiveDeleteResult(userId, connectionId, value);
       },
       onClose() {
         relay.disconnectPhone(userId, connectionId);

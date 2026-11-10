@@ -1,6 +1,8 @@
 import type {
   CreateRoutineRequest,
   CreateRoutineResult,
+  DeleteRoutineRequest,
+  DeleteRoutineResult,
   EditRoutineRequest,
   EditRoutineResult,
 } from "@nutritual/protocol";
@@ -14,6 +16,7 @@ import { EXPO_PUBLIC_SERVER_URL } from "@/env";
 export function connectToDeviceRelay(
   createRoutine: (request: CreateRoutineRequest) => Promise<CreateRoutineResult>,
   editRoutine: (request: EditRoutineRequest) => Promise<EditRoutineResult>,
+  deleteRoutine: (request: DeleteRoutineRequest) => Promise<DeleteRoutineResult>,
 ): () => void {
   let disposed = false;
   let retryDelay = 1_000;
@@ -49,7 +52,7 @@ export function connectToDeviceRelay(
       nextSocket.onclose = scheduleReconnect;
       nextSocket.onerror = () => nextSocket.close();
       nextSocket.onmessage = (event) => {
-        handleRelayMessage(event.data, createRoutine, editRoutine, (message) => {
+        handleRelayMessage(event.data, createRoutine, editRoutine, deleteRoutine, (message) => {
           if (disposed || nextSocket.readyState !== WebSocket.OPEN) return;
 
           try {

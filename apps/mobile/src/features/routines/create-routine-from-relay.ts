@@ -2,7 +2,6 @@ import { randomUUID } from "expo-crypto";
 import {
   CreateRoutineStatus,
   ReminderOutcomes,
-  validateRoutineInput,
   type CreateRoutineRequest,
   type CreateRoutineResult,
   type ReminderOutcome,
@@ -33,16 +32,6 @@ export function createRoutineFromRelayHandler({
   >();
 
   async function createOnce(request: CreateRoutineRequest): Promise<CreateRoutineResult> {
-    const validation = validateRoutineInput(request);
-
-    if (validation) {
-      return {
-        status: CreateRoutineStatus.invalid,
-        operationId: request.operationId,
-        message: validation,
-      };
-    }
-
     const routine: Routine = {
       id: randomUUID(),
       productName: request.productName.trim(),

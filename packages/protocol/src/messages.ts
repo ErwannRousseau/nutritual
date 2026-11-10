@@ -1,7 +1,11 @@
 import { isRecord } from "./guards";
 import {
   isListRoutinesResult,
+  isDeleteRoutineRequest,
+  isDeleteRoutineResult,
   type ListRoutinesResult,
+  type DeleteRoutineRequest,
+  type DeleteRoutineResult,
   isCreateRoutineRequest,
   isCreateRoutineResult,
   isEditRoutineRequest,
@@ -75,6 +79,40 @@ export function isEditRoutineResultMessage(value: unknown): value is EditRoutine
     typeof value.requestId === "string" &&
     !!value.requestId &&
     isEditRoutineResult(value.result)
+  );
+}
+
+export type DeleteRoutineCommandMessage = {
+  type: "delete_routine";
+  requestId: string;
+  command: DeleteRoutineRequest;
+};
+
+export type DeleteRoutineResultMessage = {
+  type: "delete_routine_result";
+  requestId: string;
+  result: DeleteRoutineResult;
+};
+
+export function isDeleteRoutineCommandMessage(
+  value: unknown,
+): value is DeleteRoutineCommandMessage {
+  return (
+    isRecord(value) &&
+    value.type === "delete_routine" &&
+    typeof value.requestId === "string" &&
+    !!value.requestId &&
+    isDeleteRoutineRequest(value.command)
+  );
+}
+
+export function isDeleteRoutineResultMessage(value: unknown): value is DeleteRoutineResultMessage {
+  return (
+    isRecord(value) &&
+    value.type === "delete_routine_result" &&
+    typeof value.requestId === "string" &&
+    !!value.requestId &&
+    isDeleteRoutineResult(value.result)
   );
 }
 

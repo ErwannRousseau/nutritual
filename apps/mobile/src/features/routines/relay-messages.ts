@@ -1,12 +1,17 @@
 import {
   CreateRoutineStatus,
+  DeleteRoutineStatus,
   EditRoutineStatus,
   isCreateRoutineCommandMessage,
+  isDeleteRoutineCommandMessage,
   isEditRoutineCommandMessage,
   isListRoutinesCommandMessage,
   type CreateRoutineRequest,
   type CreateRoutineResult,
   type CreateRoutineResultMessage,
+  type DeleteRoutineRequest,
+  type DeleteRoutineResult,
+  type DeleteRoutineResultMessage,
   type EditRoutineRequest,
   type EditRoutineResult,
   type EditRoutineResultMessage,
@@ -18,8 +23,13 @@ export function handleRelayMessage(
   data: string,
   createRoutine: (request: CreateRoutineRequest) => Promise<CreateRoutineResult>,
   editRoutine: (request: EditRoutineRequest) => Promise<EditRoutineResult>,
+  deleteRoutine: (request: DeleteRoutineRequest) => Promise<DeleteRoutineResult>,
   send: (
-    message: CreateRoutineResultMessage | EditRoutineResultMessage | ListRoutinesResultMessage,
+    message:
+      | CreateRoutineResultMessage
+      | DeleteRoutineResultMessage
+      | EditRoutineResultMessage
+      | ListRoutinesResultMessage,
   ) => void,
 ): void {
   let message: unknown;
@@ -50,6 +60,24 @@ export function handleRelayMessage(
           status: EditRoutineStatus.failed,
           operationId: message.command.operationId,
           message: "Unable to save the routine on this phone.",
+        }),
+      );
+
+    return;
+  }
+
+  if (isDeleteRoutineCommandMessage(message)) {
+    const reply = (result: DeleteRoutineResult) => {
+      send({ type: "delete_routine_result", requestId: message.requestId, result });
+    };
+
+    void deleteRoutine(message.command)
+      .then(reply)
+      .catch(() =>
+        reply({
+          status: DeleteRoutineStatus.failed,
+          operationId: message.command.operationId,
+          message: "Unable to delete the routine on this phone.",
         }),
       );
 
