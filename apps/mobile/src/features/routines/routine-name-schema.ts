@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { positiveAmountSchema } from "@/features/routines/routine-quantity-input";
+
+export const positiveAmountSchema = z
+  .string()
+  .trim()
+  .regex(/^(?:\d+(?:[.,]\d+)?|[.,]\d+)$/)
+  .transform((value) => Number(value.replace(",", ".")))
+  .pipe(z.number().finite().positive());
 
 export const routineNameSchema = z
   .object({

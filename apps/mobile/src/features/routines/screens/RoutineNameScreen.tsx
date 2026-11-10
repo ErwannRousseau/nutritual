@@ -13,8 +13,11 @@ import Screen from "@/shared/ui/Screen";
 import { usePalette } from "@/shared/ui/palette";
 import { useRoutineDraft } from "@/features/routines/RoutineDraftProvider";
 import { useRoutineStore } from "@/features/routines/RoutinesProvider";
-import { positiveAmountSchema } from "@/features/routines/routine-quantity-input";
-import { routineNameSchema, type RoutineNameFields } from "@/features/routines/routine-name-schema";
+import {
+  positiveAmountSchema,
+  routineNameSchema,
+  type RoutineNameFields,
+} from "@/features/routines/routine-name-schema";
 import type { RoutineDraft } from "@/features/routines/model";
 
 const forms = ["Capsule", "Tablet", "Lozenge", "Gummy", "Powder", "Liquid", "Drops"] as const;
