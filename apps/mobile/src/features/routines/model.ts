@@ -4,17 +4,12 @@ import {
   isValidDateString,
   validateRoutineInput,
   type Frequency,
+  type ListedRoutine,
   type ReminderOutcome,
   type RoutineInput,
 } from "@nutritual/protocol";
 
-export type Routine = {
-  id: string;
-  productName: string;
-  frequency: Frequency;
-  time: string;
-  paused: boolean;
-};
+export type Routine = ListedRoutine;
 
 export type Intake = {
   id: string;
