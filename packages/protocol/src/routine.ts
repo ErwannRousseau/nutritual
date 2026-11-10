@@ -144,3 +144,46 @@ export function isCreateRoutineResult(value: unknown): value is CreateRoutineRes
 
   return false;
 }
+
+export type ListedRoutine = RoutineInput & { id: string; paused: boolean };
+
+export const ListRoutinesStatus = {
+  ok: "ok",
+  failed: "failed",
+  unavailable: "unavailable",
+} as const;
+
+export type ListRoutinesResult =
+  | { status: typeof ListRoutinesStatus.ok; routines: ListedRoutine[] }
+  | { status: typeof ListRoutinesStatus.failed; message: string };
+
+export function isListRoutinesResult(value: unknown): value is ListRoutinesResult {
+  if (!isRecord(value)) return false;
+
+  if (value.status === ListRoutinesStatus.failed) return typeof value.message === "string";
+
+  return (
+    value.status === ListRoutinesStatus.ok &&
+    Array.isArray(value.routines) &&
+    value.routines.every((routine) => {
+      if (
+        !isRecord(routine) ||
+        typeof routine.id !== "string" ||
+        !routine.id ||
+        typeof routine.productName !== "string" ||
+        typeof routine.time !== "string" ||
+        typeof routine.paused !== "boolean" ||
+        !isFrequency(routine.frequency)
+      )
+        return false;
+
+      return (
+        validateRoutineInput({
+          productName: routine.productName,
+          frequency: routine.frequency,
+          time: routine.time,
+        }) === null
+      );
+    })
+  );
+}

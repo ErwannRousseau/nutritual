@@ -1,10 +1,13 @@
 import {
   CreateRoutineDeliveryStatus,
+  ListRoutinesStatus,
   type CreateRoutineDeliveryResult,
   type CreateRoutineCommandMessage,
   type CreateRoutineRequest,
   type CreateRoutineResult,
   type CreateRoutineResultMessage,
+  type ListRoutinesResult,
+  type ListRoutinesResultMessage,
 } from "@nutritual/protocol";
 
 const acknowledgementTimeoutMs = 10_000;
@@ -26,6 +29,20 @@ type PendingRequest = {
 
 export function createRoutineRelay() {
   const pendingRequests = new Map<string, PendingRequest>();
+
+  const pendingLists = new Map<
+    string,
+    {
+      userId: string;
+      connectionId: string;
+      finish: (
+        result:
+          | ListRoutinesResult
+          | { status: typeof ListRoutinesStatus.unavailable; message: string },
+      ) => void;
+    }
+  >();
+
   const connectedPhones = new Map<string, DeviceConnection>();
   const pendingPhones = new Map<string, DeviceConnection>();
 
@@ -34,6 +51,14 @@ export function createRoutineRelay() {
   }
 
   function finishPendingForPhone(userId: string, phoneId: string): void {
+    for (const pending of pendingLists.values()) {
+      if (pending.userId === userId && pending.connectionId === phoneId)
+        pending.finish({
+          status: ListRoutinesStatus.unavailable,
+          message: "Phone disconnected before responding.",
+        });
+    }
+
     for (const pending of pendingRequests.values()) {
       if (pending.userId === userId && pending.connectionId === phoneId) {
         pending.finish(
@@ -107,6 +132,58 @@ export function createRoutineRelay() {
         pending.finish(
           unconfirmed(command.operationId, "Command delivery could not be confirmed."),
         );
+      }
+    });
+  }
+
+  function receiveListResult(
+    userId: string,
+    phoneId: string,
+    message: ListRoutinesResultMessage,
+  ): void {
+    const pending = pendingLists.get(message.requestId);
+
+    if (pending?.userId === userId && pending.connectionId === phoneId)
+      pending.finish(message.result);
+  }
+
+  async function listRoutines(
+    userId: string,
+  ): Promise<
+    ListRoutinesResult | { status: typeof ListRoutinesStatus.unavailable; message: string }
+  > {
+    const phone = connectedPhones.get(userId);
+
+    if (!phone)
+      return { status: ListRoutinesStatus.unavailable, message: "No phone is connected." };
+    const requestId = crypto.randomUUID();
+
+    return new Promise((resolve) => {
+      const finish = (
+        result:
+          | ListRoutinesResult
+          | { status: typeof ListRoutinesStatus.unavailable; message: string },
+      ) => {
+        if (!pendingLists.delete(requestId)) return;
+        clearTimeout(timeout);
+        resolve(result);
+      };
+
+      const timeout = setTimeout(
+        () =>
+          finish({
+            status: ListRoutinesStatus.unavailable,
+            message: "Phone did not respond within 10 seconds.",
+          }),
+        acknowledgementTimeoutMs,
+      );
+
+      pendingLists.set(requestId, { userId, connectionId: phone.id, finish });
+
+      try {
+        phone.send(JSON.stringify({ type: "list_routines", requestId }));
+      } catch {
+        finish({ status: ListRoutinesStatus.unavailable, message: "Phone could not be reached." });
       }
     });
   }
@@ -205,6 +282,8 @@ export function createRoutineRelay() {
     disconnectPhone,
     disconnectPairedPhone,
     receivePhoneResult,
+    receiveListResult,
+    listRoutines,
     createRoutine,
   };
 }

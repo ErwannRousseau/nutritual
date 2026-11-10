@@ -300,3 +300,68 @@ test("a closed pending socket cannot activate after its pairing check succeeds",
     server.stop(true);
   }
 });
+
+test("device websocket validates list results and stops pending reads on disconnect", async () => {
+  consumedTickets.clear();
+  pairingCheck = async () => true;
+  const { relay, server } = runningDeviceServer();
+  const phone = socketFor(server, testTicket);
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      phone.addEventListener("open", () => resolve(), { once: true });
+      phone.addEventListener("error", () => reject(new Error("WebSocket connection failed.")), {
+        once: true,
+      });
+    });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+
+    const reply = new Promise<void>((resolve) => {
+      phone.addEventListener(
+        "message",
+        (event) => {
+          const command = JSON.parse(String(event.data));
+          expect(command.type).toBe("list_routines");
+          phone.send(
+            JSON.stringify({
+              type: "list_routines_result",
+              requestId: command.requestId,
+              result: {
+                status: "ok",
+                routines: [
+                  {
+                    id: "a",
+                    productName: "Magnesium",
+                    frequency: { kind: "weekdays", days: [9] },
+                    time: "08:00",
+                    paused: false,
+                  },
+                ],
+              },
+            }),
+          );
+          phone.send(
+            JSON.stringify({
+              type: "list_routines_result",
+              requestId: command.requestId,
+              result: { status: "ok", routines: [] },
+            }),
+          );
+          resolve();
+        },
+        { once: true },
+      );
+    });
+
+    const pending = relay.listRoutines("user-1");
+    await reply;
+    expect(await pending).toEqual({ status: "ok", routines: [] });
+    const next = relay.listRoutines("user-1");
+    relay.disconnectPairedPhone("user-1", "device-1", "pairing-1");
+    expect((await next).status).toBe("unavailable");
+    expect((await relay.listRoutines("user-1")).status).toBe("unavailable");
+  } finally {
+    phone.close();
+    server.stop(true);
+  }
+});

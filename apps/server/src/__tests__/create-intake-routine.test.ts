@@ -221,3 +221,76 @@ test("MCP preserves every reminder outcome without treating it as an intake", as
     },
   );
 });
+
+test("MCP lists the current routines or reports an unavailable phone", async () => {
+  const { registerListIntakeRoutinesTool } = await import("../mcp-tools/list-intake-routines.ts");
+  const server = new McpServer({ name: "test", version: "1.0.0" });
+  const client = new Client({ name: "test-client", version: "1.0.0" });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  const relay = createRoutineRelay();
+  registerListIntakeRoutinesTool(server, relay, "authenticated-user");
+  await Promise.all([client.connect(clientTransport), server.connect(serverTransport)]);
+
+  try {
+    const result = await client.callTool({ name: "list_intake_routines", arguments: {} });
+    expect(result.isError).toBe(true);
+    expect(result.content).toEqual([
+      {
+        type: "text",
+        text: JSON.stringify({ status: "unavailable", message: "No phone is connected." }),
+      },
+    ]);
+
+    const routines = [
+      {
+        id: "a",
+        productName: "Magnesium",
+        frequency: { kind: "as-needed" },
+        time: "",
+        paused: true,
+      },
+      {
+        id: "b",
+        productName: "Magnesium",
+        frequency: { kind: "weekdays", days: [1] },
+        time: "08:30",
+        paused: false,
+      },
+    ];
+
+    await relay.connectPhone(
+      "authenticated-user",
+      {
+        id: "socket",
+        deviceId: "phone",
+        pairingId: "pairing",
+        close: () => undefined,
+        send: (raw) => {
+          const message = JSON.parse(raw);
+          relay.receiveListResult("other-user", "socket", {
+            type: "list_routines_result",
+            requestId: message.requestId,
+            result: { status: "ok", routines: [] },
+          });
+          relay.receiveListResult("authenticated-user", "socket", {
+            type: "list_routines_result",
+            requestId: message.requestId,
+            result: { status: "ok", routines },
+          });
+        },
+      },
+      async () => true,
+    );
+    const listed = await client.callTool({ name: "list_intake_routines", arguments: {} });
+    expect(listed.isError).toBe(false);
+    expect(listed.content).toEqual([
+      { type: "text", text: JSON.stringify({ status: "ok", routines }) },
+    ]);
+    relay.disconnectPairedPhone("authenticated-user", "phone", "pairing");
+    const disconnected = await client.callTool({ name: "list_intake_routines", arguments: {} });
+    expect(disconnected.isError).toBe(true);
+    expect(disconnected.content).toEqual(result.content);
+  } finally {
+    await Promise.all([client.close(), server.close()]);
+  }
+});

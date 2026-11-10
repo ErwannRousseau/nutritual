@@ -468,6 +468,7 @@ test("device relay reconnects after the server closes its socket", async () => {
   class FakeWebSocket {
     static OPEN = 1;
     static instances: FakeWebSocket[] = [];
+    sent: string[] = [];
 
     readyState = FakeWebSocket.OPEN;
     onopen: (() => void) | null = null;
@@ -481,7 +482,9 @@ test("device relay reconnects after the server closes its socket", async () => {
       FakeWebSocket.instances.push(this);
     }
 
-    send(_message: string) {}
+    send(message: string) {
+      this.sent.push(message);
+    }
 
     close() {
       this.readyState = 3;
@@ -512,6 +515,20 @@ test("device relay reconnects after the server closes its socket", async () => {
     if (!firstSocket) throw new Error("Initial socket was not opened.");
 
     firstSocket.onopen?.();
+    firstSocket.onmessage?.({
+      data: JSON.stringify({ type: "list_routines", requestId: "list-request" }),
+    });
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    expect(firstSocket.sent).toEqual([
+      JSON.stringify({
+        type: "list_routines_result",
+        requestId: "list-request",
+        result: {
+          status: "ok",
+          routines: (await (await import("../storage")).loadData()).routines,
+        },
+      }),
+    ]);
     firstSocket.drop();
     await new Promise<void>((resolve) => setTimeout(resolve, 1_100));
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -528,4 +545,45 @@ test("device relay reconnects after the server closes its socket", async () => {
     if (previousWebSocket) Object.defineProperty(globalThis, "WebSocket", previousWebSocket);
     else Reflect.deleteProperty(globalThis, "WebSocket");
   }
+});
+
+test("listing reads current, distinct routines and reports storage failures", async () => {
+  const { listRoutinesFromRelay } = await import("../list-routines-from-relay");
+  const storage = await import("../storage");
+
+  for (const routine of (await storage.loadData()).routines)
+    await storage.deleteRoutine(routine.id);
+  expect(await listRoutinesFromRelay()).toEqual({ status: "ok", routines: [] });
+
+  const first = {
+    id: "list-1",
+    productName: "Magnesium",
+    frequency: { kind: FrequencyKind.asNeeded },
+    time: "",
+    paused: true,
+  };
+
+  const second = {
+    id: "list-2",
+    productName: "Magnesium",
+    frequency: { kind: FrequencyKind.weekdays, days: [1, 3] },
+    time: "08:30",
+    paused: false,
+  };
+
+  await storage.saveRoutine(first);
+  await storage.saveRoutine(second);
+  expect(await listRoutinesFromRelay()).toEqual({ status: "ok", routines: [first, second] });
+  await storage.saveRoutine({ ...second, time: "09:30" });
+  await storage.deleteRoutine(first.id);
+  expect(await listRoutinesFromRelay()).toEqual({
+    status: "ok",
+    routines: [{ ...second, time: "09:30" }],
+  });
+  database.close();
+  expect(await listRoutinesFromRelay()).toEqual({
+    status: "failed",
+    message: "Unable to read routines on this phone.",
+  });
+  database = new Database(databasePath);
 });

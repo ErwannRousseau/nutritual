@@ -47,9 +47,9 @@ export default function PairScreen() {
       <Column spacing={18} modifiers={fillAvailableWidth}>
         <Text variant="largeTitle">Pair ChatGPT</Text>
         <Text>
-          The app identified below can create routines on this phone. Routines and intakes stay
-          stored locally. This authorization allows it to create future routines. Continue only if
-          you recognize this app.
+          The app identified below can read and manage routines on this phone. Routines and intakes
+          stay stored locally. This authorization allows it to access and manage routines. Continue
+          only if you recognize this app.
         </Text>
         <TextInput
           autoCapitalize="characters"

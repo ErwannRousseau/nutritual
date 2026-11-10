@@ -1,5 +1,7 @@
 import { isRecord } from "./guards";
 import {
+  isListRoutinesResult,
+  type ListRoutinesResult,
   isCreateRoutineRequest,
   isCreateRoutineResult,
   type CreateRoutineRequest,
@@ -37,5 +39,32 @@ export function isCreateRoutineResultMessage(value: unknown): value is CreateRou
     typeof value.requestId === "string" &&
     !!value.requestId &&
     isCreateRoutineResult(value.result)
+  );
+}
+
+export type ListRoutinesCommandMessage = { type: "list_routines"; requestId: string };
+
+export type ListRoutinesResultMessage = {
+  type: "list_routines_result";
+  requestId: string;
+  result: ListRoutinesResult;
+};
+
+export function isListRoutinesCommandMessage(value: unknown): value is ListRoutinesCommandMessage {
+  return (
+    isRecord(value) &&
+    value.type === "list_routines" &&
+    typeof value.requestId === "string" &&
+    !!value.requestId
+  );
+}
+
+export function isListRoutinesResultMessage(value: unknown): value is ListRoutinesResultMessage {
+  return (
+    isRecord(value) &&
+    value.type === "list_routines_result" &&
+    typeof value.requestId === "string" &&
+    !!value.requestId &&
+    isListRoutinesResult(value.result)
   );
 }
