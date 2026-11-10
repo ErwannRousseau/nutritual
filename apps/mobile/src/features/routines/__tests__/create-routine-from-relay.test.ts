@@ -725,9 +725,8 @@ test("relay edits compare snapshots, preserve paused state, and never replay aft
     time: "",
   };
 
-  await (
-    await import("../relay-operations")
-  ).createRoutineOperation(createRequest, {
+  const { createRoutineOperation } = await import("../operations/create");
+  await createRoutineOperation(createRequest, {
     id: "relay-edit-id-collision",
     productName: createRequest.productName,
     frequency: createRequest.frequency,

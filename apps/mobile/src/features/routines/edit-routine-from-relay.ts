@@ -8,7 +8,8 @@ import {
 import type { ReminderState, Routine } from "./model";
 import { ReminderStatus } from "./model";
 import * as storage from "./storage";
-import * as relayOperations from "./relay-operations";
+import * as relayOperations from "./operations/edit";
+import { updateRoutineOperationReminder } from "./operations/shared";
 import { updateReminder } from "./reminders";
 
 type RelayCallbacks = {
@@ -59,7 +60,7 @@ export function editRoutineFromRelayHandler({
           : reminderState.status;
 
       try {
-        await relayOperations.updateRoutineOperationReminder(request.operationId, reminder);
+        await updateRoutineOperationReminder(request.operationId, reminder);
       } catch {
         reminder = ReminderOutcomes.unconfirmed;
       }
