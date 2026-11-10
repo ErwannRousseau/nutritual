@@ -7,6 +7,7 @@ import { afterAll, expect, mock, test } from "bun:test";
 import { Database, type SQLQueryBindings } from "bun:sqlite";
 import {
   CreateRoutineStatus,
+  DeleteRoutineStatus,
   EditRoutineStatus,
   FrequencyKind,
   ReminderOutcomes,
@@ -551,6 +552,11 @@ test("device relay reconnects after the server closes its socket", async () => {
           message: "unused",
         };
       },
+      async (request) => ({
+        status: DeleteRoutineStatus.failed,
+        operationId: request.operationId,
+        message: "unused",
+      }),
     );
 
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -606,6 +612,22 @@ test("device relay reconnects after the server closes its socket", async () => {
     });
     firstSocket.onmessage?.({
       data: JSON.stringify({
+        type: "delete_routine",
+        requestId: "delete-request",
+        command: {
+          operationId: "delete-op",
+          expected: {
+            id: "routine-id",
+            productName: "Magnesium",
+            frequency: { kind: FrequencyKind.asNeeded },
+            time: "",
+            paused: false,
+          },
+        },
+      }),
+    });
+    firstSocket.onmessage?.({
+      data: JSON.stringify({
         type: "edit_routine",
         requestId: "edit-request",
         command: {
@@ -622,11 +644,25 @@ test("device relay reconnects after the server closes its socket", async () => {
       }),
     });
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
-    expect(firstSocket.sent.slice(1).map((value) => JSON.parse(value))).toEqual([
+    expect(
+      firstSocket.sent
+        .slice(1)
+        .map((value) => JSON.parse(value))
+        .sort((a, b) => a.requestId.localeCompare(b.requestId)),
+    ).toEqual([
       {
         type: "create_routine_result",
         requestId: "create-request",
         result: { status: CreateRoutineStatus.failed, operationId: "create-op", message: "unused" },
+      },
+      {
+        type: "delete_routine_result",
+        requestId: "delete-request",
+        result: {
+          status: DeleteRoutineStatus.failed,
+          operationId: "delete-op",
+          message: "unused",
+        },
       },
       {
         type: "edit_routine_result",
@@ -659,6 +695,86 @@ test("device relay reconnects after the server closes its socket", async () => {
     if (previousWebSocket) Object.defineProperty(globalThis, "WebSocket", previousWebSocket);
     else Reflect.deleteProperty(globalThis, "WebSocket");
   }
+});
+
+test("relay deletion compares snapshots, preserves intake history, and retries reminder cleanup", async () => {
+  const { deleteRoutineFromRelayHandler } = await import("../delete-routine-from-relay");
+  const storage = await import("../storage");
+  const queue = createActionQueue(() => undefined);
+  queue.finishLoading();
+  const deletedIds: string[] = [];
+
+  const handler = deleteRoutineFromRelayHandler({
+    serialize: queue.run,
+    onData: () => undefined,
+    onError: () => undefined,
+    onDeleted: (id) => deletedIds.push(id),
+  });
+
+  const routine = {
+    id: "relay-delete-history",
+    productName: "Magnesium",
+    frequency: { kind: FrequencyKind.weekdays, days: [1] },
+    time: "09:00",
+    paused: false,
+  };
+
+  await storage.saveRoutine(routine);
+  await storage.saveIntake({
+    id: "intake-preserved-after-delete",
+    routineId: routine.id,
+    productName: routine.productName,
+    recordedAt: "2026-11-10T08:00:00.000Z",
+  });
+  const reminderId = `nutritual:${routine.id}:weekday-1`;
+  scheduled.set(reminderId, { identifier: reminderId });
+  failNextCancel = true;
+
+  const request = { operationId: "delete-history-op", expected: routine };
+  expect(await handler(request)).toEqual({
+    status: DeleteRoutineStatus.deleted,
+    operationId: request.operationId,
+    routineId: routine.id,
+    reminder: ReminderOutcomes.failed,
+  });
+  expect((await storage.loadData()).routines).not.toContainEqual(routine);
+  expect((await storage.loadData()).intakes).toContainEqual({
+    id: "intake-preserved-after-delete",
+    routineId: routine.id,
+    productName: routine.productName,
+    recordedAt: "2026-11-10T08:00:00.000Z",
+  });
+  expect(scheduled.has(reminderId)).toBe(true);
+  expect(
+    await sqlite.getFirstAsync<{ reminder_outcome: string }>(
+      "SELECT reminder_outcome FROM routine_operations WHERE operation_id = ?",
+      request.operationId,
+    ),
+  ).toEqual({ reminder_outcome: ReminderOutcomes.failed });
+
+  expect(await handler(request)).toEqual({
+    status: DeleteRoutineStatus.alreadyProcessed,
+    operationId: request.operationId,
+    routineId: routine.id,
+    reminder: ReminderOutcomes.none,
+  });
+  expect(scheduled.has(reminderId)).toBe(false);
+  expect(deletedIds).toEqual([routine.id]);
+
+  expect(await handler({ ...request, expected: { ...routine, time: "10:00" } })).toMatchObject({
+    status: DeleteRoutineStatus.conflict,
+    operationId: request.operationId,
+  });
+
+  const stale = { ...routine, id: "relay-delete-stale" };
+  await storage.saveRoutine(stale);
+  await storage.saveRoutine({ ...stale, productName: "Changed" });
+  expect(await handler({ operationId: "delete-stale-op", expected: stale })).toMatchObject({
+    status: DeleteRoutineStatus.conflict,
+  });
+  expect((await storage.loadData()).routines.find(({ id }) => id === stale.id)?.productName).toBe(
+    "Changed",
+  );
 });
 
 test("relay edits compare snapshots, preserve paused state, and never replay after later changes", async () => {

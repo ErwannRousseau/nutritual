@@ -1,8 +1,13 @@
 import {
   CreateRoutineDeliveryStatus,
+  DeleteRoutineDeliveryStatus,
   EditRoutineDeliveryStatus,
   ListRoutinesStatus,
   type EditRoutineDeliveryResult,
+  type DeleteRoutineDeliveryResult,
+  type DeleteRoutineCommandMessage,
+  type DeleteRoutineRequest,
+  type DeleteRoutineResultMessage,
   type EditRoutineCommandMessage,
   type EditRoutineRequest,
   type EditRoutineResultMessage,
@@ -40,9 +45,18 @@ type PendingEditRequest = {
   finish: (result: EditRoutineDeliveryResult) => void;
 };
 
+type PendingDeleteRequest = {
+  userId: string;
+  connectionId: string;
+  operationId: string;
+  routineId: string;
+  finish: (result: DeleteRoutineDeliveryResult) => void;
+};
+
 export function createRoutineRelay() {
   const pendingRequests = new Map<string, PendingRequest>();
   const pendingEdits = new Map<string, PendingEditRequest>();
+  const pendingDeletes = new Map<string, PendingDeleteRequest>();
 
   const pendingLists = new Map<
     string,
@@ -90,6 +104,16 @@ export function createRoutineRelay() {
         });
       }
     }
+
+    for (const pending of pendingDeletes.values()) {
+      if (pending.userId === userId && pending.connectionId === phoneId) {
+        pending.finish({
+          status: DeleteRoutineDeliveryStatus.unconfirmed,
+          operationId: pending.operationId,
+          message: "Phone disconnected before acknowledgment.",
+        });
+      }
+    }
   }
 
   function resultMatchesRequest(result: CreateRoutineResult, operationId: string): boolean {
@@ -121,6 +145,22 @@ export function createRoutineRelay() {
     message: EditRoutineResultMessage,
   ): void {
     const pending = pendingEdits.get(message.requestId);
+
+    if (
+      pending?.userId === userId &&
+      pending.connectionId === phoneId &&
+      message.result.operationId === pending.operationId &&
+      (!("routineId" in message.result) || message.result.routineId === pending.routineId)
+    )
+      pending.finish(message.result);
+  }
+
+  function receiveDeleteResult(
+    userId: string,
+    phoneId: string,
+    message: DeleteRoutineResultMessage,
+  ): void {
+    const pending = pendingDeletes.get(message.requestId);
 
     if (
       pending?.userId === userId &&
@@ -170,6 +210,52 @@ export function createRoutineRelay() {
       } catch {
         pending.finish({
           status: EditRoutineDeliveryStatus.unconfirmed,
+          operationId: command.operationId,
+          message: "Command delivery could not be confirmed.",
+        });
+      }
+    });
+  }
+
+  function deliverDeleteToPhone(
+    phone: DeviceConnection,
+    userId: string,
+    command: DeleteRoutineRequest,
+  ): Promise<DeleteRoutineDeliveryResult> {
+    const requestId = crypto.randomUUID();
+
+    return new Promise((resolve) => {
+      let timeout: ReturnType<typeof setTimeout>;
+
+      const pending: PendingDeleteRequest = {
+        userId,
+        connectionId: phone.id,
+        operationId: command.operationId,
+        routineId: command.expected.id,
+        finish: (result) => {
+          if (!pendingDeletes.delete(requestId)) return;
+          clearTimeout(timeout);
+          resolve(result);
+        },
+      };
+
+      timeout = setTimeout(
+        () =>
+          pending.finish({
+            status: DeleteRoutineDeliveryStatus.unconfirmed,
+            operationId: command.operationId,
+            message: "No phone acknowledgment within 10 seconds.",
+          }),
+        acknowledgementTimeoutMs,
+      );
+      pendingDeletes.set(requestId, pending);
+
+      try {
+        const message: DeleteRoutineCommandMessage = { type: "delete_routine", requestId, command };
+        phone.send(JSON.stringify(message));
+      } catch {
+        pending.finish({
+          status: DeleteRoutineDeliveryStatus.unconfirmed,
           operationId: command.operationId,
           message: "Command delivery could not be confirmed.",
         });
@@ -376,16 +462,31 @@ export function createRoutineRelay() {
     return deliverEditToPhone(phone, userId, command);
   }
 
+  async function deleteRoutine(
+    userId: string,
+    command: DeleteRoutineRequest,
+  ): Promise<DeleteRoutineDeliveryResult> {
+    const phone = connectedPhones.get(userId);
+
+    if (!phone) {
+      return { status: DeleteRoutineDeliveryStatus.unavailable, message: "No phone is connected." };
+    }
+
+    return deliverDeleteToPhone(phone, userId, command);
+  }
+
   return {
     connectPhone,
     disconnectPhone,
     disconnectPairedPhone,
     receivePhoneResult,
     receiveEditResult,
+    receiveDeleteResult,
     receiveListResult,
     listRoutines,
     createRoutine,
     editRoutine,
+    deleteRoutine,
   };
 }
 
