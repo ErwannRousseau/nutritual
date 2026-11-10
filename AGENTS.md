@@ -8,6 +8,7 @@ the phone, with routine creation from ChatGPT through an authenticated relay.
 - Use Bun workspaces. Run workspace commands from the repository root.
 - Define status values as constants and use those constants in comparisons and
   switch cases. Reuse existing status constants when available.
+- Use `if` or `switch` for multiple branches. Do not nest ternary expressions.
 
 ## Architecture and ownership
 

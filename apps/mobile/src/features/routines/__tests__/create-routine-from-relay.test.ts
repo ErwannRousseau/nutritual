@@ -39,10 +39,17 @@ let database = new Database(databasePath);
 let transactionTail = Promise.resolve();
 let nextId = 0;
 let scheduleCalls = 0;
+let cancelCalls = 0;
 let scheduled = new Map<string, { identifier: string }>();
+
+const scheduledRequests: {
+  trigger?: { type?: string; weekday?: number; hour?: number; minute?: number };
+}[] = [];
+
 let nextScheduleGate: { entered(): void; promise: Promise<void> } | undefined;
 let notificationPermission: "granted" | "denied" = "granted";
 let failNextSchedule = false;
+let failNextCancel = false;
 
 function bindings(parameters: TestBinding[]): SQLQueryBindings[] {
   const values: SQLQueryBindings[] = [];
@@ -101,6 +108,13 @@ mock.module("expo-notifications", () => ({
   IosAuthorizationStatus: { AUTHORIZED: 1, PROVISIONAL: 2, EPHEMERAL: 3 },
   getAllScheduledNotificationsAsync: async () => [...scheduled.values()],
   cancelScheduledNotificationAsync: async (identifier: string) => {
+    cancelCalls += 1;
+
+    if (failNextCancel) {
+      failNextCancel = false;
+      throw new Error("Notification cancellation failed.");
+    }
+
     scheduled.delete(identifier);
   },
   getPermissionsAsync: async () => ({
@@ -111,7 +125,10 @@ mock.module("expo-notifications", () => ({
     status: notificationPermission,
     ios: { status: notificationPermission === "granted" ? 1 : 0 },
   }),
-  scheduleNotificationAsync: async (request: { identifier?: string }) => {
+  scheduleNotificationAsync: async (request: {
+    identifier?: string;
+    trigger?: { type?: string; weekday?: number; hour?: number; minute?: number };
+  }) => {
     scheduleCalls += 1;
 
     if (failNextSchedule) {
@@ -129,6 +146,7 @@ mock.module("expo-notifications", () => ({
 
     const identifier = request.identifier ?? `scheduled-${scheduleCalls}`;
     scheduled.set(identifier, { identifier });
+    scheduledRequests.push({ trigger: request.trigger });
 
     return identifier;
   },
@@ -761,6 +779,254 @@ test("relay edits compare snapshots, preserve paused state, and never replay aft
   expect(
     (await storage.loadData()).routines.find(({ id }) => id === concurrentRoutine.id),
   ).not.toEqual(concurrentRoutine);
+});
+
+test("paused-only relay edits are unchanged and stay no-ops on retry", async () => {
+  const { editRoutineFromRelayHandler } = await import("../edit-routine-from-relay");
+  const storage = await import("../storage");
+
+  const routine = {
+    id: "relay-paused-only",
+    productName: "Magnesium",
+    frequency: { kind: FrequencyKind.weekdays, days: [1] },
+    time: "09:00",
+    paused: false,
+  };
+
+  await storage.saveRoutine(routine);
+  scheduled.set("nutritual:relay-paused-only:weekday-1", {
+    identifier: "nutritual:relay-paused-only:weekday-1",
+  });
+
+  const queue = createActionQueue(() => undefined);
+  queue.finishLoading();
+  const reminderStates: string[] = [];
+  let dataUpdates = 0;
+
+  const handler = editRoutineFromRelayHandler({
+    serialize: queue.run,
+    onData: () => dataUpdates++,
+    onError: () => undefined,
+    onReminder: ({ status }) => reminderStates.push(status),
+  });
+
+  const request = {
+    operationId: "pause-only-op",
+    expected: routine,
+    changes: { paused: false },
+  };
+
+  const initialScheduleCalls = scheduleCalls;
+  const initialCancelCalls = cancelCalls;
+
+  expect(await handler(request)).toEqual({
+    status: EditRoutineStatus.unchanged,
+    operationId: request.operationId,
+    routineId: routine.id,
+    reminder: ReminderOutcomes.unconfirmed,
+  });
+  expect((await storage.loadData()).routines.find(({ id }) => id === routine.id)).toEqual(routine);
+  expect(scheduleCalls).toBe(initialScheduleCalls);
+  expect(cancelCalls).toBe(initialCancelCalls);
+  expect(scheduled.has("nutritual:relay-paused-only:weekday-1")).toBe(true);
+  expect(reminderStates).toEqual([]);
+  expect(dataUpdates).toBe(0);
+
+  await storage.saveRoutine({ ...routine, productName: "Changed later" });
+  expect(await handler(request)).toEqual({
+    status: EditRoutineStatus.unchanged,
+    operationId: request.operationId,
+    routineId: routine.id,
+    reminder: ReminderOutcomes.unconfirmed,
+  });
+  expect((await storage.loadData()).routines.find(({ id }) => id === routine.id)?.productName).toBe(
+    "Changed later",
+  );
+  expect(scheduleCalls).toBe(initialScheduleCalls);
+  expect(cancelCalls).toBe(initialCancelCalls);
+
+  const paused = { ...routine, id: "relay-resume-only", paused: true };
+  await storage.saveRoutine(paused);
+
+  const resumeRequest = {
+    operationId: "resume-only-op",
+    expected: paused,
+    changes: { paused: true },
+  };
+
+  expect(await handler(resumeRequest)).toEqual({
+    status: EditRoutineStatus.unchanged,
+    operationId: resumeRequest.operationId,
+    routineId: paused.id,
+    reminder: ReminderOutcomes.unconfirmed,
+  });
+  expect((await storage.loadData()).routines.find(({ id }) => id === paused.id)).toEqual(paused);
+  expect(scheduleCalls).toBe(initialScheduleCalls);
+  expect(cancelCalls).toBe(initialCancelCalls);
+});
+
+test("pause and resume edits preserve reminder failure handling and cancellation", async () => {
+  const { editRoutineFromRelayHandler } = await import("../edit-routine-from-relay");
+  const storage = await import("../storage");
+
+  const routine = {
+    id: "relay-pause-with-time",
+    productName: "Magnesium",
+    frequency: { kind: FrequencyKind.weekdays, days: [1] },
+    time: "09:00",
+    paused: false,
+  };
+
+  await storage.saveRoutine(routine);
+  const identifier = "nutritual:relay-pause-with-time:weekday-1";
+  scheduled.set(identifier, { identifier });
+
+  const queue = createActionQueue(() => undefined);
+  queue.finishLoading();
+
+  const handler = editRoutineFromRelayHandler({
+    serialize: queue.run,
+    onData: () => undefined,
+    onError: () => undefined,
+    onReminder: () => undefined,
+  });
+
+  const initialScheduleCalls = scheduleCalls;
+
+  const pause = await handler({
+    operationId: "pause-with-time-op",
+    expected: routine,
+    changes: { paused: true },
+  });
+
+  expect(pause).toMatchObject({
+    status: EditRoutineStatus.updated,
+    reminder: ReminderOutcomes.none,
+  });
+  expect(scheduled.has(identifier)).toBe(false);
+  expect(scheduleCalls).toBe(initialScheduleCalls);
+
+  const paused = (await storage.loadData()).routines.find(({ id }) => id === routine.id);
+
+  if (!paused) throw new Error("Paused routine is missing.");
+  notificationPermission = "denied";
+
+  const deniedResume = await handler({
+    operationId: "resume-denied-op",
+    expected: paused,
+    changes: { paused: false },
+  });
+
+  expect(deniedResume).toMatchObject({
+    status: EditRoutineStatus.updated,
+    reminder: ReminderOutcomes.denied,
+  });
+  expect((await storage.loadData()).routines.find(({ id }) => id === routine.id)).toMatchObject({
+    paused: false,
+    time: "09:00",
+  });
+  expect(scheduleCalls).toBe(initialScheduleCalls);
+
+  notificationPermission = "granted";
+  failNextSchedule = true;
+  const afterDeniedResume = (await storage.loadData()).routines.find(({ id }) => id === routine.id);
+
+  if (!afterDeniedResume) throw new Error("Resumed routine is missing.");
+
+  const schedulingFailure = await handler({
+    operationId: "schedule-failed-op",
+    expected: afterDeniedResume,
+    changes: { time: "12:00" },
+  });
+
+  expect(schedulingFailure).toMatchObject({
+    status: EditRoutineStatus.updated,
+    reminder: ReminderOutcomes.failed,
+  });
+
+  const afterFailure = (await storage.loadData()).routines.find(({ id }) => id === routine.id);
+
+  if (!afterFailure) throw new Error("Routine after the scheduling failure is missing.");
+
+  const successfulResume = await handler({
+    operationId: "schedule-retry-op",
+    expected: afterFailure,
+    changes: { time: "13:00" },
+  });
+
+  expect(successfulResume).toMatchObject({
+    status: EditRoutineStatus.updated,
+    reminder: ReminderOutcomes.scheduled,
+  });
+  expect(scheduleCalls).toBeGreaterThan(initialScheduleCalls);
+
+  const cancelRoutine = { ...routine, id: "relay-pause-cancel-failure" };
+  await storage.saveRoutine(cancelRoutine);
+  const cancelIdentifier = "nutritual:relay-pause-cancel-failure:weekday-1";
+  scheduled.set(cancelIdentifier, { identifier: cancelIdentifier });
+  failNextCancel = true;
+
+  const cancelFailure = await handler({
+    operationId: "pause-cancel-failed-op",
+    expected: cancelRoutine,
+    changes: { paused: true },
+  });
+
+  expect(cancelFailure).toMatchObject({
+    status: EditRoutineStatus.updated,
+    reminder: ReminderOutcomes.failed,
+  });
+  expect(
+    (await storage.loadData()).routines.find(({ id }) => id === cancelRoutine.id),
+  ).toMatchObject({
+    paused: true,
+    time: "09:00",
+  });
+  expect(scheduled.has(cancelIdentifier)).toBe(true);
+});
+
+test("resuming a routine schedules its preserved weekly schedule without catch-up reminders", async () => {
+  const { editRoutineFromRelayHandler } = await import("../edit-routine-from-relay");
+  const storage = await import("../storage");
+
+  const paused = {
+    id: "relay-resume-preserved-schedule",
+    productName: "Magnesium",
+    frequency: { kind: FrequencyKind.weekdays, days: [1, 3] },
+    time: "09:00",
+    paused: true,
+  };
+
+  await storage.saveRoutine(paused);
+
+  const queue = createActionQueue(() => undefined);
+  queue.finishLoading();
+
+  const handler = editRoutineFromRelayHandler({
+    serialize: queue.run,
+    onData: () => undefined,
+    onError: () => undefined,
+    onReminder: () => undefined,
+  });
+
+  const firstNewSchedule = scheduledRequests.length;
+
+  expect(
+    await handler({
+      operationId: "resume-preserved-schedule-op",
+      expected: paused,
+      changes: { paused: false },
+    }),
+  ).toMatchObject({ status: EditRoutineStatus.updated, reminder: ReminderOutcomes.scheduled });
+
+  expect((await storage.loadData()).routines.find(({ id }) => id === paused.id)).toEqual({
+    ...paused,
+    paused: false,
+  });
+  expect(scheduledRequests.slice(firstNewSchedule).map(({ trigger }) => trigger)).toEqual([
+    { type: "weekly", weekday: 2, hour: 9, minute: 0 },
+    { type: "weekly", weekday: 4, hour: 9, minute: 0 },
+  ]);
 });
 
 test("creation and editing wait for each other through the shared action queue", async () => {

@@ -25,6 +25,7 @@ const editRoutineSchema = z
       productName: z.string().trim().min(1).optional(),
       frequency: frequencySchema.optional(),
       time: z.string().optional(),
+      paused: z.boolean().optional(),
     }),
   })
   .superRefine((value, context) => {
@@ -41,7 +42,7 @@ export function registerEditIntakeRoutineTool(
     "edit_intake_routine",
     {
       description:
-        "Edit one intake routine on the paired Nutritual phone. First use list_intake_routines and pass the exact listed routine as expected, then specify only the fields to change. If multiple routines could match the user's request, ask which one before editing. For a request affecting several routines, make one tool call per routine, each with its own UUID operationId and exact expected snapshot. On an unconfirmed or ambiguous result, retry the exact same operationId and full input: the phone returns the prior outcome when already processed, so the retry discovers whether the edit took effect without applying it twice. A conflict means the routine changed since it was listed; list again and clarify if the target is no longer unambiguous. An updated or already_processed status confirms the routine change was saved. The reminder field reports scheduling status only and does not confirm notification delivery or an intake. Times are local phone time; weekdays use 0 for Sunday through 6 for Saturday.",
+        "Edit one intake routine on the paired Nutritual phone. Pause or resume it with paused: true or false. First use list_intake_routines and pass the exact listed routine as expected, then specify only the fields to change. If multiple routines could match the user's request, ask which one before editing. For a request affecting several routines, make one tool call per routine, each with its own UUID operationId and exact expected snapshot. On an unconfirmed or ambiguous result, retry the exact same operationId and full input: the phone returns the prior outcome when already processed, so the retry discovers whether the edit took effect without applying it twice. A conflict means the routine changed since it was listed; list again and clarify if the target is no longer unambiguous. An updated or already_processed status confirms the routine change was saved. An unchanged status means a pause or resume request already matched the routine's paused state; its reminder is unconfirmed because no scheduling change was made. The reminder field reports scheduling status only and does not confirm notification delivery or an intake. Times are local phone time; weekdays use 0 for Sunday through 6 for Saturday.",
       inputSchema: editRoutineSchema,
     },
     async (input) => {
@@ -52,7 +53,8 @@ export function registerEditIntakeRoutineTool(
         content: [{ type: "text", text: JSON.stringify(result) }],
         isError:
           result.status !== EditRoutineStatus.updated &&
-          result.status !== EditRoutineStatus.alreadyProcessed,
+          result.status !== EditRoutineStatus.alreadyProcessed &&
+          result.status !== EditRoutineStatus.unchanged,
       };
     },
   );

@@ -11,6 +11,7 @@ import { parseReminderOutcome, type RoutineOperationRow } from "./shared";
 
 export type EditRoutineOperationResult =
   | { status: typeof EditRoutineStatus.updated; routine: Routine }
+  | { status: typeof EditRoutineStatus.unchanged; routineId: string }
   | {
       status: typeof EditRoutineStatus.alreadyProcessed;
       routineId: string;
@@ -23,6 +24,12 @@ function editRoutineRequestJson(request: EditRoutineRequest): string {
     expected: request.expected,
     changes: request.changes,
   });
+}
+
+function isPausedOnlyEdit(request: EditRoutineRequest): boolean {
+  return (
+    Object.keys(request.changes).length === 1 && request.changes.paused === request.expected.paused
+  );
 }
 
 function sameRoutine(current: Routine, expected: ListedRoutine): boolean {
@@ -49,14 +56,17 @@ export async function editRoutineOperation(
     );
 
     if (existing) {
-      result =
-        existing.request_json === requestJson
-          ? {
-              status: EditRoutineStatus.alreadyProcessed,
-              routineId: existing.routine_id,
-              reminder: parseReminderOutcome(existing.reminder_outcome),
-            }
-          : { status: EditRoutineStatus.conflict };
+      if (existing.request_json !== requestJson) return;
+
+      if (isPausedOnlyEdit(request)) {
+        result = { status: EditRoutineStatus.unchanged, routineId: existing.routine_id };
+      } else {
+        result = {
+          status: EditRoutineStatus.alreadyProcessed,
+          routineId: existing.routine_id,
+          reminder: parseReminderOutcome(existing.reminder_outcome),
+        };
+      }
 
       return;
     }
@@ -71,6 +81,16 @@ export async function editRoutineOperation(
     const current = routineFromRow(row);
 
     if (!sameRoutine(current, request.expected)) return;
+
+    if (isPausedOnlyEdit(request)) {
+      await transaction.runAsync(
+        "INSERT INTO routine_operations (operation_id, request_json, routine_id, reminder_outcome) VALUES (?, ?, ?, NULL)",
+        [request.operationId, requestJson, current.id],
+      );
+      result = { status: EditRoutineStatus.unchanged, routineId: current.id };
+
+      return;
+    }
 
     const routine: Routine = {
       ...current,
