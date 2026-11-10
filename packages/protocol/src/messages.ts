@@ -4,6 +4,10 @@ import {
   type ListRoutinesResult,
   isCreateRoutineRequest,
   isCreateRoutineResult,
+  isEditRoutineRequest,
+  isEditRoutineResult,
+  type EditRoutineRequest,
+  type EditRoutineResult,
   type CreateRoutineRequest,
   type CreateRoutineResult,
 } from "./routine";
@@ -39,6 +43,38 @@ export function isCreateRoutineResultMessage(value: unknown): value is CreateRou
     typeof value.requestId === "string" &&
     !!value.requestId &&
     isCreateRoutineResult(value.result)
+  );
+}
+
+export type EditRoutineCommandMessage = {
+  type: "edit_routine";
+  requestId: string;
+  command: EditRoutineRequest;
+};
+
+export type EditRoutineResultMessage = {
+  type: "edit_routine_result";
+  requestId: string;
+  result: EditRoutineResult;
+};
+
+export function isEditRoutineCommandMessage(value: unknown): value is EditRoutineCommandMessage {
+  return (
+    isRecord(value) &&
+    value.type === "edit_routine" &&
+    typeof value.requestId === "string" &&
+    !!value.requestId &&
+    isEditRoutineRequest(value.command)
+  );
+}
+
+export function isEditRoutineResultMessage(value: unknown): value is EditRoutineResultMessage {
+  return (
+    isRecord(value) &&
+    value.type === "edit_routine_result" &&
+    typeof value.requestId === "string" &&
+    !!value.requestId &&
+    isEditRoutineResult(value.result)
   );
 }
 

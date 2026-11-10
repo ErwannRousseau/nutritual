@@ -8,19 +8,24 @@ import {
   type ReminderOutcome,
 } from "@nutritual/protocol";
 import type { ReminderState, Routine } from "./model";
+import { ReminderStatus } from "./model";
 import * as storage from "./storage";
+import * as relayOperations from "./operations/create";
+import { updateRoutineOperationReminder } from "./operations/shared";
 import { updateReminder } from "./reminders";
 
 type RelayCallbacks = {
   onData(data: Awaited<ReturnType<typeof storage.loadData>>): void;
   onError(message: string): void;
   onReminder(reminder: ReminderState): void;
+  serialize<T>(action: () => Promise<T>): Promise<T>;
 };
 
 export function createRoutineFromRelayHandler({
   onData,
   onError,
   onReminder,
+  serialize,
 }: RelayCallbacks): (request: CreateRoutineRequest) => Promise<CreateRoutineResult> {
   const operations = new Map<
     string,
@@ -46,8 +51,10 @@ export function createRoutineFromRelayHandler({
       paused: false,
     };
 
+    let committedRoutine: Routine | undefined;
+
     try {
-      const operation = await storage.createRoutineOperation(request, routine);
+      const operation = await relayOperations.createRoutineOperation(request, routine);
 
       if (operation.status === CreateRoutineStatus.conflict) {
         return {
@@ -66,13 +73,17 @@ export function createRoutineFromRelayHandler({
         };
       }
 
+      committedRoutine = operation.routine;
+
       const reminderState = await updateReminder(operation.routine, true);
 
       let reminder: ReminderOutcome =
-        reminderState.status === "paused" ? ReminderOutcomes.failed : reminderState.status;
+        reminderState.status === ReminderStatus.paused
+          ? ReminderOutcomes.failed
+          : reminderState.status;
 
       try {
-        await storage.updateRoutineOperationReminder(request.operationId, reminder);
+        await updateRoutineOperationReminder(request.operationId, reminder);
       } catch {
         reminder = ReminderOutcomes.unconfirmed;
       }
@@ -92,6 +103,15 @@ export function createRoutineFromRelayHandler({
         reminder,
       };
     } catch {
+      if (committedRoutine) {
+        return {
+          status: CreateRoutineStatus.created,
+          operationId: request.operationId,
+          routineId: committedRoutine.id,
+          reminder: ReminderOutcomes.unconfirmed,
+        };
+      }
+
       return {
         status: CreateRoutineStatus.failed,
         operationId: request.operationId,
@@ -101,7 +121,7 @@ export function createRoutineFromRelayHandler({
   }
 
   return (request) => {
-    const requestJson = storage.createRoutineRequestJson(request);
+    const requestJson = relayOperations.createRoutineRequestJson(request);
     const existing = operations.get(request.operationId);
 
     if (existing) {
@@ -120,7 +140,7 @@ export function createRoutineFromRelayHandler({
       );
     }
 
-    const promise = createOnce(request).finally(() => {
+    const promise = serialize(() => createOnce(request)).finally(() => {
       if (operations.get(request.operationId)?.promise === promise) {
         operations.delete(request.operationId);
       }

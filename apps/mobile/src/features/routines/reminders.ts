@@ -3,7 +3,7 @@ import { randomUUID } from "expo-crypto";
 import { FrequencyKind, ReminderOutcomes } from "@nutritual/protocol";
 import type { NotificationRequestInput } from "expo-notifications";
 import type { ReminderState, Routine } from "@/features/routines/model";
-import { nextOccurrence } from "@/features/routines/model";
+import { nextOccurrence, ReminderStatus } from "@/features/routines/model";
 
 const identifierPrefix = "nutritual:";
 const maxIntervalReminders = 16;
@@ -84,7 +84,8 @@ async function updateReminderOnce(
     const prefix = routinePrefix(routine.id);
     await cancelScheduled(await ownScheduled(prefix));
 
-    if (routine.paused) return state(routine.id, "paused", "Routine paused. No active reminders.");
+    if (routine.paused)
+      return state(routine.id, ReminderStatus.paused, "Routine paused. No active reminders.");
 
     if (routine.frequency.kind === FrequencyKind.asNeeded)
       return state(routine.id, ReminderOutcomes.none, "As-needed routine. No reminders scheduled.");

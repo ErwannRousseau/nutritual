@@ -3,8 +3,6 @@ import { DATABASE_URL } from "./env.ts";
 
 export const database = new Pool({ connectionString: DATABASE_URL, max: 5 });
 
-export type ChallengeStatus = "pending" | "approved" | "declined" | "mismatch" | "expired";
-
 export function digest(value: string): string {
   return new Bun.CryptoHasher("sha256").update(value).digest("hex");
 }

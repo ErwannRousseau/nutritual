@@ -1,11 +1,13 @@
 import { randomUUID } from "expo-crypto";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppState } from "react-native";
 import type { Intake, ReminderState, Routine, RoutineDraft } from "@/features/routines/model";
 import { validateRoutine } from "@/features/routines/model";
 import * as storage from "@/features/routines/storage";
 import { removeReminders, restoreReminders, updateReminder } from "@/features/routines/reminders";
 import { createRoutineFromRelayHandler } from "@/features/routines/create-routine-from-relay";
+import { editRoutineFromRelayHandler } from "@/features/routines/edit-routine-from-relay";
+import { createActionQueue } from "@/features/routines/action-queue";
 
 export function useRoutines() {
   const [data, setData] = useState<{ routines: Routine[]; intakes: Intake[] }>({
@@ -17,49 +19,66 @@ export function useRoutines() {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reminders, setReminders] = useState<ReminderState[]>([]);
-  const locked = useRef(true);
+  const [actionQueue] = useState(() => createActionQueue(setBusy));
 
   const createRoutineFromRelay = useMemo(
     () =>
       createRoutineFromRelayHandler({
         onData: setData,
         onError: setError,
+        serialize: actionQueue.run,
         onReminder: (reminder) =>
           setReminders((current) => [
             ...current.filter((item) => item.routineId !== reminder.routineId),
             reminder,
           ]),
       }),
-    [setData, setError, setReminders],
+    [actionQueue],
   );
 
-  async function run(action: () => Promise<void>): Promise<boolean> {
-    if (locked.current) return false;
-    locked.current = true;
-    setBusy(true);
-    setError(null);
+  const editRoutineFromRelay = useMemo(
+    () =>
+      editRoutineFromRelayHandler({
+        onData: setData,
+        onError: setError,
+        serialize: actionQueue.run,
+        onReminder: (reminder) =>
+          setReminders((current) => [
+            ...current.filter((item) => item.routineId !== reminder.routineId),
+            reminder,
+          ]),
+      }),
+    [actionQueue],
+  );
 
-    try {
-      await action();
-      setData(await storage.loadData());
+  const run = useCallback(
+    async (action: () => Promise<void>): Promise<boolean> => {
+      if (actionQueue.isBusy()) return false;
 
-      return true;
-    } catch {
-      setError("Unable to read or save data on this phone. Try again.");
+      return actionQueue.run(async () => {
+        setError(null);
 
-      return false;
-    } finally {
-      locked.current = false;
-      setBusy(false);
-    }
-  }
+        try {
+          await action();
+          setData(await storage.loadData());
 
-  async function reload(): Promise<void> {
+          return true;
+        } catch {
+          setError("Unable to read or save data on this phone. Try again.");
+
+          return false;
+        }
+      });
+    },
+    [actionQueue],
+  );
+
+  const reload = useCallback(async (): Promise<void> => {
     await run(async () => {
       const stored = await storage.loadData();
       setReminders(await restoreReminders(stored.routines));
     });
-  }
+  }, [run]);
 
   useEffect(() => {
     let active = true;
@@ -78,8 +97,7 @@ export function useRoutines() {
       })
       .finally(() => {
         if (active) {
-          locked.current = false;
-          setBusy(false);
+          actionQueue.finishLoading();
           setReady(true);
         }
       });
@@ -92,7 +110,7 @@ export function useRoutines() {
       active = false;
       subscription.remove();
     };
-  }, []);
+  }, [actionQueue, reload]);
 
   async function save(draft: RoutineDraft, id?: string): Promise<boolean> {
     const validation = validateRoutine(draft);
@@ -103,18 +121,26 @@ export function useRoutines() {
       return false;
     }
 
-    const existing = id ? data.routines.find((routine) => routine.id === id) : undefined;
+    let missing = false;
 
-    if (id && !existing) return false;
+    const saved = await run(async () => {
+      const existing = id
+        ? (await storage.loadData()).routines.find((routine) => routine.id === id)
+        : undefined;
 
-    const routine: Routine = {
-      ...draft,
-      productName: draft.productName.trim(),
-      id: existing?.id ?? randomUUID(),
-      paused: existing?.paused ?? false,
-    };
+      if (id && !existing) {
+        missing = true;
 
-    return run(async () => {
+        return;
+      }
+
+      const routine: Routine = {
+        ...draft,
+        productName: draft.productName.trim(),
+        id: existing?.id ?? randomUUID(),
+        paused: existing?.paused ?? false,
+      };
+
       await storage.saveRoutine(routine);
       const result = await updateReminder(routine, true);
       setReminders((current) => [
@@ -122,6 +148,8 @@ export function useRoutines() {
         result,
       ]);
     });
+
+    return saved && !missing;
   }
 
   async function remove(id: string): Promise<boolean> {
@@ -133,32 +161,47 @@ export function useRoutines() {
   }
 
   async function pause(id: string): Promise<boolean> {
-    const routine = data.routines.find((item) => item.id === id);
+    let missing = false;
 
-    if (!routine) return false;
+    const updated = await run(async () => {
+      const routine = (await storage.loadData()).routines.find((item) => item.id === id);
 
-    const updated = { ...routine, paused: !routine.paused };
+      if (!routine) {
+        missing = true;
 
-    return run(async () => {
-      await storage.saveRoutine(updated);
-      const result = await updateReminder(updated, !updated.paused);
+        return;
+      }
+
+      const next = { ...routine, paused: !routine.paused };
+      await storage.saveRoutine(next);
+      const result = await updateReminder(next, !next.paused);
       setReminders((current) => [...current.filter((item) => item.routineId !== id), result]);
     });
+
+    return updated && !missing;
   }
 
   async function record(id: string): Promise<boolean> {
-    const routine = data.routines.find((item) => item.id === id);
+    let missing = false;
 
-    if (!routine) return false;
+    const recorded = await run(async () => {
+      const routine = (await storage.loadData()).routines.find((item) => item.id === id);
 
-    return run(() =>
-      storage.saveIntake({
+      if (!routine) {
+        missing = true;
+
+        return;
+      }
+
+      await storage.saveIntake({
         id: randomUUID(),
         routineId: routine.id,
         productName: routine.productName,
         recordedAt: new Date().toISOString(),
-      }),
-    );
+      });
+    });
+
+    return recorded && !missing;
   }
 
   async function undo(id: string): Promise<boolean> {
@@ -173,6 +216,7 @@ export function useRoutines() {
     error,
     save,
     createRoutineFromRelay,
+    editRoutineFromRelay,
     remove,
     pause,
     record,

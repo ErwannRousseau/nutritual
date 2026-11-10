@@ -4,17 +4,12 @@ import {
   isValidDateString,
   validateRoutineInput,
   type Frequency,
+  type ListedRoutine,
   type ReminderOutcome,
   type RoutineInput,
 } from "@nutritual/protocol";
 
-export type Routine = {
-  id: string;
-  productName: string;
-  frequency: Frequency;
-  time: string;
-  paused: boolean;
-};
+export type Routine = ListedRoutine;
 
 export type Intake = {
   id: string;
@@ -23,9 +18,13 @@ export type Intake = {
   recordedAt: string;
 };
 
+export const ReminderStatus = { paused: "paused" } as const;
+
 export type ReminderState = {
   routineId: string;
-  status: Exclude<ReminderOutcome, typeof ReminderOutcomes.unconfirmed> | "paused";
+  status:
+    | Exclude<ReminderOutcome, typeof ReminderOutcomes.unconfirmed>
+    | typeof ReminderStatus.paused;
   message: string;
 };
 
