@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { routineNameSchema } from "@/features/routines/routine-name-form";
+import { routineNameSchema } from "@/features/routines/routine-name-schema";
 
 const validName = { productName: "Vitamin D", form: "", amount: "", unit: "" };
 
