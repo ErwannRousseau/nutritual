@@ -711,6 +711,23 @@ test("relay deletion compares snapshots, preserves intake history, and retries r
     onDeleted: (id) => deletedIds.push(id),
   });
 
+  const missing = {
+    operationId: "delete-missing-op",
+    expected: {
+      id: "relay-delete-missing",
+      productName: "Not saved",
+      frequency: { kind: FrequencyKind.asNeeded },
+      time: "",
+      paused: false,
+    },
+  };
+
+  expect(await handler(missing)).toEqual({
+    status: DeleteRoutineStatus.notFound,
+    operationId: missing.operationId,
+    message: "The routine no longer exists on this phone.",
+  });
+
   const routine = {
     id: "relay-delete-history",
     productName: "Magnesium",
@@ -761,6 +778,29 @@ test("relay deletion compares snapshots, preserves intake history, and retries r
   expect(scheduled.has(reminderId)).toBe(false);
   expect(deletedIds).toEqual([routine.id]);
 
+  const recreated = { ...routine, productName: "New magnesium routine" };
+  await storage.saveRoutine(recreated);
+  await storage.saveRoutine({ ...routine, id: "unrelated-routine", productName: "Zinc" });
+  expect(await handler(request)).toEqual({
+    status: DeleteRoutineStatus.alreadyProcessed,
+    operationId: request.operationId,
+    routineId: routine.id,
+    reminder: ReminderOutcomes.none,
+  });
+  expect((await storage.loadData()).routines).toContainEqual(recreated);
+  expect((await storage.loadData()).routines).toContainEqual({
+    ...routine,
+    id: "unrelated-routine",
+    productName: "Zinc",
+  });
+  expect((await storage.loadData()).intakes).toContainEqual({
+    id: "intake-preserved-after-delete",
+    routineId: routine.id,
+    productName: routine.productName,
+    recordedAt: "2026-11-10T08:00:00.000Z",
+  });
+  expect(deletedIds).toEqual([routine.id]);
+
   expect(await handler({ ...request, expected: { ...routine, time: "10:00" } })).toMatchObject({
     status: DeleteRoutineStatus.conflict,
     operationId: request.operationId,
@@ -775,6 +815,34 @@ test("relay deletion compares snapshots, preserves intake history, and retries r
   expect((await storage.loadData()).routines.find(({ id }) => id === stale.id)?.productName).toBe(
     "Changed",
   );
+
+  const concurrent = { ...routine, id: "relay-delete-concurrent", productName: "Vitamin D" };
+  await storage.saveRoutine(concurrent);
+  await storage.saveIntake({
+    id: "intake-concurrent-delete",
+    routineId: concurrent.id,
+    productName: concurrent.productName,
+    recordedAt: "2026-11-10T08:30:00.000Z",
+  });
+
+  const concurrentRequest = { operationId: "delete-concurrent-op", expected: concurrent };
+
+  const concurrentResults = await Promise.all([
+    handler(concurrentRequest),
+    handler(concurrentRequest),
+  ]);
+
+  expect(concurrentResults.map(({ status }) => status).sort()).toEqual([
+    DeleteRoutineStatus.alreadyProcessed,
+    DeleteRoutineStatus.deleted,
+  ]);
+  expect((await storage.loadData()).routines.some(({ id }) => id === concurrent.id)).toBe(false);
+  expect((await storage.loadData()).intakes).toContainEqual({
+    id: "intake-concurrent-delete",
+    routineId: concurrent.id,
+    productName: concurrent.productName,
+    recordedAt: "2026-11-10T08:30:00.000Z",
+  });
 });
 
 test("relay edits compare snapshots, preserve paused state, and never replay after later changes", async () => {
