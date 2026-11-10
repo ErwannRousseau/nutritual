@@ -41,6 +41,11 @@ let nextId = 0;
 let scheduleCalls = 0;
 let cancelCalls = 0;
 let scheduled = new Map<string, { identifier: string }>();
+
+const scheduledRequests: {
+  trigger?: { type?: string; weekday?: number; hour?: number; minute?: number };
+}[] = [];
+
 let nextScheduleGate: { entered(): void; promise: Promise<void> } | undefined;
 let notificationPermission: "granted" | "denied" = "granted";
 let failNextSchedule = false;
@@ -120,7 +125,10 @@ mock.module("expo-notifications", () => ({
     status: notificationPermission,
     ios: { status: notificationPermission === "granted" ? 1 : 0 },
   }),
-  scheduleNotificationAsync: async (request: { identifier?: string }) => {
+  scheduleNotificationAsync: async (request: {
+    identifier?: string;
+    trigger?: { type?: string; weekday?: number; hour?: number; minute?: number };
+  }) => {
     scheduleCalls += 1;
 
     if (failNextSchedule) {
@@ -138,6 +146,7 @@ mock.module("expo-notifications", () => ({
 
     const identifier = request.identifier ?? `scheduled-${scheduleCalls}`;
     scheduled.set(identifier, { identifier });
+    scheduledRequests.push({ trigger: request.trigger });
 
     return identifier;
   },
@@ -974,6 +983,50 @@ test("pause and resume edits preserve reminder failure handling and cancellation
     time: "09:00",
   });
   expect(scheduled.has(cancelIdentifier)).toBe(true);
+});
+
+test("resuming a routine schedules its preserved weekly schedule without catch-up reminders", async () => {
+  const { editRoutineFromRelayHandler } = await import("../edit-routine-from-relay");
+  const storage = await import("../storage");
+
+  const paused = {
+    id: "relay-resume-preserved-schedule",
+    productName: "Magnesium",
+    frequency: { kind: FrequencyKind.weekdays, days: [1, 3] },
+    time: "09:00",
+    paused: true,
+  };
+
+  await storage.saveRoutine(paused);
+
+  const queue = createActionQueue(() => undefined);
+  queue.finishLoading();
+
+  const handler = editRoutineFromRelayHandler({
+    serialize: queue.run,
+    onData: () => undefined,
+    onError: () => undefined,
+    onReminder: () => undefined,
+  });
+
+  const firstNewSchedule = scheduledRequests.length;
+
+  expect(
+    await handler({
+      operationId: "resume-preserved-schedule-op",
+      expected: paused,
+      changes: { paused: false },
+    }),
+  ).toMatchObject({ status: EditRoutineStatus.updated, reminder: ReminderOutcomes.scheduled });
+
+  expect((await storage.loadData()).routines.find(({ id }) => id === paused.id)).toEqual({
+    ...paused,
+    paused: false,
+  });
+  expect(scheduledRequests.slice(firstNewSchedule).map(({ trigger }) => trigger)).toEqual([
+    { type: "weekly", weekday: 2, hour: 9, minute: 0 },
+    { type: "weekly", weekday: 4, hour: 9, minute: 0 },
+  ]);
 });
 
 test("creation and editing wait for each other through the shared action queue", async () => {
