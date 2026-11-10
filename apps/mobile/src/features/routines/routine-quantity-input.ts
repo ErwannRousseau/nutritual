@@ -1,9 +1,8 @@
-export function parsePositiveAmount(value: string): number | null {
-  const normalized = value.trim();
+import { z } from "zod";
 
-  if (!/^(?:\d+(?:[.,]\d+)?|[.,]\d+)$/.test(normalized)) return null;
-
-  const amount = Number(normalized.replace(",", "."));
-
-  return Number.isFinite(amount) && amount > 0 ? amount : null;
-}
+export const positiveAmountSchema = z
+  .string()
+  .trim()
+  .regex(/^(?:\d+(?:[.,]\d+)?|[.,]\d+)$/)
+  .transform((value) => Number(value.replace(",", ".")))
+  .pipe(z.number().finite().positive());
