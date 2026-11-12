@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Column, Picker, Row, Spacer, TextInput, useNativeState } from "@expo/ui";
+import { Button, Column, Picker, Row, Spacer, TextInput, useNativeState } from "@expo/ui";
 import { StyleSheet, useWindowDimensions } from "react-native";
 import Text from "@/shared/ui/Text";
 import { fillAvailableWidth } from "@/shared/ui/layout";
@@ -9,6 +9,7 @@ import { units, unitOptions } from "@/features/routines/product-units";
 
 interface QuantityUnitPickerProps {
   form: string;
+  amount: string;
   unit: string;
   onChangeUnit: (value: string) => void;
   onClearAmount: () => void;
@@ -19,6 +20,7 @@ interface QuantityUnitPickerProps {
 
 export default function QuantityUnitPicker({
   form,
+  amount,
   unit,
   onChangeUnit,
   onClearAmount,
@@ -45,8 +47,6 @@ export default function QuantityUnitPicker({
       setCustomUnit(false);
       onChangeUnit(value);
       unitInput.set(value);
-
-      if (!value) onClearAmount();
     } else {
       if (!customUnit) {
         onChangeUnit("");
@@ -65,6 +65,14 @@ export default function QuantityUnitPicker({
     onValidate?.();
   }
 
+  function clearAmount() {
+    setCustomUnit(false);
+    unitInput.set("");
+    onChangeUnit("");
+    onClearAmount();
+    onValidate?.();
+  }
+
   return (
     <Column spacing={8} modifiers={fillAvailableWidth}>
       <Row spacing={12} alignment="center" style={styles.pickerRow} modifiers={fillAvailableWidth}>
@@ -78,7 +86,7 @@ export default function QuantityUnitPicker({
           testID={testID}
           onValueChange={handleUnitChange}
         >
-          <Picker.Item label="Not specified" value="" />
+          <Picker.Item label="Select unit" value="" />
           {unitOptions(form).map((value) => (
             <Picker.Item key={value} label={value} value={value} />
           ))}
@@ -98,6 +106,11 @@ export default function QuantityUnitPicker({
           modifiers={fillAvailableWidth}
           testID={customTestID ?? `${testID}-custom`}
         />
+      ) : null}
+      {amount || unit ? (
+        <Button variant="text" onPress={clearAmount} testID={`${testID}-clear`}>
+          <Text color={colors.blue}>Clear amount</Text>
+        </Button>
       ) : null}
     </Column>
   );

@@ -13,9 +13,9 @@ import ProductBadge from "@/shared/ui/ProductBadge";
 import Screen from "@/shared/ui/Screen";
 import { usePalette } from "@/shared/ui/palette";
 import { dateLabel, routineScheduleDisplay } from "@/features/routines/display";
-import { formatAmount } from "@/features/routines/routine-name-schema";
+import { formatAmount, quantitySchema } from "@/features/routines/routine-name-schema";
 import { useRecordIntake } from "@/features/intakes/useRecordIntake";
-import { intakeQuantitySchema, parseIntakeQuantity } from "@/features/intakes/quantity";
+import { parseIntakeQuantity } from "@/features/intakes/quantity";
 import QuantityUnitPicker from "@/features/routines/components/QuantityUnitPicker";
 
 export default function RecordIntakeScreen() {
@@ -90,14 +90,14 @@ function RecordRoutineIntakeForm({
     handleSubmit,
     setValue,
     trigger,
-    formState: { errors, isValid },
+    formState: { errors, isSubmitted },
   } = useForm({
     defaultValues: { amount: initialAmount, unit: initialUnit },
-    resolver: zodResolver(intakeQuantitySchema),
-    mode: "onChange",
+    resolver: zodResolver(quantitySchema),
   });
 
   const form = routine.form ?? "";
+  const amount = useWatch({ control, name: "amount" });
   const unit = useWatch({ control, name: "unit" });
 
   const styles = useMemo(() => createStyles(colors, isSelected), [colors, isSelected]);
@@ -119,7 +119,7 @@ function RecordRoutineIntakeForm({
         <ActionButton
           label={isSaving ? "Saving…" : "Record intake"}
           onPress={() => void handleSubmit(save)()}
-          disabled={!isSelected || isActionDisabled || !isValid}
+          disabled={!isSelected || isActionDisabled}
         />
       }
     >
@@ -170,7 +170,8 @@ function RecordRoutineIntakeForm({
             onChangeText={(value) => {
               amountInput.set(value);
               setValue("amount", value);
-              void trigger();
+
+              if (isSubmitted) void trigger();
             }}
             keyboardType="decimal-pad"
             placeholder="Amount (optional)"
@@ -181,6 +182,7 @@ function RecordRoutineIntakeForm({
           />
           <QuantityUnitPicker
             form={form}
+            amount={amount}
             unit={unit}
             testID="intake-quantity-unit"
             onChangeUnit={(value) => {
@@ -190,7 +192,9 @@ function RecordRoutineIntakeForm({
               amountInput.set("");
               setValue("amount", "");
             }}
-            onValidate={() => void trigger()}
+            onValidate={() => {
+              if (isSubmitted) void trigger();
+            }}
           />
           {errors.amount?.message ? (
             <Text variant="footnote" color={colors.danger}>

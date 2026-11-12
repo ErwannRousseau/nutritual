@@ -1,15 +1,6 @@
 import { positiveAmountSchema } from "@/features/routines/routine-name-schema";
-import { z } from "zod";
 
 export type IntakeQuantity = { amount: number; unit: string };
-
-export const intakeQuantitySchema = z
-  .object({ amount: z.string(), unit: z.string() })
-  .refine(({ amount, unit }) => parseIntakeQuantity(amount, unit) !== null, {
-    path: ["amount"],
-    message:
-      "Enter a positive amount with up to 6 decimal places and its unit, or clear both fields.",
-  });
 
 export function parseIntakeQuantity(
   amount: string,

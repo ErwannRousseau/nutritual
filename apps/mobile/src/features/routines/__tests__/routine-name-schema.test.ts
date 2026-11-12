@@ -15,8 +15,11 @@ describe("routineNameSchema", () => {
   });
 
   test("requires amount and unit together", () => {
-    expect(routineNameSchema.safeParse({ ...validName, amount: "1" }).success).toBe(false);
-    expect(routineNameSchema.safeParse({ ...validName, unit: "gram" }).success).toBe(false);
+    const missingUnit = routineNameSchema.safeParse({ ...validName, amount: "1" });
+    const missingAmount = routineNameSchema.safeParse({ ...validName, unit: "gram" });
+
+    expect(missingUnit.error?.issues[0]?.message).toBe("Choose a unit.");
+    expect(missingAmount.error?.issues[0]?.message).toBe("Enter an amount.");
   });
 
   test("rejects invalid amounts and a blank name", () => {

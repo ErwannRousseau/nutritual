@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import { intakeQuantitySchema, parseIntakeQuantity } from "@/features/intakes/quantity";
-import { formatAmount } from "@/features/routines/routine-name-schema";
+import { parseIntakeQuantity } from "@/features/intakes/quantity";
+import { formatAmount, quantitySchema } from "@/features/routines/routine-name-schema";
 
 test("intake quantity accepts optional paired positive decimal fields", () => {
   expect(parseIntakeQuantity("", "")).toBeUndefined();
@@ -26,10 +26,16 @@ test("intake quantity rejects incomplete, non-decimal, zero, and non-finite valu
 });
 
 test("form validates the paired quantity without rounding", () => {
-  expect(intakeQuantitySchema.safeParse({ amount: "", unit: "" }).success).toBe(true);
-  expect(intakeQuantitySchema.safeParse({ amount: "0,000001", unit: "mg" }).success).toBe(true);
-  expect(intakeQuantitySchema.safeParse({ amount: "0,0000001", unit: "mg" }).success).toBe(false);
-  expect(intakeQuantitySchema.safeParse({ amount: "1", unit: "" }).success).toBe(false);
+  expect(quantitySchema.safeParse({ amount: "", unit: "" }).success).toBe(true);
+  expect(quantitySchema.safeParse({ amount: "0,000001", unit: "mg" }).success).toBe(true);
+  expect(quantitySchema.safeParse({ amount: "0,0000001", unit: "mg" }).success).toBe(false);
+  expect(quantitySchema.safeParse({ amount: "1", unit: "" }).success).toBe(false);
+  expect(quantitySchema.safeParse({ amount: "1", unit: "" }).error?.issues[0]?.message).toBe(
+    "Choose a unit.",
+  );
+  expect(quantitySchema.safeParse({ amount: "", unit: "mg" }).error?.issues[0]?.message).toBe(
+    "Enter an amount.",
+  );
 });
 
 test("planned amounts prefill without changing their value", () => {

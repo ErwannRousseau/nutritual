@@ -88,7 +88,8 @@ function RoutineNameForm({ id, draft, setDraft, markDirty, error }: RoutineNameF
     control,
     handleSubmit,
     setValue,
-    formState: { errors },
+    trigger,
+    formState: { errors, isSubmitted },
   } = useForm<RoutineNameFields>({
     defaultValues: {
       productName: draft.productName,
@@ -100,6 +101,7 @@ function RoutineNameForm({ id, draft, setDraft, markDirty, error }: RoutineNameF
   });
 
   const form = useWatch({ control, name: "form" });
+  const amount = useWatch({ control, name: "amount" });
   const unit = useWatch({ control, name: "unit" });
 
   const styles = useMemo(() => createStyles(colors, fontScale), [colors, fontScale]);
@@ -256,6 +258,8 @@ function RoutineNameForm({ id, draft, setDraft, markDirty, error }: RoutineNameF
             onChangeText={(value) => {
               amountInput.set(value);
               setValue("amount", value, { shouldDirty: true });
+
+              if (isSubmitted) void trigger();
               markDirty();
             }}
             keyboardType="decimal-pad"
@@ -267,6 +271,7 @@ function RoutineNameForm({ id, draft, setDraft, markDirty, error }: RoutineNameF
           />
           <QuantityUnitPicker
             form={form}
+            amount={amount}
             unit={unit}
             testID="routine-unit-picker"
             customTestID="routine-quantity-unit-custom"
@@ -278,6 +283,9 @@ function RoutineNameForm({ id, draft, setDraft, markDirty, error }: RoutineNameF
               amountInput.set("");
               setValue("amount", "", { shouldDirty: true });
               markDirty();
+            }}
+            onValidate={() => {
+              if (isSubmitted) void trigger();
             }}
           />
         </Column>
