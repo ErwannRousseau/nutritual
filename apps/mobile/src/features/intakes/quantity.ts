@@ -2,13 +2,6 @@ import { positiveAmountSchema } from "@/features/routines/routine-name-schema";
 
 export type IntakeQuantity = { amount: number; unit: string };
 
-export function formatIntakeAmount(amount: number): string {
-  return new Intl.NumberFormat("en-US", {
-    useGrouping: false,
-    maximumSignificantDigits: 17,
-  }).format(amount);
-}
-
 export function parseIntakeQuantity(
   amount: string,
   unit: string,

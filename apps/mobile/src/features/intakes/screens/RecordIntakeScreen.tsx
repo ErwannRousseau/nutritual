@@ -11,8 +11,9 @@ import ProductBadge from "@/shared/ui/ProductBadge";
 import Screen from "@/shared/ui/Screen";
 import { usePalette } from "@/shared/ui/palette";
 import { dateLabel, routineScheduleDisplay } from "@/features/routines/display";
+import { formatAmount } from "@/features/routines/routine-name-schema";
 import { useRecordIntake } from "@/features/intakes/useRecordIntake";
-import { formatIntakeAmount, parseIntakeQuantity } from "@/features/intakes/quantity";
+import { parseIntakeQuantity } from "@/features/intakes/quantity";
 
 export default function RecordIntakeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -89,7 +90,7 @@ function RecordRoutineIntakeForm({
     }
 
     if (!edited.current) {
-      const nextAmount = routine.quantity ? formatIntakeAmount(routine.quantity.amount) : "";
+      const nextAmount = routine.quantity ? formatAmount(routine.quantity.amount) : "";
 
       const nextUnit = routine.quantity?.unit ?? "";
       setAmount(nextAmount);
@@ -196,7 +197,8 @@ function RecordRoutineIntakeForm({
           />
           {quantityInvalid ? (
             <Text variant="footnote" color={colors.danger}>
-              Enter a positive amount and its unit, or clear both fields.
+              Enter a positive amount with up to 6 decimal places and its unit, or clear both
+              fields.
             </Text>
           ) : null}
         </Column>

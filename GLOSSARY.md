@@ -7,10 +7,16 @@ Nutritual organizes dietary supplement intake routines and their reminders.
 **Product**: A dietary supplement the user wants to include in their intake
 routines.
 
+**Product form**: The physical form in which a product is taken, such as powder,
+liquid, or capsules.
+
 **Intake routine**: A plan for taking a product on selected weekdays, every N
 days from a chosen start date, or as needed. Scheduled times follow the user's
 current time zone. An intake routine can be paused.
 _Avoid_: Program, reminder
+
+**Intake quantity**: The amount of a product intended for each intake in a
+routine, expressed with a unit such as capsules, drops, milligrams, or millilitres.
 
 **Intake**: A recorded occurrence of taking a product as part of an intake
 routine, with the date and time it was recorded. Receiving a reminder does not

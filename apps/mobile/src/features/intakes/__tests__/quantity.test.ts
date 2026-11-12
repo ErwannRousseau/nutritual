@@ -1,10 +1,12 @@
 import { expect, test } from "bun:test";
-import { formatIntakeAmount, parseIntakeQuantity } from "@/features/intakes/quantity";
+import { parseIntakeQuantity } from "@/features/intakes/quantity";
+import { formatAmount } from "@/features/routines/routine-name-schema";
 
 test("intake quantity accepts optional paired positive decimal fields", () => {
   expect(parseIntakeQuantity("", "")).toBeUndefined();
   expect(parseIntakeQuantity("1,5", " capsules ")).toEqual({ amount: 1.5, unit: "capsules" });
   expect(parseIntakeQuantity(".25", "ml")).toEqual({ amount: 0.25, unit: "ml" });
+  expect(parseIntakeQuantity("0.000001", "mg")).toEqual({ amount: 0.000001, unit: "mg" });
 });
 
 test("intake quantity rejects incomplete, non-decimal, zero, and non-finite values", () => {
@@ -15,15 +17,24 @@ test("intake quantity rejects incomplete, non-decimal, zero, and non-finite valu
     ["-1", "ml"],
     ["1e3", "ml"],
     ["1.2.3", "ml"],
+    ["0.0000001", "mg"],
+    ["1,1234567", "mg"],
     ["9".repeat(400), "ml"],
   ]) {
     expect(parseIntakeQuantity(amount, unit)).toBeNull();
   }
 });
 
-test("planned amounts prefill as decimal strings and round-trip through editing", () => {
-  for (const amount of [1e-11, Number.MIN_VALUE, 1e21, Number.MAX_VALUE]) {
-    const input = formatIntakeAmount(amount);
+test("legacy planned amounts prefill exactly but are rejected as new intake entries above 6 decimals", () => {
+  for (const amount of [1e-11, Number.MIN_VALUE]) {
+    const input = formatAmount(amount);
+
+    expect(input).not.toMatch(/[eE]/);
+    expect(parseIntakeQuantity(input, "mg")).toBeNull();
+  }
+
+  for (const amount of [1e21, Number.MAX_VALUE]) {
+    const input = formatAmount(amount);
 
     expect(input).not.toMatch(/[eE]/);
     expect(parseIntakeQuantity(input, "mg")).toEqual({ amount, unit: "mg" });

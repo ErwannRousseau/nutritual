@@ -14,8 +14,11 @@ import { usePalette } from "@/shared/ui/palette";
 import { useRoutineDraft } from "@/features/routines/RoutineDraftProvider";
 import { useRoutineStore } from "@/features/routines/RoutinesProvider";
 import {
+  formatAmount,
+  parseRoutineAmount,
   positiveAmountSchema,
   routineNameSchema,
+  routineNameSchemaPreservingAmount,
   type RoutineNameFields,
 } from "@/features/routines/routine-name-schema";
 import type { RoutineDraft } from "@/features/routines/model";
@@ -102,8 +105,14 @@ function RoutineNameForm({
   const colors = usePalette();
   const { fontScale } = useWindowDimensions();
   const initialForm = draft.form ?? "";
-  const initialAmount = draft.quantity ? String(draft.quantity.amount) : "";
+  const initialAmount = draft.quantity ? formatAmount(draft.quantity.amount) : "";
   const initialUnit = draft.quantity?.unit ?? "";
+
+  const preservedAmount =
+    id !== "new" && draft.quantity && !positiveAmountSchema.safeParse(initialAmount).success
+      ? initialAmount
+      : undefined;
+
   const nameInput = useNativeState(draft.productName);
   const formInput = useNativeState(initialForm);
   const amountInput = useNativeState(initialAmount);
@@ -133,7 +142,9 @@ function RoutineNameForm({
       amount: initialAmount,
       unit: initialUnit,
     },
-    resolver: zodResolver(routineNameSchema),
+    resolver: zodResolver(
+      preservedAmount ? routineNameSchemaPreservingAmount(preservedAmount) : routineNameSchema,
+    ),
   });
 
   const form = useWatch({ control, name: "form" });
@@ -143,7 +154,7 @@ function RoutineNameForm({
 
   const continueToSchedule = (values: RoutineNameFields) => {
     const amountText = values.amount.trim();
-    const parsedAmount = amountText ? positiveAmountSchema.parse(amountText) : null;
+    const parsedAmount = parseRoutineAmount(amountText, preservedAmount, draft.quantity?.amount);
 
     const nextDraft: RoutineDraft = {
       productName: values.productName,
@@ -297,7 +308,6 @@ function RoutineNameForm({
             }}
             keyboardType="decimal-pad"
             placeholder="Amount"
-            maxLength={16}
             style={styles.input}
             textStyle={styles.inputText}
             modifiers={fillAvailableWidth}
