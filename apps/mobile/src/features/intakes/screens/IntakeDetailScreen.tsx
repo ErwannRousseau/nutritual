@@ -22,7 +22,9 @@ export default function IntakeDetailScreen() {
   const colors = usePalette();
   const intake = intakes.find((item) => item.id === id);
   const parsedDate = intake ? new Date(intake.recordedAt) : null;
+
   const recordedAt = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate : null;
+
   const errorMessage = feedback ?? error;
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -95,6 +97,22 @@ export default function IntakeDetailScreen() {
         </Row>
         <Spacer />
       </Row>
+      {intake.form ? (
+        <Row alignment="center">
+          <Text variant="subhead" color={colors.secondary}>
+            {`Product form: ${intake.form}`}
+          </Text>
+          <Spacer />
+        </Row>
+      ) : null}
+      {intake.quantity ? (
+        <Row alignment="center">
+          <Text variant="subhead" color={colors.secondary}>
+            {`Recorded amount: ${intake.quantity.amount} ${intake.quantity.unit}`}
+          </Text>
+          <Spacer />
+        </Row>
+      ) : null}
       {errorMessage ? (
         <Text variant="subhead" color={colors.danger}>
           {errorMessage}

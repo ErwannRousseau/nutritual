@@ -1,6 +1,6 @@
-import { Button, Column, Row, Spacer } from "@expo/ui";
+import { Button, Column, Row, Spacer, TextInput, useNativeState } from "@expo/ui";
 import { router, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet } from "react-native";
 import ActionButton from "@/shared/ui/ActionButton";
 import AppSymbol from "@/shared/ui/AppSymbol";
@@ -12,6 +12,7 @@ import Screen from "@/shared/ui/Screen";
 import { usePalette } from "@/shared/ui/palette";
 import { dateLabel, routineScheduleDisplay } from "@/features/routines/display";
 import { useRecordIntake } from "@/features/intakes/useRecordIntake";
+import { parseIntakeQuantity } from "@/features/intakes/quantity";
 
 export default function RecordIntakeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -21,11 +22,8 @@ export default function RecordIntakeScreen() {
 
   const colors = usePalette();
   const [today] = useState(() => new Date());
-  const [isSelected, setIsSelected] = useState(false);
   const routine = routines.find((item) => item.id === id);
   const errorMessage = feedback ?? error;
-
-  const styles = useMemo(() => createStyles(colors, isSelected), [colors, isSelected]);
 
   if (!routine) {
     return (
@@ -40,11 +38,78 @@ export default function RecordIntakeScreen() {
     );
   }
 
+  return (
+    <RecordRoutineIntakeForm
+      routine={routine}
+      today={today}
+      colors={colors}
+      errorMessage={errorMessage}
+      isActionDisabled={isActionDisabled}
+      isSaving={isSaving}
+      recordIntake={recordIntake}
+    />
+  );
+}
+
+function RecordRoutineIntakeForm({
+  routine,
+  today,
+  colors,
+  errorMessage,
+  isActionDisabled,
+  isSaving,
+  recordIntake,
+}: {
+  routine: NonNullable<ReturnType<typeof useRecordIntake>["routines"][number]>;
+  today: Date;
+  colors: ReturnType<typeof usePalette>;
+  errorMessage: string | null;
+  isActionDisabled: boolean;
+  isSaving: boolean;
+  recordIntake: (
+    id: string,
+    selected: boolean,
+    quantity?: { amount: number; unit: string },
+  ) => Promise<boolean>;
+}) {
+  const [isSelected, setIsSelected] = useState(false);
+  const [amount, setAmount] = useState("");
+  const [unit, setUnit] = useState("");
+  const amountInput = useNativeState("");
+  const unitInput = useNativeState("");
+  const edited = useRef(false);
+  const currentRoutineId = useRef(routine.id);
+
+  const styles = useMemo(() => createStyles(colors, isSelected), [colors, isSelected]);
+
+  useEffect(() => {
+    if (currentRoutineId.current !== routine.id) {
+      currentRoutineId.current = routine.id;
+      edited.current = false;
+    }
+
+    if (!edited.current) {
+      const nextAmount = routine.quantity ? String(routine.quantity.amount) : "";
+
+      const nextUnit = routine.quantity?.unit ?? "";
+      setAmount(nextAmount);
+      setUnit(nextUnit);
+      amountInput.set(nextAmount);
+      unitInput.set(nextUnit);
+    }
+  }, [amountInput, routine.id, routine.quantity, unitInput]);
+
   const schedule = routineScheduleDisplay(routine);
 
   const save = async () => {
-    if (await recordIntake(routine.id, isSelected)) router.back();
+    const quantity = parseIntakeQuantity(amount, unit);
+
+    if (quantity === null) return;
+
+    if (await recordIntake(routine.id, isSelected, quantity)) router.back();
   };
+
+  const quantityInvalid = parseIntakeQuantity(amount, unit) === null;
 
   return (
     <Screen
@@ -53,7 +118,7 @@ export default function RecordIntakeScreen() {
         <ActionButton
           label={isSaving ? "Saving…" : "Record intake"}
           onPress={() => void save()}
-          disabled={!isSelected || isActionDisabled}
+          disabled={!isSelected || isActionDisabled || quantityInvalid}
         />
       }
     >
@@ -99,6 +164,42 @@ export default function RecordIntakeScreen() {
               <Spacer />
             </Row>
           </Button>
+          <TextInput
+            value={amountInput}
+            onChangeText={(value) => {
+              edited.current = true;
+              amountInput.set(value);
+              setAmount(value);
+            }}
+            keyboardType="decimal-pad"
+            placeholder="Amount (optional)"
+            maxLength={16}
+            style={styles.input}
+            textStyle={styles.inputText}
+            modifiers={fillAvailableWidth}
+            testID="intake-quantity-amount"
+          />
+          <TextInput
+            value={unitInput}
+            onChangeText={(value) => {
+              edited.current = true;
+              unitInput.set(value);
+              setUnit(value);
+            }}
+            autoCapitalize="none"
+            autoCorrect={false}
+            placeholder="Unit (optional)"
+            maxLength={40}
+            style={styles.input}
+            textStyle={styles.inputText}
+            modifiers={fillAvailableWidth}
+            testID="intake-quantity-unit"
+          />
+          {quantityInvalid ? (
+            <Text variant="footnote" color={colors.danger}>
+              Enter a positive amount and its unit, or clear both fields.
+            </Text>
+          ) : null}
         </Column>
         <Spacer />
       </Row>
@@ -130,5 +231,12 @@ function createStyles(colors: ReturnType<typeof usePalette>, isSelected: boolean
       width: fillParent,
     },
     centeredText: { textAlign: "center" },
+    input: {
+      padding: 14,
+      borderRadius: 18,
+      backgroundColor: colors.grouped,
+      width: fillParent,
+    },
+    inputText: { color: colors.text, fontSize: 17 },
   });
 }

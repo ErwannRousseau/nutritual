@@ -31,6 +31,9 @@ type IntakeRow = {
   routine_id: string;
   product_name: string;
   recorded_at: string;
+  form: string | null;
+  quantity_amount: number | null;
+  quantity_unit: string | null;
 };
 
 export function routineFromRow(row: RoutineRow, details?: RoutineDetailsRow | null): Routine {
@@ -178,16 +181,28 @@ export async function loadData(): Promise<{ routines: Routine[]; intakes: Intake
     "SELECT routines.*, routine_details.form, routine_details.quantity_amount, routine_details.quantity_unit FROM routines LEFT JOIN routine_details ON routine_details.routine_id = routines.id ORDER BY routines.rowid",
   );
 
-  const intakeRows = await database.getAllAsync<IntakeRow>("SELECT * FROM intakes ORDER BY rowid");
+  const intakeRows = await database.getAllAsync<IntakeRow>(
+    "SELECT intakes.*, intake_details.form, intake_details.quantity_amount, intake_details.quantity_unit FROM intakes LEFT JOIN intake_details ON intake_details.intake_id = intakes.id ORDER BY intakes.rowid",
+  );
 
   return {
     routines: routineRows.map((row) => routineFromRow(row, routineDetails(row))),
-    intakes: intakeRows.map((row) => ({
-      id: row.id,
-      routineId: row.routine_id,
-      productName: row.product_name,
-      recordedAt: row.recorded_at,
-    })),
+    intakes: intakeRows.map((row) => {
+      const intake: Intake = {
+        id: row.id,
+        routineId: row.routine_id,
+        productName: row.product_name,
+        recordedAt: row.recorded_at,
+      };
+
+      if (row.form !== null) intake.form = row.form;
+
+      if (row.quantity_amount !== null && row.quantity_unit !== null) {
+        intake.quantity = { amount: row.quantity_amount, unit: row.quantity_unit };
+      }
+
+      return intake;
+    }),
   };
 }
 
@@ -215,14 +230,44 @@ export async function deleteRoutine(id: string): Promise<void> {
 }
 
 export async function saveIntake(intake: Intake): Promise<void> {
+  if (
+    intake.quantity &&
+    (!Number.isFinite(intake.quantity.amount) ||
+      intake.quantity.amount <= 0 ||
+      !intake.quantity.unit.trim())
+  ) {
+    throw new Error("Invalid intake quantity.");
+  }
+
   const database = await getDatabase();
-  await database.runAsync(
-    "INSERT INTO intakes (id, routine_id, product_name, recorded_at) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET routine_id = excluded.routine_id, product_name = excluded.product_name, recorded_at = excluded.recorded_at",
-    [intake.id, intake.routineId, intake.productName, intake.recordedAt],
-  );
+  await database.withExclusiveTransactionAsync(async (transaction) => {
+    await transaction.runAsync(
+      "INSERT INTO intakes (id, routine_id, product_name, recorded_at) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET routine_id = excluded.routine_id, product_name = excluded.product_name, recorded_at = excluded.recorded_at",
+      [intake.id, intake.routineId, intake.productName, intake.recordedAt],
+    );
+
+    if (intake.form === undefined && intake.quantity === undefined) {
+      await transaction.runAsync("DELETE FROM intake_details WHERE intake_id = ?", intake.id);
+
+      return;
+    }
+
+    await transaction.runAsync(
+      "INSERT INTO intake_details (intake_id, form, quantity_amount, quantity_unit) VALUES (?, ?, ?, ?) ON CONFLICT(intake_id) DO UPDATE SET form = excluded.form, quantity_amount = excluded.quantity_amount, quantity_unit = excluded.quantity_unit",
+      [
+        intake.id,
+        intake.form ?? null,
+        intake.quantity?.amount ?? null,
+        intake.quantity?.unit ?? null,
+      ],
+    );
+  });
 }
 
 export async function deleteIntake(id: string): Promise<void> {
   const database = await getDatabase();
-  await database.runAsync("DELETE FROM intakes WHERE id = ?", id);
+  await database.withExclusiveTransactionAsync(async (transaction) => {
+    await transaction.runAsync("DELETE FROM intake_details WHERE intake_id = ?", id);
+    await transaction.runAsync("DELETE FROM intakes WHERE id = ?", id);
+  });
 }

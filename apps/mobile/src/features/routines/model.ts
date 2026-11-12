@@ -21,6 +21,8 @@ export type Intake = {
   routineId: string;
   productName: string;
   recordedAt: string;
+  form?: string;
+  quantity?: { amount: number; unit: string };
 };
 
 export const ReminderStatus = { paused: "paused" } as const;
