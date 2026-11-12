@@ -13,7 +13,7 @@ export default function PairScreen() {
   const params = useLocalSearchParams<{ code?: string }>();
   const initialCode = Array.isArray(params.code) ? params.code[0] : params.code;
 
-  const { codeInput, message, busy, valid, details, inspect, approve, decline } =
+  const { codeInput, notice, busy, valid, details, inspect, approve, decline } =
     usePairingFlow(initialCode);
 
   const colors = usePalette();
@@ -68,10 +68,13 @@ export default function PairScreen() {
             <Text>{`Resource: ${details.resource ?? "None"}`}</Text>
           </Column>
         ) : null}
-        {message ? (
+        {notice ? (
           <RNHostView matchContents>
-            <NativeText accessibilityRole="alert" style={styles.error}>
-              {message}
+            <NativeText
+              accessibilityRole={notice.tone === "error" ? "alert" : undefined}
+              style={styles[notice.tone]}
+            >
+              {notice.text}
             </NativeText>
           </RNHostView>
         ) : null}
@@ -92,6 +95,8 @@ function createStyles(colors: ReturnType<typeof usePalette>) {
       height: 58,
       paddingHorizontal: 14,
     },
+    success: { color: colors.blue, fontSize: 16 },
+    info: { color: colors.secondary, fontSize: 16 },
     error: { color: colors.danger, fontSize: 16 },
   });
 }

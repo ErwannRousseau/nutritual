@@ -15,6 +15,7 @@ const details: PairingOAuthRequestDetails = {
 };
 
 test("malformed and changed codes cannot authorize a pairing decision", () => {
+  expect(pairingDecisionCode("", true, "")).toBeNull();
   expect(pairingDecisionCode("bad code", true, "BADCODE")).toBeNull();
   expect(pairingDecisionCode("BBBB-BBBB", true, "AAAA-AAAA")).toBeNull();
   expect(pairingDecisionCode("AAAA-AAAA", false, "AAAA-AAAA")).toBeNull();
@@ -39,7 +40,7 @@ test("inspection stores the normalized code after the server accepts it", async 
 
   expect(result).toEqual({
     details,
-    message: "Code accepted. Review the permissions below.",
+    notice: { tone: "success", text: "Code accepted. Review the permissions below." },
   });
   expect(events).toEqual(["inspect:AAAA-AAAA", "store:AAAA-AAAA"]);
 });
@@ -60,18 +61,18 @@ test("inspection failure keeps the pending code and reports the existing message
   );
 
   expect(result.details).toBeNull();
-  expect(result.message).toBe(
-    "The code is invalid, expired, or linked to another account. Check the account and try again.",
-  );
+  expect(result.notice).toEqual({
+    tone: "error",
+    text: "The code is invalid, expired, or linked to another account. Check the account and try again.",
+  });
   expect(stored).toBe(false);
 });
 
 test("approval sends device credentials and only then clears the code and schedules navigation", async () => {
   const events: string[] = [];
   let complete: (() => void) | undefined;
-  let message = "";
 
-  await decidePairing(
+  const notice = await decidePairing(
     "AAAA-AAAA",
     true,
     createServices({
@@ -92,17 +93,12 @@ test("approval sends device credentials and only then clears the code and schedu
       },
       navigateToSettings: () => events.push("navigate"),
     }),
-    (nextMessage) => {
-      message = nextMessage;
-      events.push(`message:${nextMessage}`);
-    },
   );
 
-  expect(message).toBe("The app is paired with this phone.");
+  expect(notice).toEqual({ tone: "success", text: "The app is paired with this phone." });
   expect(events).toEqual([
     "credentials",
     "approve:AAAA-AAAA:device-id:device-secret",
-    "message:The app is paired with this phone.",
     "delete",
     "schedule:700",
   ]);
@@ -113,9 +109,8 @@ test("approval sends device credentials and only then clears the code and schedu
 test("approval failure does not delete the pending code or schedule navigation", async () => {
   let deleted = false;
   let scheduled = false;
-  let message = "";
 
-  await decidePairing(
+  const notice = await decidePairing(
     "AAAA-AAAA",
     true,
     createServices({
@@ -129,21 +124,20 @@ test("approval failure does not delete the pending code or schedule navigation",
         scheduled = true;
       },
     }),
-    (nextMessage) => {
-      message = nextMessage;
-    },
   );
 
-  expect(message).toBe("Unable to process this pairing. Check the code and try again.");
+  expect(notice).toEqual({
+    tone: "error",
+    text: "Unable to process this pairing. Check the code and try again.",
+  });
   expect(deleted).toBe(false);
   expect(scheduled).toBe(false);
 });
 
 test("decline posts only the validated code and never requests device credentials", async () => {
   const events: string[] = [];
-  let message = "";
 
-  await decidePairing(
+  const notice = await decidePairing(
     "AAAA-AAAA",
     false,
     createServices({
@@ -160,12 +154,9 @@ test("decline posts only the validated code and never requests device credential
       },
       schedule: (_callback, delay) => events.push(`schedule:${delay}`),
     }),
-    (nextMessage) => {
-      message = nextMessage;
-    },
   );
 
-  expect(message).toBe("Request declined.");
+  expect(notice).toEqual({ tone: "info", text: "Request declined." });
   expect(events).toEqual(["decline:AAAA-AAAA", "delete", "schedule:700"]);
 });
 

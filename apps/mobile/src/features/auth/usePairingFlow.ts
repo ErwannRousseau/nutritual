@@ -10,6 +10,7 @@ import {
   decidePairing,
   inspectPairingCode,
   pairingDecisionCode,
+  type PairingNotice,
 } from "@/features/auth/pairing-flow";
 
 const pendingCodeKey = "nutritual.pending-pair-code";
@@ -45,7 +46,7 @@ const services = {
 
 export function usePairingFlow(initialCode?: string) {
   const codeInput = useNativeState(initialCode ?? "");
-  const [message, setMessage] = useState<string | null>(null);
+  const [notice, setNotice] = useState<PairingNotice | null>(null);
   const [busy, setBusy] = useState(false);
   const [valid, setValid] = useState(false);
   const [inspectedCode, setInspectedCode] = useState<string | null>(null);
@@ -63,13 +64,13 @@ export function usePairingFlow(initialCode?: string) {
     const code = normalizePairCode(codeInput.value);
 
     if (!code) {
-      setMessage("Enter the code shown in ChatGPT.");
+      setNotice({ tone: "error", text: "Enter the code shown in ChatGPT." });
 
       return;
     }
 
     setBusy(true);
-    setMessage(null);
+    setNotice(null);
     setValid(false);
     setDetails(null);
 
@@ -86,7 +87,7 @@ export function usePairingFlow(initialCode?: string) {
         setDetails(null);
       }
 
-      setMessage(result.message);
+      setNotice(result.notice);
     } finally {
       setBusy(false);
     }
@@ -97,16 +98,16 @@ export function usePairingFlow(initialCode?: string) {
 
     if (!code) {
       setValid(false);
-      setMessage("Check the code again before continuing.");
+      setNotice({ tone: "error", text: "Check the code again before continuing." });
 
       return;
     }
 
     setBusy(true);
-    setMessage(null);
+    setNotice(null);
 
     try {
-      await decidePairing(code, approve, services, setMessage);
+      setNotice(await decidePairing(code, approve, services));
     } finally {
       setBusy(false);
     }
@@ -114,7 +115,7 @@ export function usePairingFlow(initialCode?: string) {
 
   return {
     codeInput,
-    message,
+    notice,
     busy,
     valid,
     details,
