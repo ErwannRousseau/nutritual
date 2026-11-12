@@ -4,7 +4,7 @@ import {
   type ListedRoutine,
 } from "@nutritual/protocol";
 import { getDatabase } from "../database";
-import { routineFromRow, type RoutineRow } from "../storage";
+import { routineFromRow, type RoutineDetailsRow, type RoutineRow } from "../storage";
 import { parseReminderOutcome, type RoutineOperationRow } from "./shared";
 
 export type DeleteRoutineOperationResult =
@@ -27,6 +27,9 @@ function sameRoutine(current: ReturnType<typeof routineFromRow>, expected: Liste
     current.productName === expected.productName &&
     current.time === expected.time &&
     current.paused === expected.paused &&
+    current.form === expected.form &&
+    current.quantity?.amount === expected.quantity?.amount &&
+    current.quantity?.unit === expected.quantity?.unit &&
     JSON.stringify(current.frequency) === JSON.stringify(expected.frequency)
   );
 }
@@ -67,7 +70,12 @@ export async function deleteRoutineOperation(
       return;
     }
 
-    const routine = routineFromRow(row);
+    const details = await transaction.getFirstAsync<RoutineDetailsRow>(
+      "SELECT form, quantity_amount, quantity_unit FROM routine_details WHERE routine_id = ?",
+      request.expected.id,
+    );
+
+    const routine = routineFromRow(row, details);
 
     if (!sameRoutine(routine, request.expected)) return;
 

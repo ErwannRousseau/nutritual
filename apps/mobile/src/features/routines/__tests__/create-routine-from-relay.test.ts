@@ -1491,6 +1491,8 @@ test("listing reads current, distinct routines and reports storage failures", as
     frequency: second.frequency,
     time: second.time,
     paused: second.paused,
+    form: second.form,
+    quantity: second.quantity,
   };
 
   expect(await listRoutinesFromRelay()).toEqual({ status: "ok", routines: [first, listedSecond] });
@@ -1575,13 +1577,7 @@ test("routine details persist, clear independently, survive relay edits, and ref
 
   const result = await edit({
     operationId: "routine-details-edit",
-    expected: {
-      id: routine.id,
-      productName: routine.productName,
-      frequency: routine.frequency,
-      time: routine.time,
-      paused: routine.paused,
-    },
+    expected: routine,
     changes: { time: "10:30" },
   });
 
@@ -1609,4 +1605,70 @@ test("routine details persist, clear independently, survive relay edits, and ref
       routine.id,
     ),
   ).toEqual({ count: 0 });
+});
+
+test("relay creates, lists, edits and clears details with conflict-safe retries", async () => {
+  const { createRoutineFromRelayHandler } = await import("../create-routine-from-relay");
+  const { editRoutineFromRelayHandler } = await import("../edit-routine-from-relay");
+  const { listRoutinesFromRelay } = await import("../list-routines-from-relay");
+  const queue = createActionQueue(() => undefined);
+  queue.finishLoading();
+
+  const callbacks = {
+    serialize: queue.run,
+    onData: () => undefined,
+    onError: () => undefined,
+    onReminder: () => undefined,
+  };
+
+  const create = createRoutineFromRelayHandler(callbacks);
+  const edit = editRoutineFromRelayHandler(callbacks);
+
+  const input = {
+    operationId: "details-create",
+    productName: "Zinc",
+    frequency: { kind: FrequencyKind.asNeeded },
+    time: "",
+    form: "lozenge",
+    quantity: { amount: 1.5, unit: "pieces" },
+  };
+
+  const created = await create(input);
+  expect(created.status).toBe(CreateRoutineStatus.created);
+  expect((await create(input)).status).toBe(CreateRoutineStatus.alreadyProcessed);
+  expect((await create({ ...input, quantity: { amount: 2, unit: "pieces" } })).status).toBe(
+    CreateRoutineStatus.conflict,
+  );
+  const list = await listRoutinesFromRelay();
+
+  if (list.status !== "ok") throw new Error("Listing failed");
+  const expected = list.routines.find((routine) => routine.productName === "Zinc");
+
+  if (!expected) throw new Error("Created routine missing");
+  expect(expected).toMatchObject({ form: "lozenge", quantity: { amount: 1.5, unit: "pieces" } });
+
+  const change = {
+    operationId: "details-clear",
+    expected,
+    changes: { form: null, quantity: null },
+  };
+
+  expect((await edit(change)).status).toBe(EditRoutineStatus.updated);
+  expect((await edit(change)).status).toBe(EditRoutineStatus.alreadyProcessed);
+  expect((await edit({ ...change, changes: { form: "powder" } })).status).toBe(
+    EditRoutineStatus.conflict,
+  );
+  expect((await edit({ ...change, operationId: "stale-details" })).status).toBe(
+    EditRoutineStatus.conflict,
+  );
+  const after = await listRoutinesFromRelay();
+
+  if (after.status !== "ok") throw new Error("Listing failed");
+  expect(after.routines.find((routine) => routine.id === expected.id)).toEqual({
+    id: expected.id,
+    productName: "Zinc",
+    frequency: input.frequency,
+    time: "",
+    paused: false,
+  });
 });

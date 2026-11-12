@@ -18,6 +18,8 @@ const deleteRoutineSchema = z
       frequency: frequencySchema,
       time: z.string(),
       paused: z.boolean(),
+      form: z.string().optional(),
+      quantity: z.object({ amount: z.number(), unit: z.string() }).optional(),
     }),
   })
   .superRefine((value, context) => {

@@ -44,6 +44,9 @@ function sameRoutine(current: Routine, expected: ListedRoutine): boolean {
     current.productName === expected.productName &&
     current.time === expected.time &&
     current.paused === expected.paused &&
+    current.form === expected.form &&
+    current.quantity?.amount === expected.quantity?.amount &&
+    current.quantity?.unit === expected.quantity?.unit &&
     JSON.stringify(current.frequency) === JSON.stringify(expected.frequency)
   );
 }
@@ -84,20 +87,12 @@ export async function editRoutineOperation(
 
     if (!row) return;
 
-    const current = routineFromRow(row);
-
     const details = await transaction.getFirstAsync<RoutineDetailsRow>(
       "SELECT form, quantity_amount, quantity_unit FROM routine_details WHERE routine_id = ?",
       request.expected.id,
     );
 
-    if (details) {
-      if (details.form !== null) current.form = details.form;
-
-      if (details.quantity_amount !== null && details.quantity_unit !== null) {
-        current.quantity = { amount: details.quantity_amount, unit: details.quantity_unit };
-      }
-    }
+    const current = routineFromRow(row, details);
 
     if (!sameRoutine(current, request.expected)) return;
 
@@ -114,8 +109,21 @@ export async function editRoutineOperation(
     const routine: Routine = {
       ...current,
       ...request.changes,
+      form: current.form,
+      quantity: current.quantity,
       productName: (request.changes.productName ?? current.productName).trim(),
     };
+
+    if (request.changes.form === null) delete routine.form;
+    else if (request.changes.form !== undefined) routine.form = request.changes.form.trim();
+
+    if (request.changes.quantity === null) delete routine.quantity;
+    else if (request.changes.quantity !== undefined) {
+      routine.quantity = {
+        amount: request.changes.quantity.amount,
+        unit: request.changes.quantity.unit.trim(),
+      };
+    }
 
     await transaction.runAsync(
       "UPDATE routines SET product_name = ?, frequency_kind = ?, weekday_mask = ?, interval_days = ?, start_date = ?, time = ?, paused = ? WHERE id = ?",
