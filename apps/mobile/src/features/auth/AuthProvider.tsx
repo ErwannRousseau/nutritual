@@ -5,7 +5,7 @@ import {
   useEffect,
   useMemo,
   useState,
-  type ReactNode,
+  type PropsWithChildren,
 } from "react";
 import { AppState } from "react-native";
 import { AuthStatus } from "@/features/auth/auth-status";
@@ -20,7 +20,7 @@ type AuthValue = {
 
 const AuthContext = createContext<AuthValue | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: PropsWithChildren) {
   const [tokens, setTokens] = useState<TokenSet | null>(null);
   const [restoring, setRestoring] = useState(true);
   const [now, setNow] = useState(Date.now);

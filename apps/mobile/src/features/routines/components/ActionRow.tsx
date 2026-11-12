@@ -7,13 +7,13 @@ import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
 import type { AppSymbolName } from "@/shared/ui/AppSymbol";
 
-type Props = {
+interface Props {
   label: string;
   icon: AppSymbolName;
   onPress: () => void;
   destructive?: boolean;
   disabled?: boolean;
-};
+}
 
 export default function ActionRow({
   label,

@@ -11,6 +11,9 @@ import { fillAvailableWidth, fillContainerWidth, fillParent } from "@/shared/ui/
 import ProductBadge from "@/shared/ui/ProductBadge";
 import Screen from "@/shared/ui/Screen";
 import { usePalette } from "@/shared/ui/palette";
+import QuantityUnitPicker from "@/features/routines/components/QuantityUnitPicker";
+import { forms } from "@/features/routines/product-forms";
+import { customOption } from "@/features/routines/picker-options";
 import { useRoutineDraft } from "@/features/routines/RoutineDraftProvider";
 import { useRoutineStore } from "@/features/routines/RoutinesProvider";
 import {
@@ -20,37 +23,6 @@ import {
   type RoutineNameFields,
 } from "@/features/routines/routine-name-schema";
 import type { RoutineDraft } from "@/features/routines/model";
-
-const forms = ["Capsule", "Tablet", "Lozenge", "Gummy", "Powder", "Liquid", "Drops"] as const;
-
-const units = [
-  "capsule",
-  "tablet",
-  "lozenge",
-  "gummy",
-  "drop",
-  "microgram",
-  "milligram",
-  "gram",
-  "millilitre",
-  "litre",
-  "scoop",
-  "teaspoon",
-  "tablespoon",
-  "spray",
-];
-
-const relatedUnits = {
-  Capsule: ["capsule"],
-  Tablet: ["tablet"],
-  Lozenge: ["lozenge"],
-  Gummy: ["gummy"],
-  Powder: ["gram", "scoop", "teaspoon", "tablespoon"],
-  Liquid: ["millilitre", "litre", "teaspoon", "tablespoon"],
-  Drops: ["drop"],
-} satisfies Record<(typeof forms)[number], string[]>;
-
-const customOption = "__custom__";
 
 export default function RoutineNameScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -87,19 +59,15 @@ export default function RoutineNameScreen() {
   );
 }
 
-function RoutineNameForm({
-  id,
-  draft,
-  setDraft,
-  markDirty,
-  error,
-}: {
+interface RoutineNameFormProps {
   id: string;
   draft: RoutineDraft;
   setDraft: (draft: RoutineDraft) => void;
   markDirty: () => void;
   error: string | null;
-}) {
+}
+
+function RoutineNameForm({ id, draft, setDraft, markDirty, error }: RoutineNameFormProps) {
   const colors = usePalette();
   const { fontScale } = useWindowDimensions();
   const initialForm = draft.form ?? "";
@@ -109,17 +77,10 @@ function RoutineNameForm({
   const nameInput = useNativeState(draft.productName);
   const formInput = useNativeState(initialForm);
   const amountInput = useNativeState(initialAmount);
-  const unitInput = useNativeState(initialUnit);
 
   const [customForm, setCustomForm] = useState(
     Boolean(
       initialForm && !forms.some((value) => value.toLowerCase() === initialForm.toLowerCase()),
-    ),
-  );
-
-  const [customUnit, setCustomUnit] = useState(
-    Boolean(
-      initialUnit && !units.some((value) => value.toLowerCase() === initialUnit.toLowerCase()),
     ),
   );
 
@@ -304,82 +265,25 @@ function RoutineNameForm({
             modifiers={fillAvailableWidth}
             testID="routine-quantity-amount"
           />
-          <Row
-            spacing={12}
-            alignment="center"
-            style={styles.pickerRow}
-            modifiers={fillAvailableWidth}
-          >
-            <Text variant="body" color={colors.secondary}>
-              Unit
-            </Text>
-            <Spacer />
-            <Picker
-              appearance="menu"
-              selectedValue={
-                customUnit
-                  ? customOption
-                  : (units.find((value) => value.toLowerCase() === unit.toLowerCase()) ?? "")
-              }
-              testID="routine-unit-picker"
-              onValueChange={(value) => {
-                if (value !== customOption) {
-                  setCustomUnit(false);
-                  setValue("unit", value, { shouldDirty: true });
-                  unitInput.set(value);
-
-                  if (!value) {
-                    amountInput.set("");
-                    setValue("amount", "", { shouldDirty: true });
-                  }
-                } else {
-                  if (!customUnit) {
-                    setValue("unit", "", { shouldDirty: true });
-                    unitInput.set("");
-                  }
-
-                  setCustomUnit(true);
-                }
-
-                markDirty();
-              }}
-            >
-              <Picker.Item label="Not specified" value="" />
-              {unitOptions(form).map((value) => (
-                <Picker.Item key={value} label={value} value={value} />
-              ))}
-              <Picker.Item label="Other…" value={customOption} />
-            </Picker>
-          </Row>
-          {customUnit ? (
-            <TextInput
-              autoCapitalize="none"
-              autoCorrect={false}
-              value={unitInput}
-              onChangeText={(value) => {
-                setValue("unit", value, { shouldDirty: true });
-                unitInput.set(value);
-                markDirty();
-              }}
-              placeholder="Other unit"
-              maxLength={40}
-              style={styles.input}
-              textStyle={styles.inputText}
-              modifiers={fillAvailableWidth}
-              testID="routine-quantity-unit-custom"
-            />
-          ) : null}
+          <QuantityUnitPicker
+            form={form}
+            unit={unit}
+            testID="routine-unit-picker"
+            customTestID="routine-quantity-unit-custom"
+            onChangeUnit={(value) => {
+              setValue("unit", value, { shouldDirty: true });
+              markDirty();
+            }}
+            onClearAmount={() => {
+              amountInput.set("");
+              setValue("amount", "", { shouldDirty: true });
+              markDirty();
+            }}
+          />
         </Column>
       </Screen>
     </>
   );
-}
-
-function unitOptions(form: string): string[] {
-  const selectedForm = forms.find((value) => value.toLowerCase() === form.toLowerCase());
-  const relevant = selectedForm ? relatedUnits[selectedForm] : [];
-
-  return [...relevant, ...units.filter((unit) => !relevant.includes(unit))];
 }
 
 function createStyles(colors: ReturnType<typeof usePalette>, fontScale: number) {

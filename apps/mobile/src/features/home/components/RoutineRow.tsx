@@ -10,15 +10,13 @@ import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
 import { ReminderOutcomes } from "@nutritual/protocol";
 
-export default function RoutineRow({
-  routine,
-  reminder,
-  onPress,
-}: {
+interface RoutineRowProps {
   routine: Routine;
   reminder?: ReminderState;
   onPress: () => void;
-}) {
+}
+
+export default function RoutineRow({ routine, reminder, onPress }: RoutineRowProps) {
   const colors = usePalette();
   const styles = useMemo(() => createStyles(colors), [colors]);
 

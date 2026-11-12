@@ -3,13 +3,13 @@ import { useMemo } from "react";
 import { Pressable, StyleSheet, Text } from "react-native";
 import { usePalette } from "@/shared/ui/palette";
 
-type Props = {
+interface Props {
   label: string;
   onPress: () => void;
   disabled?: boolean;
   testID?: string;
   kind?: "primary" | "secondary" | "destructive";
-};
+}
 
 export default function ActionButton({
   label,

@@ -5,7 +5,11 @@ import { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { usePalette } from "@/shared/ui/palette";
 
-export default function SheetHeader({ title }: { title: string }) {
+interface SheetHeaderProps {
+  title: string;
+}
+
+export default function SheetHeader({ title }: SheetHeaderProps) {
   const colors = usePalette();
   const styles = useMemo(() => createStyles(colors), [colors]);
 

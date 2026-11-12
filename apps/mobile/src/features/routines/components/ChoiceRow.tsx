@@ -6,17 +6,14 @@ import Text from "@/shared/ui/Text";
 import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
 
-export default function ChoiceRow({
-  label,
-  selected,
-  onPress,
-  detail,
-}: {
+interface ChoiceRowProps {
   label: string;
   selected: boolean;
   onPress: () => void;
   detail?: string;
-}) {
+}
+
+export default function ChoiceRow({ label, selected, onPress, detail }: ChoiceRowProps) {
   const colors = usePalette();
   const styles = useMemo(() => createStyles(colors), [colors]);
 

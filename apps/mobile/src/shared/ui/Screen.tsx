@@ -1,17 +1,16 @@
 import { Column, Host, ScrollView } from "@expo/ui";
 import { useMemo } from "react";
-import type { ReactNode } from "react";
+import type { PropsWithChildren, ReactNode } from "react";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import { KeyboardAvoidingView, Platform, StyleSheet, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { fillParent } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
 
-type Props = {
-  children: ReactNode;
+interface Props extends PropsWithChildren {
   footer?: ReactNode;
   grouped?: boolean;
-};
+}
 
 export default function Screen({ children, footer, grouped = false }: Props) {
   const colors = usePalette();

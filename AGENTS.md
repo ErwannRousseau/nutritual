@@ -9,6 +9,8 @@ the phone, with routine creation from ChatGPT through an authenticated relay.
 - Define status values as constants and use those constants in comparisons and
   switch cases. Reuse existing status constants when available.
 - Use `if` or `switch` for multiple branches. Do not nest ternary expressions.
+- Prefer built-in React and TypeScript types when applicable. Use named
+  interfaces for component props and `?:` for optional props.
 
 ## Architecture and ownership
 

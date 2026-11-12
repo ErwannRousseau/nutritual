@@ -5,11 +5,11 @@ import { usePalette } from "@/shared/ui/palette";
 
 export type TextVariant = "largeTitle" | "title" | "headline" | "body" | "subhead" | "footnote";
 
-type Props = Omit<UniversalTextProps, "textStyle"> & {
+interface Props extends Omit<UniversalTextProps, "textStyle"> {
   variant?: TextVariant;
   color?: string;
   textStyle?: UniversalTextStyle;
-};
+}
 
 export default function Text({ variant = "body", color, textStyle, ...props }: Props) {
   const { fontScale } = useWindowDimensions();

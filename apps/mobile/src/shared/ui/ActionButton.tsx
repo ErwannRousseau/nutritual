@@ -5,13 +5,13 @@ import Text from "@/shared/ui/Text";
 import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
 
-type Props = {
+interface Props {
   label: string;
   onPress: () => void;
   disabled?: boolean;
   testID?: string;
   kind?: "primary" | "secondary" | "destructive";
-};
+}
 
 export default function ActionButton({
   label,

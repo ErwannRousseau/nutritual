@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState } from "react";
-import type { ReactNode } from "react";
+import type { PropsWithChildren } from "react";
 import { router, useLocalSearchParams, usePreventRemove } from "expo-router";
 import { Alert } from "react-native";
 import type { RoutineDraft } from "@/features/routines/model";
@@ -17,7 +17,7 @@ type RoutineDraftValue = {
 
 const RoutineDraftContext = createContext<RoutineDraftValue | null>(null);
 
-export function RoutineDraftProvider({ children }: { children: ReactNode }) {
+export function RoutineDraftProvider({ children }: PropsWithChildren) {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { busy, error, routines } = useRoutineStore();
   const routine = id === "new" ? undefined : routines.find((item) => item.id === id);

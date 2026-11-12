@@ -1,7 +1,7 @@
 import { Button, Column, Row, Spacer, TextInput, useNativeState } from "@expo/ui";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { StyleSheet } from "react-native";
 import ActionButton from "@/shared/ui/ActionButton";
@@ -16,6 +16,7 @@ import { dateLabel, routineScheduleDisplay } from "@/features/routines/display";
 import { formatAmount } from "@/features/routines/routine-name-schema";
 import { useRecordIntake } from "@/features/intakes/useRecordIntake";
 import { intakeQuantitySchema, parseIntakeQuantity } from "@/features/intakes/quantity";
+import QuantityUnitPicker from "@/features/routines/components/QuantityUnitPicker";
 
 export default function RecordIntakeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -55,15 +56,7 @@ export default function RecordIntakeScreen() {
   );
 }
 
-function RecordRoutineIntakeForm({
-  routine,
-  today,
-  colors,
-  errorMessage,
-  isActionDisabled,
-  isSaving,
-  recordIntake,
-}: {
+interface RecordRoutineIntakeFormProps {
   routine: NonNullable<ReturnType<typeof useRecordIntake>["routines"][number]>;
   today: Date;
   colors: ReturnType<typeof usePalette>;
@@ -75,15 +68,25 @@ function RecordRoutineIntakeForm({
     selected: boolean,
     quantity?: { amount: number; unit: string },
   ) => Promise<boolean>;
-}) {
+}
+
+function RecordRoutineIntakeForm({
+  routine,
+  today,
+  colors,
+  errorMessage,
+  isActionDisabled,
+  isSaving,
+  recordIntake,
+}: RecordRoutineIntakeFormProps) {
   const [isSelected, setIsSelected] = useState(false);
   const initialAmount = routine.quantity ? formatAmount(routine.quantity.amount) : "";
   const initialUnit = routine.quantity?.unit ?? "";
 
   const amountInput = useNativeState(initialAmount);
-  const unitInput = useNativeState(initialUnit);
 
   const {
+    control,
     handleSubmit,
     setValue,
     trigger,
@@ -93,6 +96,9 @@ function RecordRoutineIntakeForm({
     resolver: zodResolver(intakeQuantitySchema),
     mode: "onChange",
   });
+
+  const form = routine.form ?? "";
+  const unit = useWatch({ control, name: "unit" });
 
   const styles = useMemo(() => createStyles(colors, isSelected), [colors, isSelected]);
 
@@ -173,21 +179,18 @@ function RecordRoutineIntakeForm({
             modifiers={fillAvailableWidth}
             testID="intake-quantity-amount"
           />
-          <TextInput
-            value={unitInput}
-            onChangeText={(value) => {
-              unitInput.set(value);
-              setValue("unit", value);
-              void trigger();
-            }}
-            autoCapitalize="none"
-            autoCorrect={false}
-            placeholder="Unit (optional)"
-            maxLength={40}
-            style={styles.input}
-            textStyle={styles.inputText}
-            modifiers={fillAvailableWidth}
+          <QuantityUnitPicker
+            form={form}
+            unit={unit}
             testID="intake-quantity-unit"
+            onChangeUnit={(value) => {
+              setValue("unit", value);
+            }}
+            onClearAmount={() => {
+              amountInput.set("");
+              setValue("amount", "");
+            }}
+            onValidate={() => void trigger()}
           />
           {errors.amount?.message ? (
             <Text variant="footnote" color={colors.danger}>

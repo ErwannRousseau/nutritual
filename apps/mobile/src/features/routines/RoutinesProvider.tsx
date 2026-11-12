@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type PropsWithChildren,
+} from "react";
 import { connectToDeviceRelay } from "@/features/routines/relay";
 import { useRoutines } from "@/features/routines/useRoutines";
 import { phoneRequest } from "@/features/auth/phone-api";
@@ -6,7 +13,7 @@ import { phoneResponses } from "@/features/auth/phone-responses";
 
 const RoutinesContext = createContext<ReturnType<typeof useRoutines> | null>(null);
 
-export function RoutinesProvider({ children }: { children: ReactNode }) {
+export function RoutinesProvider({ children }: PropsWithChildren) {
   const routines = useRoutines();
   const [paired, setPaired] = useState(false);
   const createRoutineRef = useRef(routines.createRoutineFromRelay);
