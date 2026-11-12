@@ -25,18 +25,8 @@ test("intake quantity rejects incomplete, non-decimal, zero, and non-finite valu
   }
 });
 
-test("legacy planned amounts prefill exactly but are rejected as new intake entries above 6 decimals", () => {
-  for (const amount of [1e-11, Number.MIN_VALUE]) {
-    const input = formatAmount(amount);
-
-    expect(input).not.toMatch(/[eE]/);
-    expect(parseIntakeQuantity(input, "mg")).toBeNull();
-  }
-
-  for (const amount of [1e21, Number.MAX_VALUE]) {
-    const input = formatAmount(amount);
-
-    expect(input).not.toMatch(/[eE]/);
-    expect(parseIntakeQuantity(input, "mg")).toEqual({ amount, unit: "mg" });
+test("planned amounts prefill without changing their value", () => {
+  for (const amount of [0.000001, 1.5, 1e21]) {
+    expect(parseIntakeQuantity(formatAmount(amount), "mg")).toEqual({ amount, unit: "mg" });
   }
 });

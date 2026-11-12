@@ -15,10 +15,8 @@ import { useRoutineDraft } from "@/features/routines/RoutineDraftProvider";
 import { useRoutineStore } from "@/features/routines/RoutinesProvider";
 import {
   formatAmount,
-  parseRoutineAmount,
   positiveAmountSchema,
   routineNameSchema,
-  routineNameSchemaPreservingAmount,
   type RoutineNameFields,
 } from "@/features/routines/routine-name-schema";
 import type { RoutineDraft } from "@/features/routines/model";
@@ -108,11 +106,6 @@ function RoutineNameForm({
   const initialAmount = draft.quantity ? formatAmount(draft.quantity.amount) : "";
   const initialUnit = draft.quantity?.unit ?? "";
 
-  const preservedAmount =
-    id !== "new" && draft.quantity && !positiveAmountSchema.safeParse(initialAmount).success
-      ? initialAmount
-      : undefined;
-
   const nameInput = useNativeState(draft.productName);
   const formInput = useNativeState(initialForm);
   const amountInput = useNativeState(initialAmount);
@@ -142,9 +135,7 @@ function RoutineNameForm({
       amount: initialAmount,
       unit: initialUnit,
     },
-    resolver: zodResolver(
-      preservedAmount ? routineNameSchemaPreservingAmount(preservedAmount) : routineNameSchema,
-    ),
+    resolver: zodResolver(routineNameSchema),
   });
 
   const form = useWatch({ control, name: "form" });
@@ -154,7 +145,7 @@ function RoutineNameForm({
 
   const continueToSchedule = (values: RoutineNameFields) => {
     const amountText = values.amount.trim();
-    const parsedAmount = parseRoutineAmount(amountText, preservedAmount, draft.quantity?.amount);
+    const parsedAmount = amountText ? positiveAmountSchema.parse(amountText) : null;
 
     const nextDraft: RoutineDraft = {
       productName: values.productName,
