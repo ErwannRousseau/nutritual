@@ -1,6 +1,8 @@
 import { Button, Column, Row, Spacer, TextInput, useNativeState } from "@expo/ui";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { StyleSheet } from "react-native";
 import ActionButton from "@/shared/ui/ActionButton";
 import AppSymbol from "@/shared/ui/AppSymbol";
@@ -13,7 +15,7 @@ import { usePalette } from "@/shared/ui/palette";
 import { dateLabel, routineScheduleDisplay } from "@/features/routines/display";
 import { formatAmount } from "@/features/routines/routine-name-schema";
 import { useRecordIntake } from "@/features/intakes/useRecordIntake";
-import { parseIntakeQuantity } from "@/features/intakes/quantity";
+import { intakeQuantitySchema, parseIntakeQuantity } from "@/features/intakes/quantity";
 
 export default function RecordIntakeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -41,6 +43,7 @@ export default function RecordIntakeScreen() {
 
   return (
     <RecordRoutineIntakeForm
+      key={routine.id}
       routine={routine}
       today={today}
       colors={colors}
@@ -74,35 +77,28 @@ function RecordRoutineIntakeForm({
   ) => Promise<boolean>;
 }) {
   const [isSelected, setIsSelected] = useState(false);
-  const [amount, setAmount] = useState("");
-  const [unit, setUnit] = useState("");
-  const amountInput = useNativeState("");
-  const unitInput = useNativeState("");
-  const edited = useRef(false);
-  const currentRoutineId = useRef(routine.id);
+  const initialAmount = routine.quantity ? formatAmount(routine.quantity.amount) : "";
+  const initialUnit = routine.quantity?.unit ?? "";
+
+  const amountInput = useNativeState(initialAmount);
+  const unitInput = useNativeState(initialUnit);
+
+  const {
+    handleSubmit,
+    setValue,
+    trigger,
+    formState: { errors, isValid },
+  } = useForm({
+    defaultValues: { amount: initialAmount, unit: initialUnit },
+    resolver: zodResolver(intakeQuantitySchema),
+    mode: "onChange",
+  });
 
   const styles = useMemo(() => createStyles(colors, isSelected), [colors, isSelected]);
 
-  useEffect(() => {
-    if (currentRoutineId.current !== routine.id) {
-      currentRoutineId.current = routine.id;
-      edited.current = false;
-    }
-
-    if (!edited.current) {
-      const nextAmount = routine.quantity ? formatAmount(routine.quantity.amount) : "";
-
-      const nextUnit = routine.quantity?.unit ?? "";
-      setAmount(nextAmount);
-      setUnit(nextUnit);
-      amountInput.set(nextAmount);
-      unitInput.set(nextUnit);
-    }
-  }, [amountInput, routine.id, routine.quantity, unitInput]);
-
   const schedule = routineScheduleDisplay(routine);
 
-  const save = async () => {
+  const save = async ({ amount, unit }: { amount: string; unit: string }) => {
     const quantity = parseIntakeQuantity(amount, unit);
 
     if (quantity === null) return;
@@ -110,16 +106,14 @@ function RecordRoutineIntakeForm({
     if (await recordIntake(routine.id, isSelected, quantity)) router.back();
   };
 
-  const quantityInvalid = parseIntakeQuantity(amount, unit) === null;
-
   return (
     <Screen
       grouped
       footer={
         <ActionButton
           label={isSaving ? "Saving…" : "Record intake"}
-          onPress={() => void save()}
-          disabled={!isSelected || isActionDisabled || quantityInvalid}
+          onPress={() => void handleSubmit(save)()}
+          disabled={!isSelected || isActionDisabled || !isValid}
         />
       }
     >
@@ -168,9 +162,9 @@ function RecordRoutineIntakeForm({
           <TextInput
             value={amountInput}
             onChangeText={(value) => {
-              edited.current = true;
               amountInput.set(value);
-              setAmount(value);
+              setValue("amount", value);
+              void trigger();
             }}
             keyboardType="decimal-pad"
             placeholder="Amount (optional)"
@@ -182,9 +176,9 @@ function RecordRoutineIntakeForm({
           <TextInput
             value={unitInput}
             onChangeText={(value) => {
-              edited.current = true;
               unitInput.set(value);
-              setUnit(value);
+              setValue("unit", value);
+              void trigger();
             }}
             autoCapitalize="none"
             autoCorrect={false}
@@ -195,10 +189,9 @@ function RecordRoutineIntakeForm({
             modifiers={fillAvailableWidth}
             testID="intake-quantity-unit"
           />
-          {quantityInvalid ? (
+          {errors.amount?.message ? (
             <Text variant="footnote" color={colors.danger}>
-              Enter a positive amount with up to 6 decimal places and its unit, or clear both
-              fields.
+              {errors.amount.message}
             </Text>
           ) : null}
         </Column>

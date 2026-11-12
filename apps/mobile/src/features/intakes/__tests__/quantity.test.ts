@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { parseIntakeQuantity } from "@/features/intakes/quantity";
+import { intakeQuantitySchema, parseIntakeQuantity } from "@/features/intakes/quantity";
 import { formatAmount } from "@/features/routines/routine-name-schema";
 
 test("intake quantity accepts optional paired positive decimal fields", () => {
@@ -23,6 +23,13 @@ test("intake quantity rejects incomplete, non-decimal, zero, and non-finite valu
   ]) {
     expect(parseIntakeQuantity(amount, unit)).toBeNull();
   }
+});
+
+test("form validates the paired quantity without rounding", () => {
+  expect(intakeQuantitySchema.safeParse({ amount: "", unit: "" }).success).toBe(true);
+  expect(intakeQuantitySchema.safeParse({ amount: "0,000001", unit: "mg" }).success).toBe(true);
+  expect(intakeQuantitySchema.safeParse({ amount: "0,0000001", unit: "mg" }).success).toBe(false);
+  expect(intakeQuantitySchema.safeParse({ amount: "1", unit: "" }).success).toBe(false);
 });
 
 test("planned amounts prefill without changing their value", () => {
