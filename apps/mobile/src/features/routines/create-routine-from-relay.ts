@@ -38,11 +38,13 @@ export function createRoutineFromRelayHandler({
       frequency: request.frequency,
       time: request.time,
       paused: false,
-      ...(request.form !== undefined && { form: request.form.trim() }),
-      ...(request.quantity !== undefined && {
-        quantity: { amount: request.quantity.amount, unit: request.quantity.unit.trim() },
-      }),
     };
+
+    if (request.form !== undefined) routine.form = request.form.trim();
+
+    if (request.quantity !== undefined) {
+      routine.quantity = { amount: request.quantity.amount, unit: request.quantity.unit.trim() };
+    }
 
     let committedRoutine: Routine | undefined;
 
