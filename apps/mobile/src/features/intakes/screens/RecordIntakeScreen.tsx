@@ -12,7 +12,7 @@ import Screen from "@/shared/ui/Screen";
 import { usePalette } from "@/shared/ui/palette";
 import { dateLabel, routineScheduleDisplay } from "@/features/routines/display";
 import { useRecordIntake } from "@/features/intakes/useRecordIntake";
-import { parseIntakeQuantity } from "@/features/intakes/quantity";
+import { formatIntakeAmount, parseIntakeQuantity } from "@/features/intakes/quantity";
 
 export default function RecordIntakeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -89,7 +89,7 @@ function RecordRoutineIntakeForm({
     }
 
     if (!edited.current) {
-      const nextAmount = routine.quantity ? String(routine.quantity.amount) : "";
+      const nextAmount = routine.quantity ? formatIntakeAmount(routine.quantity.amount) : "";
 
       const nextUnit = routine.quantity?.unit ?? "";
       setAmount(nextAmount);
@@ -173,7 +173,6 @@ function RecordRoutineIntakeForm({
             }}
             keyboardType="decimal-pad"
             placeholder="Amount (optional)"
-            maxLength={16}
             style={styles.input}
             textStyle={styles.inputText}
             modifiers={fillAvailableWidth}
