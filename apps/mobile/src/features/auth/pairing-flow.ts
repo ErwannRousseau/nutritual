@@ -3,6 +3,11 @@ import { normalizePairCode } from "./parse";
 
 type DeviceCredentials = Pick<PairingApprovalRequest, "deviceId" | "deviceSecret">;
 
+export type PairingNotice = {
+  tone: "success" | "info" | "error";
+  text: string;
+};
+
 export type PairingFlowServices = {
   inspect: (code: string) => Promise<PairingOAuthRequestDetails>;
   approve: (code: string, device: DeviceCredentials) => Promise<void>;
@@ -24,20 +29,25 @@ export function pairingDecisionCode(
   return code && valid && code === inspectedCode ? code : null;
 }
 
-export async function inspectPairingCode(code: string, services: PairingFlowServices) {
+export async function inspectPairingCode(
+  code: string,
+  services: PairingFlowServices,
+): Promise<{ details: PairingOAuthRequestDetails | null; notice: PairingNotice }> {
   try {
     const details = await services.inspect(code);
     await services.storePendingCode(code);
 
     return {
       details,
-      message: "Code accepted. Review the permissions below.",
+      notice: { tone: "success", text: "Code accepted. Review the permissions below." },
     };
   } catch {
     return {
       details: null,
-      message:
-        "The code is invalid, expired, or linked to another account. Check the account and try again.",
+      notice: {
+        tone: "error",
+        text: "The code is invalid, expired, or linked to another account. Check the account and try again.",
+      },
     };
   }
 }
@@ -46,21 +56,24 @@ export async function decidePairing(
   code: string,
   approve: boolean,
   services: PairingFlowServices,
-  setMessage: (message: string) => void,
+  setNotice: (notice: PairingNotice) => void,
 ): Promise<void> {
   try {
     if (approve) {
       const device = await services.getDeviceCredentials();
       await services.approve(code, device);
-      setMessage("The app is paired with this phone.");
+      setNotice({ tone: "success", text: "The app is paired with this phone." });
     } else {
       await services.decline(code);
-      setMessage("Request declined.");
+      setNotice({ tone: "info", text: "Request declined." });
     }
 
     await services.deletePendingCode();
     services.schedule(() => services.navigateToSettings(), 700);
   } catch {
-    setMessage("Unable to process this pairing. Check the code and try again.");
+    setNotice({
+      tone: "error",
+      text: "Unable to process this pairing. Check the code and try again.",
+    });
   }
 }
