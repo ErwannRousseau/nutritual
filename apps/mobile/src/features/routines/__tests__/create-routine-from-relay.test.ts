@@ -10,6 +10,7 @@ import {
   DeleteRoutineStatus,
   EditRoutineStatus,
   FrequencyKind,
+  ListRoutinesStatus,
   ReminderOutcomes,
   type CreateRoutineRequest,
   type PairingDeviceRequest,
@@ -1641,15 +1642,51 @@ test("relay creates, lists, edits and clears details with conflict-safe retries"
   );
   const list = await listRoutinesFromRelay();
 
-  if (list.status !== "ok") throw new Error("Listing failed");
+  if (list.status !== ListRoutinesStatus.ok) throw new Error("Listing failed");
   const expected = list.routines.find((routine) => routine.productName === "Zinc");
 
   if (!expected) throw new Error("Created routine missing");
   expect(expected).toMatchObject({ form: "lozenge", quantity: { amount: 1.5, unit: "pieces" } });
 
+  const replacement = { ...expected, form: "powder", quantity: { amount: 2, unit: "scoops" } };
+
+  expect(
+    (
+      await edit({
+        operationId: "details-replace",
+        expected,
+        changes: { form: "powder", quantity: { amount: 2, unit: "scoops" } },
+      })
+    ).status,
+  ).toBe(EditRoutineStatus.updated);
+  const { deleteRoutineOperation } = await import("../operations/delete");
+
+  expect(
+    (await deleteRoutineOperation({ operationId: "stale-delete-details", expected })).status,
+  ).toBe(DeleteRoutineStatus.conflict);
+  const replaced = await listRoutinesFromRelay();
+
+  if (replaced.status !== ListRoutinesStatus.ok) throw new Error("Listing failed");
+  expect(replaced.routines).toContainEqual(replacement);
+
+  expect(
+    (
+      await edit({
+        operationId: "details-clear-form",
+        expected: replacement,
+        changes: { form: null },
+      })
+    ).status,
+  ).toBe(EditRoutineStatus.updated);
+  const partial = await listRoutinesFromRelay();
+
+  if (partial.status !== ListRoutinesStatus.ok) throw new Error("Listing failed");
+  const withoutForm = { ...replacement, form: undefined };
+  expect(partial.routines).toContainEqual(withoutForm);
+
   const change = {
     operationId: "details-clear",
-    expected,
+    expected: withoutForm,
     changes: { form: null, quantity: null },
   };
 
@@ -1663,7 +1700,7 @@ test("relay creates, lists, edits and clears details with conflict-safe retries"
   );
   const after = await listRoutinesFromRelay();
 
-  if (after.status !== "ok") throw new Error("Listing failed");
+  if (after.status !== ListRoutinesStatus.ok) throw new Error("Listing failed");
   expect(after.routines.find((routine) => routine.id === expected.id)).toEqual({
     id: expected.id,
     productName: "Zinc",
