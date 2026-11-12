@@ -56,24 +56,22 @@ export async function decidePairing(
   code: string,
   approve: boolean,
   services: PairingFlowServices,
-  setNotice: (notice: PairingNotice) => void,
-): Promise<void> {
+): Promise<PairingNotice> {
   try {
     if (approve) {
       const device = await services.getDeviceCredentials();
       await services.approve(code, device);
-      setNotice({ tone: "success", text: "The app is paired with this phone." });
     } else {
       await services.decline(code);
-      setNotice({ tone: "info", text: "Request declined." });
     }
 
     await services.deletePendingCode();
     services.schedule(() => services.navigateToSettings(), 700);
   } catch {
-    setNotice({
-      tone: "error",
-      text: "Unable to process this pairing. Check the code and try again.",
-    });
+    return { tone: "error", text: "Unable to process this pairing. Check the code and try again." };
   }
+
+  if (approve) return { tone: "success", text: "The app is paired with this phone." };
+
+  return { tone: "info", text: "Request declined." };
 }

@@ -5,7 +5,6 @@ import {
   inspectPairingCode,
   pairingDecisionCode,
   type PairingFlowServices,
-  type PairingNotice,
 } from "../pairing-flow";
 
 const details: PairingOAuthRequestDetails = {
@@ -72,9 +71,8 @@ test("inspection failure keeps the pending code and reports the existing message
 test("approval sends device credentials and only then clears the code and schedules navigation", async () => {
   const events: string[] = [];
   let complete: (() => void) | undefined;
-  const notices: PairingNotice[] = [];
 
-  await decidePairing(
+  const notice = await decidePairing(
     "AAAA-AAAA",
     true,
     createServices({
@@ -95,17 +93,12 @@ test("approval sends device credentials and only then clears the code and schedu
       },
       navigateToSettings: () => events.push("navigate"),
     }),
-    (nextNotice) => {
-      notices.push(nextNotice);
-      events.push(`message:${nextNotice.text}`);
-    },
   );
 
-  expect(notices[0]).toEqual({ tone: "success", text: "The app is paired with this phone." });
+  expect(notice).toEqual({ tone: "success", text: "The app is paired with this phone." });
   expect(events).toEqual([
     "credentials",
     "approve:AAAA-AAAA:device-id:device-secret",
-    "message:The app is paired with this phone.",
     "delete",
     "schedule:700",
   ]);
@@ -116,9 +109,8 @@ test("approval sends device credentials and only then clears the code and schedu
 test("approval failure does not delete the pending code or schedule navigation", async () => {
   let deleted = false;
   let scheduled = false;
-  const notices: PairingNotice[] = [];
 
-  await decidePairing(
+  const notice = await decidePairing(
     "AAAA-AAAA",
     true,
     createServices({
@@ -132,12 +124,9 @@ test("approval failure does not delete the pending code or schedule navigation",
         scheduled = true;
       },
     }),
-    (nextNotice) => {
-      notices.push(nextNotice);
-    },
   );
 
-  expect(notices[0]).toEqual({
+  expect(notice).toEqual({
     tone: "error",
     text: "Unable to process this pairing. Check the code and try again.",
   });
@@ -147,9 +136,8 @@ test("approval failure does not delete the pending code or schedule navigation",
 
 test("decline posts only the validated code and never requests device credentials", async () => {
   const events: string[] = [];
-  const notices: PairingNotice[] = [];
 
-  await decidePairing(
+  const notice = await decidePairing(
     "AAAA-AAAA",
     false,
     createServices({
@@ -166,12 +154,9 @@ test("decline posts only the validated code and never requests device credential
       },
       schedule: (_callback, delay) => events.push(`schedule:${delay}`),
     }),
-    (nextNotice) => {
-      notices.push(nextNotice);
-    },
   );
 
-  expect(notices[0]).toEqual({ tone: "info", text: "Request declined." });
+  expect(notice).toEqual({ tone: "info", text: "Request declined." });
   expect(events).toEqual(["decline:AAAA-AAAA", "delete", "schedule:700"]);
 });
 

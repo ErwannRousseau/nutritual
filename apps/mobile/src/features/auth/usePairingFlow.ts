@@ -107,7 +107,7 @@ export function usePairingFlow(initialCode?: string) {
     setNotice(null);
 
     try {
-      await decidePairing(code, approve, services, setNotice);
+      setNotice(await decidePairing(code, approve, services));
     } finally {
       setBusy(false);
     }
