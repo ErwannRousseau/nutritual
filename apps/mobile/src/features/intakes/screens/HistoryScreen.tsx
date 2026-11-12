@@ -15,6 +15,7 @@ export default function HistoryScreen() {
   const colors = usePalette();
   const scheme = useColorScheme() ?? "light";
   const styles = useMemo(() => createStyles(colors), [colors]);
+
   const history = [...intakes].sort((a, b) => b.recordedAt.localeCompare(a.recordedAt));
 
   const renderRow = useCallback(
@@ -30,10 +31,19 @@ export default function HistoryScreen() {
           </ListItem.Leading>
           <Text>{item.productName}</Text>
           <ListItem.Supporting>
-            <Text
-              variant="subhead"
-              color={colors.secondary}
-            >{`${dateLabel(date)} ${date.getFullYear()} at ${timeLabel(date)}`}</Text>
+            <Text variant="subhead" color={colors.secondary}>
+              {`${dateLabel(date)} ${date.getFullYear()} at ${timeLabel(date)}`}
+            </Text>
+            {item.form ? (
+              <Text variant="subhead" color={colors.secondary}>
+                {item.form}
+              </Text>
+            ) : null}
+            {item.quantity ? (
+              <Text variant="subhead" color={colors.secondary}>
+                {`${item.quantity.amount} ${item.quantity.unit}`}
+              </Text>
+            ) : null}
           </ListItem.Supporting>
           <ListItem.Trailing>
             <AppSymbol name="chevron.right" size={14} color={colors.secondary} />
@@ -63,5 +73,7 @@ export default function HistoryScreen() {
 }
 
 function createStyles(colors: ReturnType<typeof usePalette>) {
-  return StyleSheet.create({ host: { flex: 1, backgroundColor: colors.grouped } });
+  return StyleSheet.create({
+    host: { flex: 1, backgroundColor: colors.grouped },
+  });
 }

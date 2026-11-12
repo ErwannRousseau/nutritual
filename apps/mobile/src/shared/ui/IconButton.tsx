@@ -4,12 +4,12 @@ import { Pressable, StyleSheet } from "react-native";
 import { platformNames, type AppSymbolName } from "@/shared/ui/AppSymbol";
 import { usePalette } from "@/shared/ui/palette";
 
-type Props = {
+interface Props {
   name: AppSymbolName;
   label: string;
   onPress: () => void;
   disabled?: boolean;
-};
+}
 
 export default function IconButton({ name, label, onPress, disabled = false }: Props) {
   const colors = usePalette();

@@ -1,3 +1,5 @@
+import type { IntakeQuantity } from "@/features/intakes/quantity";
+
 type FeedbackSetter = (message: string | null) => void;
 
 type BooleanSetter = (value: boolean) => void;
@@ -6,7 +8,8 @@ export async function recordIntakeAction(
   id: string,
   selected: boolean,
   disabled: boolean,
-  record: (id: string) => Promise<boolean>,
+  record: (id: string, quantity?: IntakeQuantity) => Promise<boolean>,
+  quantity: IntakeQuantity | undefined,
   setSaving: BooleanSetter,
   setFeedback: FeedbackSetter,
 ): Promise<boolean> {
@@ -15,7 +18,7 @@ export async function recordIntakeAction(
   setFeedback(null);
 
   try {
-    if (await record(id)) return true;
+    if (await record(id, quantity)) return true;
   } catch {
     // Keep the screen's existing failure message for provider errors.
   } finally {

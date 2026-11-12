@@ -8,7 +8,12 @@ import AppSymbol from "@/shared/ui/AppSymbol";
 import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
 
-export default function IntakeRow({ intake, onPress }: { intake: Intake; onPress: () => void }) {
+interface IntakeRowProps {
+  intake: Intake;
+  onPress: () => void;
+}
+
+export default function IntakeRow({ intake, onPress }: IntakeRowProps) {
   const colors = usePalette();
   const { fontScale } = useWindowDimensions();
   const styles = useMemo(() => createStyles(colors), [colors]);

@@ -18,6 +18,7 @@ test("record skips unselected and disabled actions", async () => {
       false,
       false,
       record,
+      undefined,
       (value) => saving.push(value),
       (value) => feedback.push(value),
     ),
@@ -28,6 +29,7 @@ test("record skips unselected and disabled actions", async () => {
       true,
       true,
       record,
+      undefined,
       (value) => saving.push(value),
       (value) => feedback.push(value),
     ),
@@ -41,22 +43,26 @@ test("record succeeds and resets pending state", async () => {
   const saving: boolean[] = [];
   const feedback: (string | null)[] = [];
   const recordedIds: string[] = [];
+  const recordedQuantities: ({ amount: number; unit: string } | undefined)[] = [];
 
   expect(
     await recordIntakeAction(
       "routine-1",
       true,
       false,
-      async (id) => {
+      async (id, quantity) => {
         recordedIds.push(id);
+        recordedQuantities.push(quantity);
 
         return true;
       },
+      { amount: 2, unit: "capsules" },
       (value) => saving.push(value),
       (value) => feedback.push(value),
     ),
   ).toBe(true);
   expect(recordedIds).toEqual(["routine-1"]);
+  expect(recordedQuantities).toEqual([{ amount: 2, unit: "capsules" }]);
   expect(saving).toEqual([true, false]);
   expect(feedback).toEqual([null]);
 });
@@ -71,6 +77,7 @@ test("record reports false and rejected operations", async () => {
       true,
       false,
       async () => false,
+      undefined,
       (value) => saving.push(value),
       (value) => feedback.push(value),
     ),
@@ -86,6 +93,7 @@ test("record reports false and rejected operations", async () => {
       async () => {
         throw new Error("storage failed");
       },
+      undefined,
       (value) => saving.push(value),
       (value) => feedback.push(value),
     ),

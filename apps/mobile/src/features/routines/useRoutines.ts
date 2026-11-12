@@ -194,7 +194,7 @@ export function useRoutines() {
     return updated && !missing;
   }
 
-  async function record(id: string): Promise<boolean> {
+  async function record(id: string, quantity?: { amount: number; unit: string }): Promise<boolean> {
     let missing = false;
 
     const recorded = await run(async () => {
@@ -206,12 +206,18 @@ export function useRoutines() {
         return;
       }
 
-      await storage.saveIntake({
+      const intake: Intake = {
         id: randomUUID(),
         routineId: routine.id,
         productName: routine.productName,
         recordedAt: new Date().toISOString(),
-      });
+      };
+
+      if (routine.form !== undefined) intake.form = routine.form;
+
+      if (quantity !== undefined) intake.quantity = quantity;
+
+      await storage.saveIntake(intake);
     });
 
     return recorded && !missing;

@@ -30,11 +30,11 @@ export const platformNames: Record<AppSymbolName, NonNullable<SymbolViewProps["n
   ellipsis: { ios: "ellipsis", android: "more_horiz" },
 };
 
-type Props = {
+interface Props {
   name: AppSymbolName;
   size?: number;
   color?: string;
-};
+}
 
 export default function AppSymbol({ name, size = 20, color }: Props) {
   return (

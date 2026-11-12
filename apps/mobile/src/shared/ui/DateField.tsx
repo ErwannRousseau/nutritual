@@ -6,19 +6,15 @@ import Text from "@/shared/ui/Text";
 import { fillParent } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
 
-export default function DateField({
-  label,
-  mode,
-  value,
-  onChange,
-  testID,
-}: {
+interface DateFieldProps {
   label: string;
   mode: "date" | "time";
   value: Date;
   onChange: (value: Date) => void;
   testID: string;
-}) {
+}
+
+export default function DateField({ label, mode, value, onChange, testID }: DateFieldProps) {
   const colors = usePalette();
   const scheme = useColorScheme() ?? "light";
   const { fontScale } = useWindowDimensions();

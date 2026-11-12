@@ -1,6 +1,8 @@
-import { Button, Column, Row, Spacer } from "@expo/ui";
+import { Button, Column, Row, Spacer, TextInput, useNativeState } from "@expo/ui";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { StyleSheet } from "react-native";
 import ActionButton from "@/shared/ui/ActionButton";
 import AppSymbol from "@/shared/ui/AppSymbol";
@@ -11,7 +13,10 @@ import ProductBadge from "@/shared/ui/ProductBadge";
 import Screen from "@/shared/ui/Screen";
 import { usePalette } from "@/shared/ui/palette";
 import { dateLabel, routineScheduleDisplay } from "@/features/routines/display";
+import { formatAmount, quantitySchema } from "@/features/routines/routine-name-schema";
 import { useRecordIntake } from "@/features/intakes/useRecordIntake";
+import { parseIntakeQuantity } from "@/features/intakes/quantity";
+import QuantityUnitPicker from "@/features/routines/components/QuantityUnitPicker";
 
 export default function RecordIntakeScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -21,11 +26,8 @@ export default function RecordIntakeScreen() {
 
   const colors = usePalette();
   const [today] = useState(() => new Date());
-  const [isSelected, setIsSelected] = useState(false);
   const routine = routines.find((item) => item.id === id);
   const errorMessage = feedback ?? error;
-
-  const styles = useMemo(() => createStyles(colors, isSelected), [colors, isSelected]);
 
   if (!routine) {
     return (
@@ -40,10 +42,74 @@ export default function RecordIntakeScreen() {
     );
   }
 
+  return (
+    <RecordRoutineIntakeForm
+      key={routine.id}
+      routine={routine}
+      today={today}
+      colors={colors}
+      errorMessage={errorMessage}
+      isActionDisabled={isActionDisabled}
+      isSaving={isSaving}
+      recordIntake={recordIntake}
+    />
+  );
+}
+
+interface RecordRoutineIntakeFormProps {
+  routine: NonNullable<ReturnType<typeof useRecordIntake>["routines"][number]>;
+  today: Date;
+  colors: ReturnType<typeof usePalette>;
+  errorMessage: string | null;
+  isActionDisabled: boolean;
+  isSaving: boolean;
+  recordIntake: (
+    id: string,
+    selected: boolean,
+    quantity?: { amount: number; unit: string },
+  ) => Promise<boolean>;
+}
+
+function RecordRoutineIntakeForm({
+  routine,
+  today,
+  colors,
+  errorMessage,
+  isActionDisabled,
+  isSaving,
+  recordIntake,
+}: RecordRoutineIntakeFormProps) {
+  const [isSelected, setIsSelected] = useState(false);
+  const initialAmount = routine.quantity ? formatAmount(routine.quantity.amount) : "";
+  const initialUnit = routine.quantity?.unit ?? "";
+
+  const amountInput = useNativeState(initialAmount);
+
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    trigger,
+    formState: { errors, isSubmitted },
+  } = useForm({
+    defaultValues: { amount: initialAmount, unit: initialUnit },
+    resolver: zodResolver(quantitySchema),
+  });
+
+  const form = routine.form ?? "";
+  const amount = useWatch({ control, name: "amount" });
+  const unit = useWatch({ control, name: "unit" });
+
+  const styles = useMemo(() => createStyles(colors, isSelected), [colors, isSelected]);
+
   const schedule = routineScheduleDisplay(routine);
 
-  const save = async () => {
-    if (await recordIntake(routine.id, isSelected)) router.back();
+  const save = async ({ amount, unit }: { amount: string; unit: string }) => {
+    const quantity = parseIntakeQuantity(amount, unit);
+
+    if (quantity === null) return;
+
+    if (await recordIntake(routine.id, isSelected, quantity)) router.back();
   };
 
   return (
@@ -52,7 +118,7 @@ export default function RecordIntakeScreen() {
       footer={
         <ActionButton
           label={isSaving ? "Saving…" : "Record intake"}
-          onPress={() => void save()}
+          onPress={() => void handleSubmit(save)()}
           disabled={!isSelected || isActionDisabled}
         />
       }
@@ -99,6 +165,42 @@ export default function RecordIntakeScreen() {
               <Spacer />
             </Row>
           </Button>
+          <TextInput
+            value={amountInput}
+            onChangeText={(value) => {
+              amountInput.set(value);
+              setValue("amount", value);
+
+              if (isSubmitted) void trigger();
+            }}
+            keyboardType="decimal-pad"
+            placeholder="Amount (optional)"
+            style={styles.input}
+            textStyle={styles.inputText}
+            modifiers={fillAvailableWidth}
+            testID="intake-quantity-amount"
+          />
+          <QuantityUnitPicker
+            form={form}
+            amount={amount}
+            unit={unit}
+            testID="intake-quantity-unit"
+            onChangeUnit={(value) => {
+              setValue("unit", value);
+            }}
+            onClearAmount={() => {
+              amountInput.set("");
+              setValue("amount", "");
+            }}
+            onValidate={() => {
+              if (isSubmitted) void trigger();
+            }}
+          />
+          {errors.amount?.message ? (
+            <Text variant="footnote" color={colors.danger}>
+              {errors.amount.message}
+            </Text>
+          ) : null}
         </Column>
         <Spacer />
       </Row>
@@ -130,5 +232,12 @@ function createStyles(colors: ReturnType<typeof usePalette>, isSelected: boolean
       width: fillParent,
     },
     centeredText: { textAlign: "center" },
+    input: {
+      padding: 14,
+      borderRadius: 18,
+      backgroundColor: colors.grouped,
+      width: fillParent,
+    },
+    inputText: { color: colors.text, fontSize: 17 },
   });
 }

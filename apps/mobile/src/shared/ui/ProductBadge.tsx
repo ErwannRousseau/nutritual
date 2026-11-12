@@ -4,7 +4,9 @@ import { useMemo } from "react";
 import { StyleSheet, View, type ViewStyle } from "react-native";
 import { usePalette } from "@/shared/ui/palette";
 
-type Props = { size?: 40 | 96 };
+interface Props {
+  size?: 40 | 96;
+}
 
 export default function ProductBadge({ size = 40 }: Props) {
   const colors = usePalette();

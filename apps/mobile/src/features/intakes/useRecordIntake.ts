@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRoutineStore } from "@/features/routines/RoutinesProvider";
 import { recordIntakeAction } from "@/features/intakes/intake-actions";
+import type { IntakeQuantity } from "@/features/intakes/quantity";
 
 export function useRecordIntake() {
   const { busy, error, record, routines } = useRoutineStore();
@@ -15,7 +16,15 @@ export function useRecordIntake() {
     isSaving,
     isActionDisabled,
     routines,
-    recordIntake: (id: string, selected: boolean) =>
-      recordIntakeAction(id, selected, isActionDisabled, record, setIsSaving, setFeedback),
+    recordIntake: (id: string, selected: boolean, quantity?: IntakeQuantity) =>
+      recordIntakeAction(
+        id,
+        selected,
+        isActionDisabled,
+        record,
+        quantity,
+        setIsSaving,
+        setFeedback,
+      ),
   };
 }

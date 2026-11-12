@@ -9,15 +9,13 @@ import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
 import { FrequencyKind, ReminderOutcomes } from "@nutritual/protocol";
 
-export default function UpcomingCard({
-  routine,
-  reminder,
-  onPress,
-}: {
+interface UpcomingCardProps {
   routine: Routine;
   reminder?: ReminderState;
   onPress: () => void;
-}) {
+}
+
+export default function UpcomingCard({ routine, reminder, onPress }: UpcomingCardProps) {
   const colors = usePalette();
   const styles = useMemo(() => createStyles(colors), [colors]);
 

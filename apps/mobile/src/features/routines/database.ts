@@ -57,6 +57,13 @@ export function getDatabase(): Promise<SQLite.SQLiteDatabase> {
         quantity_unit TEXT,
         CHECK ((quantity_amount IS NULL) = (quantity_unit IS NULL))
       );
+      CREATE TABLE IF NOT EXISTS intake_details (
+        intake_id TEXT PRIMARY KEY NOT NULL,
+        form TEXT,
+        quantity_amount REAL CHECK (quantity_amount IS NULL OR quantity_amount > 0),
+        quantity_unit TEXT,
+        CHECK ((quantity_amount IS NULL) = (quantity_unit IS NULL))
+      );
       CREATE TABLE IF NOT EXISTS routine_operations (
         operation_id TEXT PRIMARY KEY NOT NULL,
         request_json TEXT NOT NULL,

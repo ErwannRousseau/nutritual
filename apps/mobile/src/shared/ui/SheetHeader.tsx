@@ -7,7 +7,11 @@ import IconButton from "@/shared/ui/IconButton";
 import { fillParent, sixtyPercent } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
 
-export default function SheetHeader({ title }: { title: string }) {
+interface SheetHeaderProps {
+  title: string;
+}
+
+export default function SheetHeader({ title }: SheetHeaderProps) {
   const colors = usePalette();
   const styles = useMemo(() => createStyles(colors), [colors]);
 

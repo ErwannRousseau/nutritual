@@ -160,6 +160,163 @@ afterAll(() => {
   rmSync(directory, { recursive: true, force: true });
 });
 
+test("routine details save atomically and are removed with their routine", async () => {
+  const storage = await import("../storage");
+
+  const routine = {
+    id: "routine-detail-rollback",
+    productName: "Magnesium",
+    form: "Capsule",
+    quantity: { amount: 2, unit: "capsules" },
+    frequency: { kind: FrequencyKind.weekdays, days: [1] },
+    time: "09:00",
+    paused: false,
+  };
+
+  try {
+    await storage.saveRoutine(routine);
+    expect((await storage.loadData()).routines).toContainEqual(routine);
+
+    database.exec(`
+      CREATE TRIGGER reject_routine_details BEFORE UPDATE ON routine_details
+      WHEN NEW.routine_id = 'routine-detail-rollback'
+      BEGIN SELECT RAISE(ABORT, 'forced detail failure'); END;
+    `);
+
+    try {
+      await expect(
+        storage.saveRoutine({ ...routine, productName: "Changed magnesium", form: "Powder" }),
+      ).rejects.toThrow();
+    } finally {
+      database.exec("DROP TRIGGER IF EXISTS reject_routine_details");
+    }
+
+    expect((await storage.loadData()).routines).toContainEqual(routine);
+
+    const noDetails = {
+      id: routine.id,
+      productName: routine.productName,
+      frequency: routine.frequency,
+      time: routine.time,
+      paused: routine.paused,
+    };
+
+    await storage.saveRoutine(noDetails);
+    expect((await storage.loadData()).routines).toContainEqual(noDetails);
+    expect(
+      await sqlite.getFirstAsync<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM routine_details WHERE routine_id = ?",
+        routine.id,
+      ),
+    ).toEqual({ count: 0 });
+
+    await storage.saveRoutine(routine);
+    await storage.deleteRoutine(routine.id);
+    expect(
+      await sqlite.getFirstAsync<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM routine_details WHERE routine_id = ?",
+        routine.id,
+      ),
+    ).toEqual({ count: 0 });
+  } finally {
+    database.exec("DROP TRIGGER IF EXISTS reject_routine_details");
+    await storage.deleteRoutine(routine.id);
+  }
+});
+
+test("intake snapshots keep their recorded details when routines change", async () => {
+  const storage = await import("../storage");
+
+  const routine = {
+    id: "intake-detail-routine",
+    productName: "Magnesium",
+    form: "Capsule",
+    quantity: { amount: 2, unit: "capsules" },
+    frequency: { kind: FrequencyKind.weekdays, days: [1] },
+    time: "09:00",
+    paused: false,
+  };
+
+  try {
+    await storage.saveRoutine(routine);
+    await storage.saveIntake({
+      id: "intake-detail-snapshot",
+      routineId: routine.id,
+      productName: routine.productName,
+      recordedAt: "2026-11-10T08:00:00.000Z",
+      form: routine.form,
+      quantity: { amount: 1, unit: "capsule" },
+    });
+    await storage.saveIntake({
+      id: "intake-unknown-history",
+      routineId: routine.id,
+      productName: routine.productName,
+      recordedAt: "2026-11-09T08:00:00.000Z",
+    });
+
+    await storage.saveRoutine({
+      ...routine,
+      form: "Powder",
+      quantity: { amount: 5, unit: "g" },
+    });
+
+    expect((await storage.loadData()).intakes).toContainEqual({
+      id: "intake-detail-snapshot",
+      routineId: routine.id,
+      productName: routine.productName,
+      recordedAt: "2026-11-10T08:00:00.000Z",
+      form: "Capsule",
+      quantity: { amount: 1, unit: "capsule" },
+    });
+    expect((await storage.loadData()).intakes).toContainEqual({
+      id: "intake-unknown-history",
+      routineId: routine.id,
+      productName: routine.productName,
+      recordedAt: "2026-11-09T08:00:00.000Z",
+    });
+
+    database.exec(`
+    CREATE TRIGGER reject_intake_details BEFORE INSERT ON intake_details
+    WHEN NEW.intake_id = 'intake-rollback'
+    BEGIN SELECT RAISE(ABORT, 'forced detail failure'); END;
+  `);
+
+    try {
+      await expect(
+        storage.saveIntake({
+          id: "intake-rollback",
+          routineId: routine.id,
+          productName: routine.productName,
+          recordedAt: "2026-11-11T08:00:00.000Z",
+          form: "Capsule",
+        }),
+      ).rejects.toThrow();
+    } finally {
+      database.exec("DROP TRIGGER IF EXISTS reject_intake_details");
+    }
+
+    expect(
+      await sqlite.getFirstAsync<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM intakes WHERE id = ?",
+        "intake-rollback",
+      ),
+    ).toEqual({ count: 0 });
+    await storage.deleteIntake("intake-detail-snapshot");
+    expect(
+      await sqlite.getFirstAsync<{ count: number }>(
+        "SELECT COUNT(*) AS count FROM intake_details WHERE intake_id = ?",
+        "intake-detail-snapshot",
+      ),
+    ).toEqual({ count: 0 });
+  } finally {
+    database.exec("DROP TRIGGER IF EXISTS reject_intake_details");
+    await storage.deleteIntake("intake-detail-snapshot");
+    await storage.deleteIntake("intake-unknown-history");
+    await storage.deleteIntake("intake-rollback");
+    await storage.deleteRoutine(routine.id);
+  }
+});
+
 test("relay creation deduplicates on SQLite and serializes reminder restoration", async () => {
   const { createRoutineFromRelayHandler } = await import("../create-routine-from-relay");
 
