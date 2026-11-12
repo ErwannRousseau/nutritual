@@ -1,8 +1,14 @@
 import { randomUUID } from "expo-crypto";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppState } from "react-native";
-import type { Intake, ReminderState, Routine, RoutineDraft } from "@/features/routines/model";
-import { validateRoutine } from "@/features/routines/model";
+import type {
+  Intake,
+  ReminderState,
+  Routine,
+  RoutineDraft,
+  SkippedOccurrence,
+} from "@/features/routines/model";
+import { isDueOn, localDate, validateRoutine } from "@/features/routines/model";
 import * as storage from "@/features/routines/storage";
 import { removeReminders, restoreReminders, updateReminder } from "@/features/routines/reminders";
 import { createRoutineFromRelayHandler } from "@/features/routines/create-routine-from-relay";
@@ -11,9 +17,14 @@ import { deleteRoutineFromRelayHandler } from "@/features/routines/delete-routin
 import { createActionQueue } from "@/features/routines/action-queue";
 
 export function useRoutines() {
-  const [data, setData] = useState<{ routines: Routine[]; intakes: Intake[] }>({
+  const [data, setData] = useState<{
+    routines: Routine[];
+    intakes: Intake[];
+    skippedOccurrences: SkippedOccurrence[];
+  }>({
     routines: [],
     intakes: [],
+    skippedOccurrences: [],
   });
 
   const [busy, setBusy] = useState(true);
@@ -194,16 +205,41 @@ export function useRoutines() {
     return updated && !missing;
   }
 
-  async function record(id: string, quantity?: { amount: number; unit: string }): Promise<boolean> {
-    let missing = false;
+  async function record(
+    id: string,
+    quantity?: { amount: number; unit: string },
+    expectedTime?: string,
+  ): Promise<boolean> {
+    let unavailable = false;
 
     const recorded = await run(async () => {
-      const routine = (await storage.loadData()).routines.find((item) => item.id === id);
+      const stored = await storage.loadData();
+      const routine = stored.routines.find((item) => item.id === id);
+      const now = new Date();
+      const today = localDate(now);
 
       if (!routine) {
-        missing = true;
+        unavailable = true;
 
         return;
+      }
+
+      if (expectedTime !== undefined) {
+        const isInExpectedGroup = routine.time === expectedTime && isDueOn(routine, now);
+
+        const hasIntakeToday = stored.intakes.some(
+          (intake) => intake.routineId === id && localDate(new Date(intake.recordedAt)) === today,
+        );
+
+        const wasSkippedToday = stored.skippedOccurrences.some(
+          (occurrence) => occurrence.routineId === id && occurrence.date === today,
+        );
+
+        if (!isInExpectedGroup || hasIntakeToday || wasSkippedToday) {
+          unavailable = true;
+
+          return;
+        }
       }
 
       const intake: Intake = {
@@ -215,16 +251,22 @@ export function useRoutines() {
 
       if (routine.form !== undefined) intake.form = routine.form;
 
-      if (quantity !== undefined) intake.quantity = quantity;
+      const intakeQuantity = expectedTime !== undefined ? routine.quantity : quantity;
+
+      if (intakeQuantity !== undefined) intake.quantity = intakeQuantity;
 
       await storage.saveIntake(intake);
     });
 
-    return recorded && !missing;
+    return recorded && !unavailable;
   }
 
   async function undo(id: string): Promise<boolean> {
     return run(() => storage.deleteIntake(id));
+  }
+
+  async function skip(id: string): Promise<boolean> {
+    return run(() => storage.skipRoutine(id, localDate(new Date())));
   }
 
   return {
@@ -240,6 +282,7 @@ export function useRoutines() {
     remove,
     pause,
     record,
+    skip,
     undo,
     reload,
   };

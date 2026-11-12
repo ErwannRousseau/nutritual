@@ -23,6 +23,10 @@ export default function AuthenticatedLayout() {
         <Stack.Screen name="index" options={{ title: "Supplements" }} />
         <Stack.Screen name="routine/[id]" options={{ presentation: "modal", headerShown: false }} />
         <Stack.Screen name="record/[id]" options={{ presentation: "modal", headerShown: false }} />
+        <Stack.Screen
+          name="routine-group"
+          options={{ presentation: "modal", headerShown: false }}
+        />
         <Stack.Screen name="intake/[id]" options={{ presentation: "modal", headerShown: false }} />
         <Stack.Screen name="routine-detail/[id]" options={{ title: "Supplement" }} />
         <Stack.Screen name="as-needed" options={{ title: "As needed" }} />

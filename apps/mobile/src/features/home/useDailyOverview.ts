@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
 import { AppState } from "react-native";
-import type { Intake, Routine } from "@/features/routines/model";
+import type { Intake, Routine, SkippedOccurrence } from "@/features/routines/model";
 import { selectDailyOverview } from "./daily-overview";
 
-export function useDailyOverview(routines: Routine[], intakes: Intake[]) {
+export function useDailyOverview(
+  routines: Routine[],
+  intakes: Intake[],
+  skippedOccurrences: SkippedOccurrence[],
+) {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -20,5 +24,5 @@ export function useDailyOverview(routines: Routine[], intakes: Intake[]) {
     };
   }, []);
 
-  return { now, ...selectDailyOverview(routines, intakes, now) };
+  return { now, ...selectDailyOverview(routines, intakes, now, skippedOccurrences) };
 }

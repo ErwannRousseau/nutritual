@@ -1,7 +1,18 @@
 import { FrequencyKind } from "@nutritual/protocol";
-import { isDueOn, localDate, type Intake, type Routine } from "@/features/routines/model";
+import {
+  isDueOn,
+  localDate,
+  type Intake,
+  type Routine,
+  type SkippedOccurrence,
+} from "@/features/routines/model";
 
-export function selectDailyOverview(routines: Routine[], intakes: Intake[], now: Date) {
+export function selectDailyOverview(
+  routines: Routine[],
+  intakes: Intake[],
+  now: Date,
+  skippedOccurrences: SkippedOccurrence[],
+) {
   const today = localDate(now);
 
   const logged = intakes
@@ -10,8 +21,16 @@ export function selectDailyOverview(routines: Routine[], intakes: Intake[], now:
 
   const recorded = new Set(logged.map((intake) => intake.routineId));
 
+  const skipped = new Set(
+    skippedOccurrences.flatMap((occurrence) =>
+      occurrence.date === today ? [occurrence.routineId] : [],
+    ),
+  );
+
   const upcoming = routines
-    .filter((routine) => isDueOn(routine, now) && !recorded.has(routine.id))
+    .filter(
+      (routine) => isDueOn(routine, now) && !recorded.has(routine.id) && !skipped.has(routine.id),
+    )
     .sort((a, b) => a.time.localeCompare(b.time));
 
   const asNeeded = routines.some(

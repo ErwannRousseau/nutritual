@@ -1,6 +1,6 @@
 import { FrequencyKind } from "@nutritual/protocol";
 import type { SQLiteRunResult } from "expo-sqlite";
-import type { Intake, Routine } from "@/features/routines/model";
+import type { Intake, Routine, SkippedOccurrence } from "@/features/routines/model";
 import { validateRoutine } from "@/features/routines/model";
 import { getDatabase } from "./database";
 
@@ -174,7 +174,11 @@ export function routineValues(
   ];
 }
 
-export async function loadData(): Promise<{ routines: Routine[]; intakes: Intake[] }> {
+export async function loadData(): Promise<{
+  routines: Routine[];
+  intakes: Intake[];
+  skippedOccurrences: SkippedOccurrence[];
+}> {
   const database = await getDatabase();
 
   const routineRows = await database.getAllAsync<RoutineRow & RoutineDetailsRow>(
@@ -185,8 +189,16 @@ export async function loadData(): Promise<{ routines: Routine[]; intakes: Intake
     "SELECT intakes.*, intake_details.form, intake_details.quantity_amount, intake_details.quantity_unit FROM intakes LEFT JOIN intake_details ON intake_details.intake_id = intakes.id ORDER BY intakes.rowid",
   );
 
+  const skippedRows = await database.getAllAsync<{ routine_id: string; local_date: string }>(
+    "SELECT routine_id, local_date FROM skipped_routines",
+  );
+
   return {
     routines: routineRows.map((row) => routineFromRow(row, routineDetails(row))),
+    skippedOccurrences: skippedRows.map((row) => ({
+      routineId: row.routine_id,
+      date: row.local_date,
+    })),
     intakes: intakeRows.map((row) => {
       const intake: Intake = {
         id: row.id,
@@ -225,7 +237,19 @@ export async function deleteRoutine(id: string): Promise<void> {
   const database = await getDatabase();
   await database.withExclusiveTransactionAsync(async (transaction) => {
     await transaction.runAsync("DELETE FROM routine_details WHERE routine_id = ?", id);
+    await transaction.runAsync("DELETE FROM skipped_routines WHERE routine_id = ?", id);
     await transaction.runAsync("DELETE FROM routines WHERE id = ?", id);
+  });
+}
+
+export async function skipRoutine(id: string, date: string): Promise<void> {
+  const database = await getDatabase();
+  await database.withExclusiveTransactionAsync(async (transaction) => {
+    await transaction.runAsync("DELETE FROM skipped_routines WHERE local_date <> ?", date);
+    await transaction.runAsync(
+      "INSERT INTO skipped_routines (routine_id, local_date) VALUES (?, ?) ON CONFLICT(routine_id, local_date) DO NOTHING",
+      [id, date],
+    );
   });
 }
 

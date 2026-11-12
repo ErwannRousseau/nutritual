@@ -50,6 +50,11 @@ export function getDatabase(): Promise<SQLite.SQLiteDatabase> {
         product_name TEXT NOT NULL,
         recorded_at TEXT NOT NULL
       );
+      CREATE TABLE IF NOT EXISTS skipped_routines (
+        routine_id TEXT NOT NULL,
+        local_date TEXT NOT NULL,
+        PRIMARY KEY (routine_id, local_date)
+      );
       CREATE TABLE IF NOT EXISTS routine_details (
         routine_id TEXT PRIMARY KEY NOT NULL,
         form TEXT,

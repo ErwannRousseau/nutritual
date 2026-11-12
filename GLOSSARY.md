@@ -26,6 +26,10 @@ count as an intake.
 schedule is preserved. Resuming it uses the original schedule without catching
 up on missed reminders.
 
+**Skipped scheduled occurrence**: A scheduled intake occurrence the user
+chooses not to take. It is kept separate from intake history and remains
+skipped for that local day.
+
 **Reminder**: A notification scheduled to signal an intake as part of an intake
 routine. _Avoid_: Routine
 

@@ -20,6 +20,7 @@ describe("selectDailyOverview", () => {
         intake("next", "four", nextDay),
       ],
       now,
+      [],
     );
 
     expect(logged.map(({ id }) => id)).toEqual(["later", "earlier"]);
@@ -37,6 +38,7 @@ describe("selectDailyOverview", () => {
       ],
       [intake("today", "logged", now)],
       now,
+      [],
     );
 
     expect(upcoming.map(({ id }) => id)).toEqual(["early", "late"]);
@@ -53,6 +55,7 @@ describe("selectDailyOverview", () => {
       ],
       [],
       now,
+      [],
     );
 
     expect(upcoming).toEqual([]);
@@ -63,6 +66,7 @@ describe("selectDailyOverview", () => {
         [routine("paused-as-needed", "10:00", { kind: FrequencyKind.asNeeded }, true)],
         [],
         now,
+        [],
       ).asNeeded,
     ).toBe(false);
   });
@@ -90,6 +94,7 @@ describe("selectDailyOverview", () => {
         [dailyRoutine, firstDayRoutine, secondDayRoutine],
         intakes,
         firstDay,
+        [],
       ).logged.map(({ id }) => id),
     ).toEqual(["first-day"]);
     expect(
@@ -97,6 +102,7 @@ describe("selectDailyOverview", () => {
         [dailyRoutine, firstDayRoutine, secondDayRoutine],
         intakes,
         secondDay,
+        [],
       ).logged.map(({ id }) => id),
     ).toEqual(["second-day"]);
     expect(
@@ -104,6 +110,7 @@ describe("selectDailyOverview", () => {
         [dailyRoutine, firstDayRoutine, secondDayRoutine],
         intakes,
         firstDay,
+        [],
       ).upcoming.map(({ id }) => id),
     ).toEqual(["first-day-only"]);
     expect(
@@ -111,6 +118,7 @@ describe("selectDailyOverview", () => {
         [dailyRoutine, firstDayRoutine, secondDayRoutine],
         intakes,
         secondDay,
+        [],
       ).upcoming.map(({ id }) => id),
     ).toEqual(["second-day-only"]);
   });

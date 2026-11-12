@@ -25,6 +25,11 @@ export type Intake = {
   quantity?: { amount: number; unit: string };
 };
 
+export type SkippedOccurrence = {
+  routineId: string;
+  date: string;
+};
+
 export const ReminderStatus = { paused: "paused" } as const;
 
 export type ReminderState = {

@@ -2,21 +2,28 @@ import { useMemo } from "react";
 import { Button, Column, Row, Spacer } from "@expo/ui";
 import { router, Stack } from "expo-router";
 import { StyleSheet } from "react-native";
-import { useRoutineStore } from "@/features/routines/RoutinesProvider";
 import Text from "@/shared/ui/Text";
 import AppSymbol from "@/shared/ui/AppSymbol";
 import ProductBadge from "@/shared/ui/ProductBadge";
 import Screen from "@/shared/ui/Screen";
 import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
-import UpcomingCard from "@/features/routines/components/UpcomingCard";
 import IntakeRow from "@/features/home/components/IntakeRow";
 import RoutineRow from "@/features/home/components/RoutineRow";
 import { useDailyOverview } from "@/features/home/useDailyOverview";
+import { useRoutineStore } from "@/features/routines/RoutinesProvider";
+import { ReminderOutcomes } from "@nutritual/protocol";
 
 export default function DailyOverview() {
-  const { routines, intakes, reminders, busy, error, reload } = useRoutineStore();
-  const { now, logged, upcoming, asNeeded } = useDailyOverview(routines, intakes);
+  const { routines, intakes, reminders, busy, error, reload, skippedOccurrences } =
+    useRoutineStore();
+
+  const { now, logged, upcoming, asNeeded } = useDailyOverview(
+    routines,
+    intakes,
+    skippedOccurrences,
+  );
+
   const colors = usePalette();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
@@ -58,16 +65,48 @@ export default function DailyOverview() {
           <>
             <Column modifiers={fillAvailableWidth} spacing={12}>
               <Text variant="title">To take</Text>
-              {upcoming.map((routine) => (
-                <UpcomingCard
-                  key={routine.id}
-                  routine={routine}
-                  reminder={reminders.find((item) => item.routineId === routine.id)}
-                  onPress={() =>
-                    router.push({ pathname: "/record/[id]", params: { id: routine.id } })
-                  }
-                />
-              ))}
+              {[...new Set(upcoming.map((routine) => routine.time))].map((time) => {
+                const group = upcoming.filter((routine) => routine.time === time);
+
+                return (
+                  <Button
+                    key={time}
+                    style={styles.fullWidthButton}
+                    variant="text"
+                    onPress={() => router.push({ pathname: "/routine-group", params: { time } })}
+                  >
+                    <Column spacing={8} style={styles.group}>
+                      <Text variant="headline">{time}</Text>
+                      {group.map((routine) => {
+                        const reminder = reminders.find((item) => item.routineId === routine.id);
+
+                        const warning =
+                          reminder?.status === ReminderOutcomes.denied ||
+                          reminder?.status === ReminderOutcomes.failed;
+
+                        return (
+                          <Column key={routine.id} spacing={2}>
+                            <Text>{routine.productName}</Text>
+                            {routine.quantity ? (
+                              <Text variant="footnote" color={colors.secondary}>
+                                {routine.quantity.amount + " " + routine.quantity.unit}
+                              </Text>
+                            ) : null}
+                            {warning ? (
+                              <Text variant="footnote" color={colors.danger}>
+                                Reminder inactive
+                              </Text>
+                            ) : null}
+                          </Column>
+                        );
+                      })}
+                      <Text color={colors.blue}>
+                        {group.length + (group.length === 1 ? " supplement" : " supplements")}
+                      </Text>
+                    </Column>
+                  </Button>
+                );
+              })}
               {upcoming.length === 0 && (
                 <Column spacing={12} style={styles.group}>
                   {routines.length === 0 && <ProductBadge size={96} />}
