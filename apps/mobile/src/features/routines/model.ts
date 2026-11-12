@@ -76,15 +76,6 @@ export function validateRoutine(draft: RoutineDraft): string | null {
 
   if (inputError) return inputError;
 
-  if (draft.form !== undefined && !draft.form.trim()) return "Form cannot be empty.";
-
-  if (draft.quantity !== undefined) {
-    if (!Number.isFinite(draft.quantity.amount) || draft.quantity.amount <= 0)
-      return "Quantity must be a finite number greater than zero.";
-
-    if (!draft.quantity.unit.trim()) return "Quantity unit cannot be empty.";
-  }
-
   return null;
 }
 

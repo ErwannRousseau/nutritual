@@ -5,6 +5,8 @@ export type RoutineInput = {
   productName: string;
   frequency: Frequency;
   time: string;
+  form?: string;
+  quantity?: { amount: number; unit: string };
 };
 
 export type CreateRoutineRequest = RoutineInput & { operationId: string };
@@ -12,7 +14,11 @@ export type CreateRoutineRequest = RoutineInput & { operationId: string };
 export type EditRoutineRequest = {
   operationId: string;
   expected: ListedRoutine;
-  changes: Partial<RoutineInput> & { paused?: boolean };
+  changes: Partial<Omit<RoutineInput, "form" | "quantity">> & {
+    paused?: boolean;
+    form?: string | null;
+    quantity?: RoutineInput["quantity"] | null;
+  };
 };
 
 export type DeleteRoutineRequest = { operationId: string; expected: ListedRoutine };
@@ -70,6 +76,18 @@ export function isValidDateString(value: string): boolean {
 export function validateRoutineInput(input: RoutineInput): string | null {
   if (!input.productName.trim()) return "Product name is required.";
 
+  if (input.form !== undefined && !input.form.trim()) return "Form cannot be empty.";
+
+  if (input.quantity !== undefined) {
+    if (!Number.isFinite(input.quantity.amount) || input.quantity.amount <= 0)
+      return "Quantity must be a finite number greater than zero.";
+
+    if (Number(input.quantity.amount.toFixed(6)) !== input.quantity.amount)
+      return "Quantity must have at most 6 decimal places.";
+
+    if (!input.quantity.unit.trim()) return "Quantity unit cannot be empty.";
+  }
+
   const frequency = input.frequency;
 
   if (frequency.kind !== FrequencyKind.asNeeded && !/^([01]\d|2[0-3]):[0-5]\d$/.test(input.time))
@@ -100,6 +118,18 @@ export function validateRoutineInput(input: RoutineInput): string | null {
   return null;
 }
 
+function validDetails(
+  value: Record<string, unknown>,
+): value is Record<string, unknown> & Pick<RoutineInput, "form" | "quantity"> {
+  return (
+    (value.form === undefined || typeof value.form === "string") &&
+    (value.quantity === undefined ||
+      (isRecord(value.quantity) &&
+        typeof value.quantity.amount === "number" &&
+        typeof value.quantity.unit === "string"))
+  );
+}
+
 export function isCreateRoutineRequest(value: unknown): value is CreateRoutineRequest {
   if (
     !isRecord(value) ||
@@ -107,7 +137,8 @@ export function isCreateRoutineRequest(value: unknown): value is CreateRoutineRe
     !value.operationId.trim() ||
     typeof value.productName !== "string" ||
     typeof value.time !== "string" ||
-    !isFrequency(value.frequency)
+    !isFrequency(value.frequency) ||
+    !validDetails(value)
   ) {
     return false;
   }
@@ -117,9 +148,20 @@ export function isCreateRoutineRequest(value: unknown): value is CreateRoutineRe
       productName: value.productName,
       frequency: value.frequency,
       time: value.time,
+      form: value.form,
+      quantity: value.quantity,
     }) === null
   );
 }
+
+const editRoutineChangeKeys: readonly string[] = [
+  "productName",
+  "frequency",
+  "time",
+  "paused",
+  "form",
+  "quantity",
+] satisfies readonly (keyof EditRoutineRequest["changes"])[];
 
 export function isEditRoutineRequest(value: unknown): value is EditRoutineRequest {
   if (
@@ -134,10 +176,7 @@ export function isEditRoutineRequest(value: unknown): value is EditRoutineReques
 
   const changeKeys = Object.keys(value.changes);
 
-  if (
-    changeKeys.length === 0 ||
-    changeKeys.some((key) => !["productName", "frequency", "time", "paused"].includes(key))
-  ) {
+  if (changeKeys.length === 0 || changeKeys.some((key) => !editRoutineChangeKeys.includes(key))) {
     return false;
   }
 
@@ -158,6 +197,13 @@ export function isEditRoutineRequest(value: unknown): value is EditRoutineReques
     changes.time = value.changes.time;
   }
 
+  const details = {
+    form: value.changes.form ?? undefined,
+    quantity: value.changes.quantity ?? undefined,
+  };
+
+  if (!validDetails(details)) return false;
+
   if ("paused" in value.changes && typeof value.changes.paused !== "boolean") return false;
 
   const merged = {
@@ -165,6 +211,8 @@ export function isEditRoutineRequest(value: unknown): value is EditRoutineReques
     productName: changes.productName ?? value.expected.productName,
     frequency: changes.frequency ?? value.expected.frequency,
     time: changes.time ?? value.expected.time,
+    form: "form" in value.changes ? details.form : value.expected.form,
+    quantity: "quantity" in value.changes ? details.quantity : value.expected.quantity,
   } satisfies CreateRoutineRequest;
 
   return validateRoutineInput(merged) === null;
@@ -221,7 +269,8 @@ function isListedRoutine(value: unknown): value is ListedRoutine {
     typeof value.productName !== "string" ||
     typeof value.time !== "string" ||
     typeof value.paused !== "boolean" ||
-    !isFrequency(value.frequency)
+    !isFrequency(value.frequency) ||
+    !validDetails(value)
   ) {
     return false;
   }
@@ -231,6 +280,8 @@ function isListedRoutine(value: unknown): value is ListedRoutine {
       productName: value.productName,
       frequency: value.frequency,
       time: value.time,
+      form: value.form,
+      quantity: value.quantity,
     }) === null
   );
 }

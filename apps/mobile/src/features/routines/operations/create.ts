@@ -33,6 +33,8 @@ export function createRoutineRequestJson(request: CreateRoutineRequest): string 
     productName: request.productName,
     frequency: frequencyJson,
     time: request.time,
+    form: request.form,
+    quantity: request.quantity && { amount: request.quantity.amount, unit: request.quantity.unit },
   });
 }
 

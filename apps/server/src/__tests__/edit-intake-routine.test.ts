@@ -392,3 +392,46 @@ test("MCP pauses and resumes routines and treats unchanged as a successful no-op
     },
   );
 });
+
+test("MCP preserves listed details and relays explicit clearing", async () => {
+  const calls: EditRoutineRequest[] = [];
+  await withTool(
+    async (_userId, input) => {
+      calls.push(input);
+
+      return {
+        status: "updated",
+        operationId: input.operationId,
+        routineId: input.expected.id,
+        reminder: "none",
+      };
+    },
+    async (client) => {
+      const snapshot = { ...expected, form: "powder", quantity: { amount: 2, unit: "scoops" } };
+      const input = { operationId, expected: snapshot, changes: { form: null, quantity: null } };
+
+      expect(
+        (await client.callTool({ name: "edit_intake_routine", arguments: input })).isError,
+      ).toBe(false);
+      expect(calls).toEqual([input]);
+
+      for (const changes of [
+        { form: " " },
+        { quantity: { amount: 1 } },
+        { quantity: { amount: -1, unit: "g" } },
+        { quantity: { amount: 0.0000001, unit: "g" } },
+      ]) {
+        expect(
+          (
+            await client.callTool({
+              name: "edit_intake_routine",
+              arguments: { operationId, expected: snapshot, changes },
+            })
+          ).isError,
+        ).toBe(true);
+      }
+
+      expect(calls).toHaveLength(1);
+    },
+  );
+});

@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { DeleteRoutineStatus, isDeleteRoutineRequest } from "@nutritual/protocol";
 import { z } from "zod";
 import type { RoutineRelay } from "../routine-relay.ts";
+import { prompt } from "./prompt.ts";
 
 const frequencySchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("weekdays"), days: z.array(z.number().int()) }),
@@ -18,6 +19,8 @@ const deleteRoutineSchema = z
       frequency: frequencySchema,
       time: z.string(),
       paused: z.boolean(),
+      form: z.string().optional(),
+      quantity: z.object({ amount: z.number(), unit: z.string() }).optional(),
     }),
   })
   .superRefine((value, context) => {
@@ -33,8 +36,18 @@ export function registerDeleteIntakeRoutineTool(
   server.registerTool(
     "delete_intake_routine",
     {
-      description:
-        "Delete one intake routine from the paired Nutritual phone when the user asks to delete it. First call list_intake_routines and pass the exact listed routine as expected. Do not ask for an extra confirmation after the user has requested deletion. If multiple routines could match, ask which one before deleting. For several routines, make one tool call per routine with a distinct UUID operationId and exact listed snapshot. If delivery is unconfirmed or the response is ambiguous, retry the exact same operationId and full input to discover whether it was processed. A conflict means the routine changed since listing: list again and ask the user to clarify before deleting. deleted or already_processed confirms removal; reminder reports cleanup status and does not confirm notification delivery or intake history changes.",
+      description: prompt(
+        "Delete one intake routine from the paired Nutritual phone when the user asks to delete it.",
+        "First call list_intake_routines and pass the exact listed routine as expected. Do not ask",
+        "for an extra confirmation after the user has requested deletion. If multiple routines",
+        "could match, ask which one before deleting. For several routines, make one tool call per",
+        "routine with a distinct UUID operationId and exact listed snapshot. If delivery is",
+        "unconfirmed or the response is ambiguous, retry the exact same operationId and full input",
+        "to discover whether it was processed. A conflict means the routine changed since listing:",
+        "list again and ask the user to clarify before deleting. deleted or already_processed",
+        "confirms removal; reminder reports cleanup status and does not confirm notification",
+        "delivery or intake history changes.",
+      ),
       inputSchema: deleteRoutineSchema,
     },
     async (input) => {

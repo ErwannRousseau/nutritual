@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { CreateRoutineStatus, validateRoutineInput } from "@nutritual/protocol";
 import { z } from "zod";
 import type { RoutineRelay } from "../routine-relay.ts";
+import { prompt } from "./prompt.ts";
 
 export function isRoutineToolError(status: string): boolean {
   return status !== CreateRoutineStatus.created && status !== CreateRoutineStatus.alreadyProcessed;
@@ -27,6 +28,18 @@ const frequencySchema = z
 const routineInputSchema = z
   .object({
     productName: z.string().trim().min(1).max(120),
+    form: z
+      .string()
+      .trim()
+      .min(1)
+      .optional()
+      .describe("Optional product form. Leave unspecified if not provided."),
+    quantity: z
+      .object({ amount: z.number().positive(), unit: z.string().trim().min(1) })
+      .optional()
+      .describe(
+        "Optional intake quantity. If the amount is known but the unit is missing, ask for the unit unless the user skips quantity.",
+      ),
     frequency: frequencySchema,
     time: z
       .string()
@@ -34,11 +47,15 @@ const routineInputSchema = z
     operationId: z
       .uuid()
       .describe(
-        "Generate a UUID before each intentional creation. On an ambiguous or unconfirmed result, retry with the exact same operationId and original input without asking the user for an identifier. Use a new UUID for every new intention, even an identical routine.",
+        prompt(
+          "Generate a UUID before each intentional creation. On an ambiguous or unconfirmed result,",
+          "retry with the exact same operationId and original input without asking the user for an",
+          "identifier. Use a new UUID for every new intention, even an identical routine.",
+        ),
       ),
   })
-  .superRefine(({ productName, frequency, time }, context) => {
-    const error = validateRoutineInput({ productName, frequency, time });
+  .superRefine((input, context) => {
+    const error = validateRoutineInput(input);
 
     if (error) context.addIssue({ code: "custom", message: error });
   });
@@ -51,17 +68,22 @@ export function registerCreateIntakeRoutineTool(
   server.registerTool(
     "create_intake_routine",
     {
-      description:
-        "Create an intake routine on the paired Nutritual phone. Provide a UUID operationId generated before the call. If delivery is unconfirmed or the response is ambiguous, retry with the exact same operationId and original input without asking the user for an identifier. Use a new UUID for a new intentional creation, even when its details match an earlier routine. Times are local phone time. Weekdays use 0 for Sunday through 6 for Saturday. A created status means the routine was saved, not that a reminder was delivered or the supplement was taken. reminder is scheduled, denied (permission unavailable), failed (scheduling failed), unconfirmed (scheduling not confirmed), or none (no reminder requested).",
+      description: prompt(
+        "Create an intake routine on the paired Nutritual phone. Provide a UUID operationId",
+        "generated before the call. If delivery is unconfirmed or the response is ambiguous, retry",
+        "with the exact same operationId and original input without asking the user for an",
+        "identifier. Use a new UUID for a new intentional creation, even when its details match an",
+        "earlier routine. Times are local phone time. Weekdays use 0 for Sunday through 6 for",
+        "Saturday. A created status means the routine was saved, not that a reminder was delivered",
+        "or the supplement was taken. reminder is scheduled, denied (permission unavailable),",
+        "failed (scheduling failed), unconfirmed (scheduling not confirmed), or none (no reminder",
+        "requested).",
+      ),
       inputSchema: routineInputSchema,
     },
-    async ({ productName, frequency, time, operationId }) => {
-      const outcome = await relay.createRoutine(userId, {
-        productName,
-        operationId,
-        frequency,
-        time,
-      });
+    async (input) => {
+      const { operationId } = input;
+      const outcome = await relay.createRoutine(userId, input);
 
       const result = { ...outcome, operationId };
 

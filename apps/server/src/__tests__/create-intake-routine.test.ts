@@ -70,6 +70,8 @@ test("MCP tool relays every frequency through the real MCP client interface", as
       const calls = [
         {
           productName: "Magnesium",
+          form: "custom form",
+          quantity: { amount: 1.5, unit: "scoops" },
           frequency: { kind: "weekdays", days: [0, 2, 6] },
           time: "08:30",
           operationId,
@@ -109,6 +111,28 @@ test("MCP validates routine fields with the shared protocol rules before relayin
     },
     async (client) => {
       for (const input of [
+        { productName: "Zinc", frequency: { kind: "as-needed" }, time: "", operationId, form: " " },
+        {
+          productName: "Zinc",
+          frequency: { kind: "as-needed" },
+          time: "",
+          operationId,
+          quantity: { amount: 1 },
+        },
+        {
+          productName: "Zinc",
+          frequency: { kind: "as-needed" },
+          time: "",
+          operationId,
+          quantity: { amount: 0, unit: "g" },
+        },
+        {
+          productName: "Zinc",
+          frequency: { kind: "as-needed" },
+          time: "",
+          operationId,
+          quantity: { amount: 0.0000001, unit: "g" },
+        },
         { productName: " ", frequency: { kind: "as-needed" }, time: "", operationId },
         {
           productName: "Magnesium",
