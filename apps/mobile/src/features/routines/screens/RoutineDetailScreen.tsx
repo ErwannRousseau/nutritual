@@ -78,6 +78,30 @@ export default function RoutineDetailScreen() {
           </Row>
           <Row alignment="center">
             <Column spacing={12} style={styles.card}>
+              {routine.form ? (
+                <Row alignment="center">
+                  <Column spacing={4}>
+                    <Text variant="footnote" color={colors.secondary}>
+                      Product form
+                    </Text>
+                    <Text variant="subhead">{routine.form}</Text>
+                  </Column>
+                  <Spacer />
+                </Row>
+              ) : null}
+              {routine.quantity ? (
+                <Row alignment="center">
+                  <Column spacing={4}>
+                    <Text variant="footnote" color={colors.secondary}>
+                      Planned amount
+                    </Text>
+                    <Text variant="subhead">
+                      {`${routine.quantity.amount} ${routine.quantity.unit}`}
+                    </Text>
+                  </Column>
+                  <Spacer />
+                </Row>
+              ) : null}
               <Row alignment="center">
                 <Column spacing={4}>
                   <Text variant="footnote" color={colors.secondary}>

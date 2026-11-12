@@ -52,11 +52,17 @@ export function RoutineDraftProvider({ children }: { children: ReactNode }) {
     }
 
     if (routine) {
-      return {
+      const draft: RoutineDraft = {
         productName: routine.productName,
         frequency: routine.frequency,
         time: routine.time,
       };
+
+      if (routine.form) draft.form = routine.form;
+
+      if (routine.quantity) draft.quantity = routine.quantity;
+
+      return draft;
     }
 
     return null;

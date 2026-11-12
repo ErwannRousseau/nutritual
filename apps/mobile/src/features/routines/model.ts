@@ -9,7 +9,12 @@ import {
   type RoutineInput,
 } from "@nutritual/protocol";
 
-export type Routine = ListedRoutine;
+type RoutineDetails = {
+  form?: string;
+  quantity?: { amount: number; unit: string };
+};
+
+export type Routine = ListedRoutine & RoutineDetails;
 
 export type Intake = {
   id: string;
@@ -28,7 +33,7 @@ export type ReminderState = {
   message: string;
 };
 
-export type RoutineDraft = RoutineInput;
+export type RoutineDraft = RoutineInput & RoutineDetails;
 
 const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const maxIntervalDays = 36_500;
@@ -65,7 +70,20 @@ export function localDate(date: Date): string {
 }
 
 export function validateRoutine(draft: RoutineDraft): string | null {
-  return validateRoutineInput(draft);
+  const inputError = validateRoutineInput(draft);
+
+  if (inputError) return inputError;
+
+  if (draft.form !== undefined && !draft.form.trim()) return "Form cannot be empty.";
+
+  if (draft.quantity !== undefined) {
+    if (!Number.isFinite(draft.quantity.amount) || draft.quantity.amount <= 0)
+      return "Quantity must be a finite number greater than zero.";
+
+    if (!draft.quantity.unit.trim()) return "Quantity unit cannot be empty.";
+  }
+
+  return null;
 }
 
 export function isDueOn(routine: Routine, date: Date): boolean {

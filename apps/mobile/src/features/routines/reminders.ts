@@ -56,7 +56,7 @@ function notification(
     identifier,
     content: {
       title: "Routine reminder",
-      body: `Time to take ${routine.productName}.`,
+      body: `Time to take ${routine.quantity ? `${routine.quantity.amount} ${routine.quantity.unit} of ` : ""}${routine.productName}${routine.form ? ` (${routine.form})` : ""}.`,
       sound: "default",
       data: { routineId: routine.id },
     },

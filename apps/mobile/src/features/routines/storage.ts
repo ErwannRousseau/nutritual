@@ -1,4 +1,5 @@
 import { FrequencyKind } from "@nutritual/protocol";
+import type { SQLiteRunResult } from "expo-sqlite";
 import type { Intake, Routine } from "@/features/routines/model";
 import { validateRoutine } from "@/features/routines/model";
 import { getDatabase } from "./database";
@@ -14,6 +15,17 @@ export type RoutineRow = {
   paused: number;
 };
 
+export type RoutineDetailsRow = {
+  form: string | null;
+  quantity_amount: number | null;
+  quantity_unit: string | null;
+};
+
+type RoutineSqlExecutor = {
+  runAsync(source: string, params: (string | number | null)[]): Promise<SQLiteRunResult>;
+  runAsync(source: string, ...params: (string | number | null)[]): Promise<SQLiteRunResult>;
+};
+
 type IntakeRow = {
   id: string;
   routine_id: string;
@@ -21,7 +33,7 @@ type IntakeRow = {
   recorded_at: string;
 };
 
-export function routineFromRow(row: RoutineRow): Routine {
+export function routineFromRow(row: RoutineRow, details?: RoutineDetailsRow | null): Routine {
   let frequency: Routine["frequency"];
 
   switch (row.frequency_kind) {
@@ -65,11 +77,49 @@ export function routineFromRow(row: RoutineRow): Routine {
     paused: row.paused === 1,
   };
 
+  if (details?.form !== null && details?.form !== undefined) routine.form = details.form;
+
+  if (details?.quantity_amount !== null && details?.quantity_amount !== undefined) {
+    if (details.quantity_unit === null || details.quantity_unit === undefined)
+      throw new Error(`Unreadable routine details: ${row.id}`);
+
+    routine.quantity = { amount: details.quantity_amount, unit: details.quantity_unit };
+  }
+
   if ((row.paused !== 0 && row.paused !== 1) || validateRoutine(routine) !== null) {
     throw new Error(`Unreadable routine: ${row.id}`);
   }
 
   return routine;
+}
+
+export async function saveRoutineDetails(
+  executor: RoutineSqlExecutor,
+  routine: Routine,
+): Promise<void> {
+  if (routine.form === undefined && routine.quantity === undefined) {
+    await executor.runAsync("DELETE FROM routine_details WHERE routine_id = ?", routine.id);
+
+    return;
+  }
+
+  await executor.runAsync(
+    "INSERT INTO routine_details (routine_id, form, quantity_amount, quantity_unit) VALUES (?, ?, ?, ?) ON CONFLICT(routine_id) DO UPDATE SET form = excluded.form, quantity_amount = excluded.quantity_amount, quantity_unit = excluded.quantity_unit",
+    [
+      routine.id,
+      routine.form ?? null,
+      routine.quantity?.amount ?? null,
+      routine.quantity?.unit ?? null,
+    ],
+  );
+}
+
+function routineDetails(row: RoutineRow & RoutineDetailsRow): RoutineDetailsRow {
+  return {
+    form: row.form,
+    quantity_amount: row.quantity_amount,
+    quantity_unit: row.quantity_unit,
+  };
 }
 
 export function routineValues(
@@ -124,14 +174,14 @@ export function routineValues(
 export async function loadData(): Promise<{ routines: Routine[]; intakes: Intake[] }> {
   const database = await getDatabase();
 
-  const routineRows = await database.getAllAsync<RoutineRow>(
-    "SELECT * FROM routines ORDER BY rowid",
+  const routineRows = await database.getAllAsync<RoutineRow & RoutineDetailsRow>(
+    "SELECT routines.*, routine_details.form, routine_details.quantity_amount, routine_details.quantity_unit FROM routines LEFT JOIN routine_details ON routine_details.routine_id = routines.id ORDER BY routines.rowid",
   );
 
   const intakeRows = await database.getAllAsync<IntakeRow>("SELECT * FROM intakes ORDER BY rowid");
 
   return {
-    routines: routineRows.map(routineFromRow),
+    routines: routineRows.map((row) => routineFromRow(row, routineDetails(row))),
     intakes: intakeRows.map((row) => ({
       id: row.id,
       routineId: row.routine_id,
@@ -142,16 +192,26 @@ export async function loadData(): Promise<{ routines: Routine[]; intakes: Intake
 }
 
 export async function saveRoutine(routine: Routine): Promise<void> {
+  const error = validateRoutine(routine);
+
+  if (error) throw new Error(error);
+
   const database = await getDatabase();
-  await database.runAsync(
-    "INSERT INTO routines (id, product_name, frequency_kind, weekday_mask, interval_days, start_date, time, paused) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET product_name = excluded.product_name, frequency_kind = excluded.frequency_kind, weekday_mask = excluded.weekday_mask, interval_days = excluded.interval_days, start_date = excluded.start_date, time = excluded.time, paused = excluded.paused",
-    routineValues(routine),
-  );
+  await database.withExclusiveTransactionAsync(async (transaction) => {
+    await transaction.runAsync(
+      "INSERT INTO routines (id, product_name, frequency_kind, weekday_mask, interval_days, start_date, time, paused) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET product_name = excluded.product_name, frequency_kind = excluded.frequency_kind, weekday_mask = excluded.weekday_mask, interval_days = excluded.interval_days, start_date = excluded.start_date, time = excluded.time, paused = excluded.paused",
+      routineValues(routine),
+    );
+    await saveRoutineDetails(transaction, routine);
+  });
 }
 
 export async function deleteRoutine(id: string): Promise<void> {
   const database = await getDatabase();
-  await database.runAsync("DELETE FROM routines WHERE id = ?", id);
+  await database.withExclusiveTransactionAsync(async (transaction) => {
+    await transaction.runAsync("DELETE FROM routine_details WHERE routine_id = ?", id);
+    await transaction.runAsync("DELETE FROM routines WHERE id = ?", id);
+  });
 }
 
 export async function saveIntake(intake: Intake): Promise<void> {

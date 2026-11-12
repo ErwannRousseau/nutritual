@@ -72,6 +72,7 @@ export async function deleteRoutineOperation(
     if (!sameRoutine(routine, request.expected)) return;
 
     await transaction.runAsync("DELETE FROM routines WHERE id = ?", routine.id);
+    await transaction.runAsync("DELETE FROM routine_details WHERE routine_id = ?", routine.id);
     await transaction.runAsync(
       "INSERT INTO routine_operations (operation_id, request_json, routine_id, reminder_outcome) VALUES (?, ?, ?, NULL)",
       [request.operationId, requestJson, routine.id],
