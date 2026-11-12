@@ -154,6 +154,15 @@ export function isCreateRoutineRequest(value: unknown): value is CreateRoutineRe
   );
 }
 
+const editRoutineChangeKeys: readonly string[] = [
+  "productName",
+  "frequency",
+  "time",
+  "paused",
+  "form",
+  "quantity",
+] satisfies readonly (keyof EditRoutineRequest["changes"])[];
+
 export function isEditRoutineRequest(value: unknown): value is EditRoutineRequest {
   if (
     !isRecord(value) ||
@@ -167,12 +176,7 @@ export function isEditRoutineRequest(value: unknown): value is EditRoutineReques
 
   const changeKeys = Object.keys(value.changes);
 
-  if (
-    changeKeys.length === 0 ||
-    changeKeys.some(
-      (key) => !["productName", "frequency", "time", "paused", "form", "quantity"].includes(key),
-    )
-  ) {
+  if (changeKeys.length === 0 || changeKeys.some((key) => !editRoutineChangeKeys.includes(key))) {
     return false;
   }
 

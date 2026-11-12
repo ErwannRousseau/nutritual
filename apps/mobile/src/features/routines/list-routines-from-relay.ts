@@ -9,8 +9,8 @@ function listedRoutine({ id, productName, frequency, time, paused, form, quantit
     frequency,
     time,
     paused,
-    ...(form !== undefined && { form }),
-    ...(quantity !== undefined && { quantity }),
+    form,
+    quantity,
   };
 }
 

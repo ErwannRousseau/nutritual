@@ -106,24 +106,20 @@ export async function editRoutineOperation(
       return;
     }
 
+    const changedQuantity = request.changes.quantity;
+
+    const quantity = changedQuantity && {
+      amount: changedQuantity.amount,
+      unit: changedQuantity.unit.trim(),
+    };
+
     const routine: Routine = {
       ...current,
       ...request.changes,
-      form: current.form,
-      quantity: current.quantity,
+      form: request.changes.form === undefined ? current.form : request.changes.form?.trim(),
+      quantity: changedQuantity === undefined ? current.quantity : (quantity ?? undefined),
       productName: (request.changes.productName ?? current.productName).trim(),
     };
-
-    if (request.changes.form === null) delete routine.form;
-    else if (request.changes.form !== undefined) routine.form = request.changes.form.trim();
-
-    if (request.changes.quantity === null) delete routine.quantity;
-    else if (request.changes.quantity !== undefined) {
-      routine.quantity = {
-        amount: request.changes.quantity.amount,
-        unit: request.changes.quantity.unit.trim(),
-      };
-    }
 
     await transaction.runAsync(
       "UPDATE routines SET product_name = ?, frequency_kind = ?, weekday_mask = ?, interval_days = ?, start_date = ?, time = ?, paused = ? WHERE id = ?",
