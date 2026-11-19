@@ -6,7 +6,7 @@ import { routineScheduleDisplay } from "@/features/routines/display";
 import Text from "@/shared/ui/Text";
 import AppSymbol from "@/shared/ui/AppSymbol";
 import ProductBadge from "@/shared/ui/ProductBadge";
-import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
+import { fillAvailableWidth, fullWidth } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
 import { ReminderOutcomes } from "@nutritual/protocol";
 
@@ -56,7 +56,7 @@ export default function RoutineRow({ routine, reminder, onPress }: RoutineRowPro
 
 function createStyles(colors: ReturnType<typeof usePalette>) {
   return StyleSheet.create({
-    button: { width: fillParent },
+    button: { width: fullWidth },
     row: { paddingVertical: 14, backgroundColor: colors.grouped },
   });
 }

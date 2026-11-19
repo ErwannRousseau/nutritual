@@ -3,7 +3,7 @@ import { Column, RNHostView, Row, Spacer } from "@expo/ui";
 import { useMemo } from "react";
 import { StyleSheet, useColorScheme, useWindowDimensions } from "react-native";
 import Text from "@/shared/ui/Text";
-import { fillParent } from "@/shared/ui/layout";
+import { fullWidth } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
 
 interface DateFieldProps {
@@ -58,7 +58,7 @@ export default function DateField({ label, mode, value, onChange, testID }: Date
 function createStyles(colors: ReturnType<typeof usePalette>) {
   return StyleSheet.create({
     field: {
-      width: fillParent,
+      width: fullWidth,
       padding: 16,
       backgroundColor: colors.grouped,
       borderRadius: 24,

@@ -5,7 +5,7 @@ import type { ReminderState, Routine } from "@/features/routines/model";
 import Text from "@/shared/ui/Text";
 import AppSymbol from "@/shared/ui/AppSymbol";
 import ProductBadge from "@/shared/ui/ProductBadge";
-import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
+import { fillAvailableWidth, fullWidth } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
 import { FrequencyKind, ReminderOutcomes } from "@nutritual/protocol";
 
@@ -60,7 +60,7 @@ function createStyles(colors: ReturnType<typeof usePalette>) {
       borderRadius: 28,
       padding: 16,
     },
-    button: { width: fillParent },
+    button: { width: fullWidth },
     time: { fontSize: 22, fontWeight: "700" },
   });
 }

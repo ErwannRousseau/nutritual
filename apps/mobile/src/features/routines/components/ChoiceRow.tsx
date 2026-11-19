@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { StyleSheet } from "react-native";
 import AppSymbol from "@/shared/ui/AppSymbol";
 import Text from "@/shared/ui/Text";
-import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
+import { fillAvailableWidth, fullWidth } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
 
 interface ChoiceRowProps {
@@ -39,7 +39,7 @@ export default function ChoiceRow({ label, selected, onPress, detail }: ChoiceRo
 
 function createStyles(colors: ReturnType<typeof usePalette>) {
   return StyleSheet.create({
-    button: { width: fillParent },
+    button: { width: fullWidth },
     row: { paddingVertical: 12, backgroundColor: colors.grouped },
     mark: { width: 18 },
   });

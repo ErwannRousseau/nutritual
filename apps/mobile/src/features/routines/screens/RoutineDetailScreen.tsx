@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { Alert, StyleSheet } from "react-native";
 import ActionRow from "@/features/routines/components/ActionRow";
 import Text from "@/shared/ui/Text";
-import { centerAvailableWidth, fillParent } from "@/shared/ui/layout";
+import { centerAvailableWidth, fullWidth } from "@/shared/ui/layout";
 import ProductBadge from "@/shared/ui/ProductBadge";
 import Screen from "@/shared/ui/Screen";
 import { usePalette } from "@/shared/ui/palette";
@@ -172,15 +172,15 @@ export default function RoutineDetailScreen() {
 
 function createStyles(colors: ReturnType<typeof usePalette>) {
   return StyleSheet.create({
-    content: { width: fillParent },
+    content: { width: fullWidth },
     card: {
       backgroundColor: colors.surface,
       borderRadius: 20,
       padding: 18,
-      width: fillParent,
+      width: fullWidth,
     },
     separator: {
-      width: fillParent,
+      width: fullWidth,
       height: StyleSheet.hairlineWidth,
       backgroundColor: colors.separator,
     },

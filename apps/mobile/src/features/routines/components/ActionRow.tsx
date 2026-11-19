@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { StyleSheet } from "react-native";
 import AppSymbol from "@/shared/ui/AppSymbol";
 import Text from "@/shared/ui/Text";
-import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
+import { fillAvailableWidth, fullWidth } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
 import type { AppSymbolName } from "@/shared/ui/AppSymbol";
 
@@ -49,7 +49,7 @@ export default function ActionRow({
 
 function createStyles(colors: ReturnType<typeof usePalette>) {
   return StyleSheet.create({
-    button: { width: fillParent },
+    button: { width: fullWidth },
     row: { backgroundColor: colors.surface, paddingVertical: 14 },
   });
 }

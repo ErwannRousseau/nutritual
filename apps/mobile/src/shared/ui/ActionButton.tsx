@@ -2,7 +2,7 @@ import { Button, Column } from "@expo/ui";
 import { useMemo } from "react";
 import { StyleSheet } from "react-native";
 import Text from "@/shared/ui/Text";
-import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
+import { fillAvailableWidth, fullWidth } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
 
 interface Props {
@@ -56,7 +56,7 @@ function createStyles(background: string, foreground: string, disabled: boolean)
       paddingHorizontal: 20,
       paddingVertical: 14,
       opacity: disabled ? 0.45 : 1,
-      width: fillParent,
+      width: fullWidth,
     },
     labelText: { color: foreground, fontSize: 17, fontWeight: "600", textAlign: "center" },
   });

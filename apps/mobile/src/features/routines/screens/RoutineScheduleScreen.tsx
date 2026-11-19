@@ -5,7 +5,7 @@ import { StyleSheet, useWindowDimensions } from "react-native";
 import ActionButton from "@/shared/ui/ActionButton";
 import Text from "@/shared/ui/Text";
 import DateField from "@/shared/ui/DateField";
-import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
+import { fillAvailableWidth, fullWidth } from "@/shared/ui/layout";
 import Screen from "@/shared/ui/Screen";
 import { usePalette } from "@/shared/ui/palette";
 import ChoiceRow from "@/features/routines/components/ChoiceRow";
@@ -223,7 +223,7 @@ function dateWithTime(dateValue: string, timeValue: string) {
 function createStyles(colors: ReturnType<typeof usePalette>, fontScale: number) {
   return StyleSheet.create({
     group: {
-      width: fillParent,
+      width: fullWidth,
       paddingHorizontal: 16,
       paddingVertical: 4,
       borderRadius: 26,
@@ -232,10 +232,10 @@ function createStyles(colors: ReturnType<typeof usePalette>, fontScale: number) 
     separator: {
       height: StyleSheet.hairlineWidth,
       backgroundColor: colors.separator,
-      width: fillParent,
+      width: fullWidth,
     },
     numberRow: {
-      width: fillParent,
+      width: fullWidth,
       padding: 16,
       backgroundColor: colors.grouped,
       borderRadius: 24,

@@ -5,7 +5,7 @@ import type { Intake } from "@/features/routines/model";
 import { timeLabel } from "@/features/routines/display";
 import Text from "@/shared/ui/Text";
 import AppSymbol from "@/shared/ui/AppSymbol";
-import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
+import { fillAvailableWidth, fullWidth } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
 
 interface IntakeRowProps {
@@ -46,7 +46,7 @@ export default function IntakeRow({ intake, onPress }: IntakeRowProps) {
 
 function createStyles(colors: ReturnType<typeof usePalette>) {
   return StyleSheet.create({
-    button: { width: fillParent },
+    button: { width: fullWidth },
     row: { paddingVertical: 12, backgroundColor: colors.grouped },
     mark: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.cyan },
   });

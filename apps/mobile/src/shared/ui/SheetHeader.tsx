@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { StyleSheet } from "react-native";
 import Text from "@/shared/ui/Text";
 import IconButton from "@/shared/ui/IconButton";
-import { fillParent, sixtyPercent } from "@/shared/ui/layout";
+import { fullWidth, sixtyPercent } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
 
 interface SheetHeaderProps {
@@ -32,7 +32,7 @@ export default function SheetHeader({ title }: SheetHeaderProps) {
 
 function createStyles(colors: ReturnType<typeof usePalette>) {
   return StyleSheet.create({
-    row: { width: fillParent },
+    row: { width: fullWidth },
     close: { backgroundColor: colors.surface, borderRadius: 22 },
     title: { width: sixtyPercent },
     centered: { textAlign: "center" },
