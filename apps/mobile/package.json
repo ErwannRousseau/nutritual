@@ -50,6 +50,7 @@
     "@types/bun": "^1.4.4",
     "@types/react": "~19.3.0",
     "eslint-plugin-expo": "^1.2.1",
+    "msw": "^2",
     "oxlint": "catalog:tooling",
     "oxlint-plugin-react-doctor": "catalog:tooling",
     "typescript": "~6.0.3"

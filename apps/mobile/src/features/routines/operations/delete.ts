@@ -17,11 +17,11 @@ export type DeleteRoutineOperationResult =
   | { status: typeof DeleteRoutineStatus.notFound }
   | { status: typeof DeleteRoutineStatus.conflict };
 
-function deleteRoutineRequestJson(request: DeleteRoutineRequest): string {
+function deleteRoutineRequestJson(request: DeleteRoutineRequest) {
   return JSON.stringify({ expected: request.expected });
 }
 
-function sameRoutine(current: ReturnType<typeof routineFromRow>, expected: ListedRoutine): boolean {
+function sameRoutine(current: ReturnType<typeof routineFromRow>, expected: ListedRoutine) {
   return (
     current.id === expected.id &&
     current.productName === expected.productName &&
@@ -34,12 +34,10 @@ function sameRoutine(current: ReturnType<typeof routineFromRow>, expected: Liste
   );
 }
 
-export async function deleteRoutineOperation(
-  request: DeleteRoutineRequest,
-): Promise<DeleteRoutineOperationResult> {
+export async function deleteRoutineOperation(request: DeleteRoutineRequest) {
   const database = await getDatabase();
   const requestJson = deleteRoutineRequestJson(request);
-  let result: DeleteRoutineOperationResult = { status: DeleteRoutineStatus.conflict };
+  let result: DeleteRoutineOperationResult | undefined;
 
   await database.withExclusiveTransactionAsync(async (transaction) => {
     const existing = await transaction.getFirstAsync<RoutineOperationRow>(
@@ -88,5 +86,5 @@ export async function deleteRoutineOperation(
     result = { status: DeleteRoutineStatus.deleted, routineId: routine.id };
   });
 
-  return result;
+  return result ?? { status: DeleteRoutineStatus.conflict };
 }

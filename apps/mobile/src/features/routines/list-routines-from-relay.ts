@@ -1,4 +1,4 @@
-import { ListRoutinesStatus, type ListRoutinesResult } from "@nutritual/protocol";
+import { ListRoutinesStatus } from "@nutritual/protocol";
 import type { Routine } from "@/features/routines/model";
 import { loadData } from "@/features/routines/storage";
 
@@ -14,7 +14,7 @@ function listedRoutine({ id, productName, frequency, time, paused, form, quantit
   };
 }
 
-export async function listRoutinesFromRelay(): Promise<ListRoutinesResult> {
+export async function listRoutinesFromRelay() {
   try {
     return {
       status: ListRoutinesStatus.ok,

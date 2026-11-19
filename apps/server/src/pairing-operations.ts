@@ -7,7 +7,7 @@ export function canUseMcpClient(
   clientId: string | undefined,
   pairedClientId: string | undefined,
   mobileClientId: string,
-): boolean {
+) {
   return Boolean(clientId && clientId !== mobileClientId && pairedClientId === clientId);
 }
 

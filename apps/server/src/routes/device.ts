@@ -14,7 +14,7 @@ export function registerDeviceRoutes(
   app: Hono<McpAuthVariables>,
   relay: RoutineRelay,
   operations: PairingOperations,
-): void {
+) {
   app.get("/device", async (c) => {
     const ticket = c.req.query("ticket");
 

@@ -25,13 +25,13 @@ export function createRoutineFromRelayHandler({
   onError,
   onReminder,
   serialize,
-}: RelayCallbacks): (request: CreateRoutineRequest) => Promise<CreateRoutineResult> {
+}: RelayCallbacks) {
   const operations = new Map<
     string,
     { requestJson: string; promise: Promise<CreateRoutineResult> }
   >();
 
-  async function createOnce(request: CreateRoutineRequest): Promise<CreateRoutineResult> {
+  async function createOnce(request: CreateRoutineRequest) {
     const routine: Routine = {
       id: randomUUID(),
       productName: request.productName.trim(),
@@ -114,7 +114,7 @@ export function createRoutineFromRelayHandler({
     }
   }
 
-  return (request) => {
+  return (request: CreateRoutineRequest) => {
     const requestJson = relayOperations.createRoutineRequestJson(request);
     const existing = operations.get(request.operationId);
 

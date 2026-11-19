@@ -27,7 +27,7 @@ const relatedUnits = {
   Drops: ["drop"],
 } satisfies Record<(typeof forms)[number], string[]>;
 
-export function unitOptions(form: string): string[] {
+export function unitOptions(form: string) {
   const selectedForm = forms.find((value) => value.toLowerCase() === form.toLowerCase());
   const relevant = selectedForm ? relatedUnits[selectedForm] : [];
 

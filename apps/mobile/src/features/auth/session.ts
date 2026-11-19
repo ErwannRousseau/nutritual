@@ -15,17 +15,19 @@ let secureStoreWriteQueue: Promise<void> = Promise.resolve();
 let refreshPromise: { generation: number; promise: Promise<TokenSet | null> } | undefined;
 const tokenListeners = new Set<(tokens: TokenSet | null) => void>();
 
-export function subscribeToTokenUpdates(listener: (tokens: TokenSet | null) => void): () => void {
+export function subscribeToTokenUpdates(listener: (tokens: TokenSet | null) => void) {
   tokenListeners.add(listener);
 
-  return () => tokenListeners.delete(listener);
+  return () => {
+    tokenListeners.delete(listener);
+  };
 }
 
-function publishTokenUpdate(tokens: TokenSet | null): void {
+function publishTokenUpdate(tokens: TokenSet | null) {
   for (const listener of tokenListeners) listener(tokens);
 }
 
-function parseTokenSet(value: JsonValue): TokenSet | null {
+function parseTokenSet(value: JsonValue) {
   if (!isJsonObject(value)) return null;
 
   const accessTokenValue = value.accessToken;
@@ -92,7 +94,7 @@ function parseRefreshResponse(value: JsonValue) {
   return { accessToken, refreshToken, expiresIn, refreshTokenExpiresIn };
 }
 
-function enqueueSecureStoreWrite<T>(write: () => Promise<T>): Promise<T> {
+function enqueueSecureStoreWrite<T>(write: () => Promise<T>) {
   const result = secureStoreWriteQueue.then(write, write);
 
   secureStoreWriteQueue = result.then(
@@ -103,11 +105,11 @@ function enqueueSecureStoreWrite<T>(write: () => Promise<T>): Promise<T> {
   return result;
 }
 
-function isCurrentSession(generation: number, tokens: TokenSet): boolean {
+function isCurrentSession(generation: number, tokens: TokenSet) {
   return generation === sessionGeneration && memoryTokens === tokens;
 }
 
-export async function readTokens(): Promise<TokenSet | null> {
+export async function readTokens() {
   if (memoryTokens !== undefined) return memoryTokens;
 
   const generation = sessionGeneration;
@@ -136,7 +138,7 @@ export async function readTokens(): Promise<TokenSet | null> {
   }
 }
 
-export async function saveTokens(tokens: TokenSet): Promise<boolean> {
+export async function saveTokens(tokens: TokenSet) {
   const generation = ++sessionGeneration;
   memoryTokens = tokens;
 
@@ -153,7 +155,7 @@ export async function saveTokens(tokens: TokenSet): Promise<boolean> {
   return saved;
 }
 
-export async function clearTokens(): Promise<void> {
+export async function clearTokens() {
   ++sessionGeneration;
   memoryTokens = null;
   publishTokenUpdate(null);
@@ -163,7 +165,7 @@ export async function clearTokens(): Promise<void> {
   });
 }
 
-export async function getUsableTokens(): Promise<TokenSet | null> {
+export async function getUsableTokens() {
   const current = await readTokens();
   const generation = sessionGeneration;
 
@@ -188,11 +190,11 @@ export async function getUsableTokens(): Promise<TokenSet | null> {
   return refreshPromise.promise;
 }
 
-async function clearIfCurrent(generation: number, current: TokenSet): Promise<void> {
+async function clearIfCurrent(generation: number, current: TokenSet) {
   if (isCurrentSession(generation, current)) await clearTokens();
 }
 
-async function isDefinitiveGrantFailure(response: Response): Promise<boolean> {
+async function isDefinitiveGrantFailure(response: Response) {
   try {
     const error: JsonValue = await response.json();
 
@@ -202,7 +204,7 @@ async function isDefinitiveGrantFailure(response: Response): Promise<boolean> {
   }
 }
 
-async function refreshTokens(current: TokenSet, generation: number): Promise<TokenSet | null> {
+async function refreshTokens(current: TokenSet, generation: number) {
   const issuer = EXPO_PUBLIC_NEON_AUTH_BASE_URL;
   const server = EXPO_PUBLIC_SERVER_URL.replace(/\/$/, "");
 

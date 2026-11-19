@@ -32,7 +32,7 @@ const challenges = new Map<string, StoredChallenge>();
 const fakeDatabase = Object.assign(new Pool({ connectionString: process.env.DATABASE_URL }), {
   async query(sql: string, values: unknown[] = []) {
     if (sql.includes("INSERT INTO app_pairing_challenges")) {
-      // SAFETY: This SQL branch binds three hash strings and one expiry date in order.
+      // SAFETY: This branch binds the inserted hashes and expiry in query order.
       const [codeHash, pollHash, oauthHash, browserSub, , , , , expiresAt] = values as [
         string,
         string,
@@ -59,7 +59,7 @@ const fakeDatabase = Object.assign(new Pool({ connectionString: process.env.DATA
     }
 
     if (sql.includes("SELECT status, expires_at, consumed_at, browser_sub")) {
-      // SAFETY: The SQL branch binds the three challenge hashes in order.
+      // SAFETY: This branch binds the challenge hashes in query order.
       const [codeHash, pollHash, oauthHash] = values as string[];
       const row = challenges.get(codeHash);
 
@@ -80,7 +80,7 @@ const fakeDatabase = Object.assign(new Pool({ connectionString: process.env.DATA
     }
 
     if (sql.includes("UPDATE app_pairing_challenges SET consumed_at")) {
-      // SAFETY: The SQL branch binds the same challenge hashes as the lookup.
+      // SAFETY: This branch binds the challenge hashes in query order.
       const [codeHash, pollHash, oauthHash] = values as string[];
       const row = challenges.get(codeHash);
 
@@ -133,7 +133,7 @@ async function createChallenge(oauthQuery: string) {
 
   expect(response.status).toBe(201);
 
-  // SAFETY: The endpoint returned 201, so its body follows PairingChallengeResponse.
+  // SAFETY: A 201 response contains the pairing challenge fields.
   return (await response.json()) as {
     code: string;
     pollToken: string;

@@ -1,3 +1,3 @@
-export function prompt(...parts: string[]): string {
+export function prompt(...parts: string[]) {
   return parts.join(" ");
 }

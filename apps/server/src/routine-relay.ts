@@ -74,11 +74,11 @@ export function createRoutineRelay() {
   const connectedPhones = new Map<string, DeviceConnection>();
   const pendingPhones = new Map<string, DeviceConnection>();
 
-  function unconfirmed(operationId: string, message: string): CreateRoutineDeliveryResult {
+  function unconfirmed(operationId: string, message: string) {
     return { status: CreateRoutineDeliveryStatus.unconfirmed, operationId, message };
   }
 
-  function finishPendingForPhone(userId: string, phoneId: string): void {
+  function finishPendingForPhone(userId: string, phoneId: string) {
     for (const pending of pendingLists.values()) {
       if (pending.userId === userId && pending.connectionId === phoneId)
         pending.finish({
@@ -116,7 +116,7 @@ export function createRoutineRelay() {
     }
   }
 
-  function resultMatchesRequest(result: CreateRoutineResult, operationId: string): boolean {
+  function resultMatchesRequest(result: CreateRoutineResult, operationId: string) {
     return !("operationId" in result) || result.operationId === operationId;
   }
 
@@ -124,7 +124,7 @@ export function createRoutineRelay() {
     userId: string,
     phoneId: string,
     message: CreateRoutineResultMessage,
-  ): void {
+  ) {
     const pending = pendingRequests.get(message.requestId);
 
     if (
@@ -139,11 +139,7 @@ export function createRoutineRelay() {
     pending.finish(message.result);
   }
 
-  function receiveEditResult(
-    userId: string,
-    phoneId: string,
-    message: EditRoutineResultMessage,
-  ): void {
+  function receiveEditResult(userId: string, phoneId: string, message: EditRoutineResultMessage) {
     const pending = pendingEdits.get(message.requestId);
 
     if (
@@ -159,7 +155,7 @@ export function createRoutineRelay() {
     userId: string,
     phoneId: string,
     message: DeleteRoutineResultMessage,
-  ): void {
+  ) {
     const pending = pendingDeletes.get(message.requestId);
 
     if (
@@ -175,10 +171,10 @@ export function createRoutineRelay() {
     phone: DeviceConnection,
     userId: string,
     command: EditRoutineRequest,
-  ): Promise<EditRoutineDeliveryResult> {
+  ) {
     const requestId = crypto.randomUUID();
 
-    return new Promise((resolve) => {
+    return new Promise<EditRoutineDeliveryResult>((resolve) => {
       let timeout: ReturnType<typeof setTimeout>;
 
       const pending: PendingEditRequest = {
@@ -221,10 +217,10 @@ export function createRoutineRelay() {
     phone: DeviceConnection,
     userId: string,
     command: DeleteRoutineRequest,
-  ): Promise<DeleteRoutineDeliveryResult> {
+  ) {
     const requestId = crypto.randomUUID();
 
-    return new Promise((resolve) => {
+    return new Promise<DeleteRoutineDeliveryResult>((resolve) => {
       let timeout: ReturnType<typeof setTimeout>;
 
       const pending: PendingDeleteRequest = {
@@ -263,14 +259,10 @@ export function createRoutineRelay() {
     });
   }
 
-  function deliverToPhone(
-    phone: DeviceConnection,
-    userId: string,
-    command: CreateRoutineRequest,
-  ): Promise<CreateRoutineDeliveryResult> {
+  function deliverToPhone(phone: DeviceConnection, userId: string, command: CreateRoutineRequest) {
     const requestId = crypto.randomUUID();
 
-    return new Promise((resolve) => {
+    return new Promise<CreateRoutineDeliveryResult>((resolve) => {
       let timeout: ReturnType<typeof setTimeout>;
 
       const pending: PendingRequest = {
@@ -308,29 +300,23 @@ export function createRoutineRelay() {
     });
   }
 
-  function receiveListResult(
-    userId: string,
-    phoneId: string,
-    message: ListRoutinesResultMessage,
-  ): void {
+  function receiveListResult(userId: string, phoneId: string, message: ListRoutinesResultMessage) {
     const pending = pendingLists.get(message.requestId);
 
     if (pending?.userId === userId && pending.connectionId === phoneId)
       pending.finish(message.result);
   }
 
-  async function listRoutines(
-    userId: string,
-  ): Promise<
-    ListRoutinesResult | { status: typeof ListRoutinesStatus.unavailable; message: string }
-  > {
+  async function listRoutines(userId: string) {
     const phone = connectedPhones.get(userId);
 
     if (!phone)
       return { status: ListRoutinesStatus.unavailable, message: "No phone is connected." };
     const requestId = crypto.randomUUID();
 
-    return new Promise((resolve) => {
+    return new Promise<
+      ListRoutinesResult | { status: typeof ListRoutinesStatus.unavailable; message: string }
+    >((resolve) => {
       const finish = (
         result:
           | ListRoutinesResult
@@ -364,7 +350,7 @@ export function createRoutineRelay() {
     userId: string,
     phone: DeviceConnection,
     isPaired: () => Promise<boolean>,
-  ): Promise<void> {
+  ) {
     const previousPending = pendingPhones.get(userId);
     pendingPhones.set(userId, phone);
 
@@ -401,7 +387,7 @@ export function createRoutineRelay() {
     }
   }
 
-  function disconnectPhone(userId: string, connectionId: string, closeConnection = false): void {
+  function disconnectPhone(userId: string, connectionId: string, closeConnection = false) {
     const pending = pendingPhones.get(userId);
 
     if (pending?.id === connectionId) {
@@ -421,7 +407,7 @@ export function createRoutineRelay() {
     finishPendingForPhone(userId, connectionId);
   }
 
-  function disconnectPairedPhone(userId: string, deviceId: string, pairingId: string): void {
+  function disconnectPairedPhone(userId: string, deviceId: string, pairingId: string) {
     const pending = pendingPhones.get(userId);
 
     if (pending?.deviceId === deviceId && pending.pairingId === pairingId)
@@ -433,10 +419,7 @@ export function createRoutineRelay() {
       disconnectPhone(userId, phone.id, true);
   }
 
-  async function createRoutine(
-    userId: string,
-    command: CreateRoutineRequest,
-  ): Promise<CreateRoutineDeliveryResult> {
+  async function createRoutine(userId: string, command: CreateRoutineRequest) {
     const phone = connectedPhones.get(userId);
 
     if (!phone) {
@@ -449,10 +432,7 @@ export function createRoutineRelay() {
     return deliverToPhone(phone, userId, command);
   }
 
-  async function editRoutine(
-    userId: string,
-    command: EditRoutineRequest,
-  ): Promise<EditRoutineDeliveryResult> {
+  async function editRoutine(userId: string, command: EditRoutineRequest) {
     const phone = connectedPhones.get(userId);
 
     if (!phone) {
@@ -462,10 +442,7 @@ export function createRoutineRelay() {
     return deliverEditToPhone(phone, userId, command);
   }
 
-  async function deleteRoutine(
-    userId: string,
-    command: DeleteRoutineRequest,
-  ): Promise<DeleteRoutineDeliveryResult> {
+  async function deleteRoutine(userId: string, command: DeleteRoutineRequest) {
     const phone = connectedPhones.get(userId);
 
     if (!phone) {

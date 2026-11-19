@@ -13,7 +13,7 @@ export function createTokenSet(
     refreshTokenExpiresIn?: number;
   },
   now = Date.now(),
-): TokenSet {
+) {
   return {
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
@@ -22,11 +22,11 @@ export function createTokenSet(
   };
 }
 
-export function sessionExpiryTime(session: TokenSet | null | undefined): number | undefined {
+export function sessionExpiryTime(session: TokenSet | null | undefined) {
   return session?.refreshTokenExpiresAt;
 }
 
-export function hasActiveSession(session: TokenSet | null | undefined, now = Date.now()): boolean {
+export function hasActiveSession(session: TokenSet | null | undefined, now = Date.now()) {
   const expiry = sessionExpiryTime(session);
 
   return expiry !== undefined && expiry > now;

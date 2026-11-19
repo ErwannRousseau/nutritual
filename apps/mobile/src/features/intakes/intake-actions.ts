@@ -12,7 +12,7 @@ export async function recordIntakeAction(
   quantity: IntakeQuantity | undefined,
   setSaving: BooleanSetter,
   setFeedback: FeedbackSetter,
-): Promise<boolean> {
+) {
   if (!selected || disabled) return false;
   setSaving(true);
   setFeedback(null);
@@ -20,7 +20,6 @@ export async function recordIntakeAction(
   try {
     if (await record(id, quantity)) return true;
   } catch {
-    // Keep the screen's existing failure message for provider errors.
   } finally {
     setSaving(false);
   }
@@ -36,7 +35,7 @@ export async function undoIntakeAction(
   undo: (id: string) => Promise<boolean>,
   setUndoing: BooleanSetter,
   setFeedback: FeedbackSetter,
-): Promise<boolean> {
+) {
   if (disabled) return false;
   setUndoing(true);
   setFeedback(null);
@@ -44,7 +43,6 @@ export async function undoIntakeAction(
   try {
     if (await undo(id)) return true;
   } catch {
-    // Keep the screen's existing failure message for provider errors.
   } finally {
     setUndoing(false);
   }

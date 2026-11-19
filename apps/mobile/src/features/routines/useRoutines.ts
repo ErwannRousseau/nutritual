@@ -76,7 +76,7 @@ export function useRoutines() {
   );
 
   const run = useCallback(
-    async (action: () => Promise<void>): Promise<boolean> => {
+    async (action: () => Promise<void>) => {
       if (actionQueue.isBusy()) return false;
 
       return actionQueue.run(async () => {
@@ -97,7 +97,7 @@ export function useRoutines() {
     [actionQueue],
   );
 
-  const reload = useCallback(async (): Promise<void> => {
+  const reload = useCallback(async () => {
     await run(async () => {
       const stored = await storage.loadData();
       setReminders(await restoreReminders(stored.routines));
@@ -136,7 +136,7 @@ export function useRoutines() {
     };
   }, [actionQueue, reload]);
 
-  async function save(draft: RoutineDraft, id?: string): Promise<boolean> {
+  async function save(draft: RoutineDraft, id?: string) {
     const validation = validateRoutine(draft);
 
     if (validation) {
@@ -176,7 +176,7 @@ export function useRoutines() {
     return saved && !missing;
   }
 
-  async function remove(id: string): Promise<boolean> {
+  async function remove(id: string) {
     return run(async () => {
       await removeReminders(id);
       await storage.deleteRoutine(id);
@@ -184,7 +184,7 @@ export function useRoutines() {
     });
   }
 
-  async function pause(id: string): Promise<boolean> {
+  async function pause(id: string) {
     let missing = false;
 
     const updated = await run(async () => {
@@ -209,7 +209,7 @@ export function useRoutines() {
     id: string,
     quantity?: { amount: number; unit: string },
     expectedTime?: string,
-  ): Promise<boolean> {
+  ) {
     let unavailable = false;
 
     const recorded = await run(async () => {
@@ -261,11 +261,11 @@ export function useRoutines() {
     return recorded && !unavailable;
   }
 
-  async function undo(id: string): Promise<boolean> {
+  async function undo(id: string) {
     return run(() => storage.deleteIntake(id));
   }
 
-  async function skip(id: string): Promise<boolean> {
+  async function skip(id: string) {
     return run(() => storage.skipRoutine(id, localDate(new Date())));
   }
 

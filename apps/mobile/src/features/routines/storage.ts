@@ -1,6 +1,6 @@
 import { FrequencyKind } from "@nutritual/protocol";
 import type { SQLiteRunResult } from "expo-sqlite";
-import type { Intake, Routine, SkippedOccurrence } from "@/features/routines/model";
+import type { Intake, Routine } from "@/features/routines/model";
 import { validateRoutine } from "@/features/routines/model";
 import { getDatabase } from "./database";
 
@@ -36,7 +36,7 @@ type IntakeRow = {
   quantity_unit: string | null;
 };
 
-export function routineFromRow(row: RoutineRow, details?: RoutineDetailsRow | null): Routine {
+export function routineFromRow(row: RoutineRow, details?: RoutineDetailsRow | null) {
   let frequency: Routine["frequency"];
 
   switch (row.frequency_kind) {
@@ -96,10 +96,7 @@ export function routineFromRow(row: RoutineRow, details?: RoutineDetailsRow | nu
   return routine;
 }
 
-export async function saveRoutineDetails(
-  executor: RoutineSqlExecutor,
-  routine: Routine,
-): Promise<void> {
+export async function saveRoutineDetails(executor: RoutineSqlExecutor, routine: Routine) {
   if (routine.form === undefined && routine.quantity === undefined) {
     await executor.runAsync("DELETE FROM routine_details WHERE routine_id = ?", routine.id);
 
@@ -117,7 +114,7 @@ export async function saveRoutineDetails(
   );
 }
 
-function routineDetails(row: RoutineRow & RoutineDetailsRow): RoutineDetailsRow {
+function routineDetails(row: RoutineRow & RoutineDetailsRow) {
   return {
     form: row.form,
     quantity_amount: row.quantity_amount,
@@ -125,9 +122,7 @@ function routineDetails(row: RoutineRow & RoutineDetailsRow): RoutineDetailsRow 
   };
 }
 
-export function routineValues(
-  routine: Routine,
-): [string, string, string, number | null, number | null, string | null, string, number] {
+export function routineValues(routine: Routine) {
   const error = validateRoutine(routine);
 
   if (error) {
@@ -174,11 +169,7 @@ export function routineValues(
   ];
 }
 
-export async function loadData(): Promise<{
-  routines: Routine[];
-  intakes: Intake[];
-  skippedOccurrences: SkippedOccurrence[];
-}> {
+export async function loadData() {
   const database = await getDatabase();
 
   const routineRows = await database.getAllAsync<RoutineRow & RoutineDetailsRow>(
@@ -218,7 +209,7 @@ export async function loadData(): Promise<{
   };
 }
 
-export async function saveRoutine(routine: Routine): Promise<void> {
+export async function saveRoutine(routine: Routine) {
   const error = validateRoutine(routine);
 
   if (error) throw new Error(error);
@@ -233,7 +224,7 @@ export async function saveRoutine(routine: Routine): Promise<void> {
   });
 }
 
-export async function deleteRoutine(id: string): Promise<void> {
+export async function deleteRoutine(id: string) {
   const database = await getDatabase();
   await database.withExclusiveTransactionAsync(async (transaction) => {
     await transaction.runAsync("DELETE FROM routine_details WHERE routine_id = ?", id);
@@ -242,7 +233,7 @@ export async function deleteRoutine(id: string): Promise<void> {
   });
 }
 
-export async function skipRoutine(id: string, date: string): Promise<void> {
+export async function skipRoutine(id: string, date: string) {
   const database = await getDatabase();
   await database.withExclusiveTransactionAsync(async (transaction) => {
     await transaction.runAsync("DELETE FROM skipped_routines WHERE local_date <> ?", date);
@@ -253,7 +244,7 @@ export async function skipRoutine(id: string, date: string): Promise<void> {
   });
 }
 
-export async function saveIntake(intake: Intake): Promise<void> {
+export async function saveIntake(intake: Intake) {
   if (
     intake.quantity &&
     (!Number.isFinite(intake.quantity.amount) ||
@@ -288,7 +279,7 @@ export async function saveIntake(intake: Intake): Promise<void> {
   });
 }
 
-export async function deleteIntake(id: string): Promise<void> {
+export async function deleteIntake(id: string) {
   const database = await getDatabase();
   await database.withExclusiveTransactionAsync(async (transaction) => {
     await transaction.runAsync("DELETE FROM intake_details WHERE intake_id = ?", id);

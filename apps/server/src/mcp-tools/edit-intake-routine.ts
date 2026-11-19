@@ -45,7 +45,7 @@ export function registerEditIntakeRoutineTool(
   server: McpServer,
   relay: RoutineRelay,
   userId: string,
-): void {
+) {
   server.registerTool(
     "edit_intake_routine",
     {

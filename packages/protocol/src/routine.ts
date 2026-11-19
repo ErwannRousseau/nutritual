@@ -57,7 +57,7 @@ export type CreateRoutineResult =
 
 const maxIntervalDays = 36_500;
 
-export function isValidDateString(value: string): boolean {
+export function isValidDateString(value: string) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
 
   if (!match) return false;
@@ -73,7 +73,7 @@ export function isValidDateString(value: string): boolean {
   );
 }
 
-export function validateRoutineInput(input: RoutineInput): string | null {
+export function validateRoutineInput(input: RoutineInput) {
   if (!input.productName.trim()) return "Product name is required.";
 
   if (input.form !== undefined && !input.form.trim()) return "Form cannot be empty.";

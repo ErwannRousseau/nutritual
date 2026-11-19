@@ -1,4 +1,4 @@
-import { afterAll, expect, test } from "bun:test";
+import { expect, test } from "bun:test";
 import { CreateRoutineDeliveryStatus } from "@nutritual/protocol";
 import { createRoutineRelay } from "../routine-relay.ts";
 
@@ -254,8 +254,4 @@ test("MCP rejects another OAuth client and the first-party mobile client", () =>
   );
   expect(canUseMcpClient("different-client", "approved-chat-client", "mobile-client")).toBe(false);
   expect(canUseMcpClient("mobile-client", "mobile-client", "mobile-client")).toBe(false);
-});
-
-afterAll(async () => {
-  // The test suite uses no database operations; the pool is kept unopened.
 });

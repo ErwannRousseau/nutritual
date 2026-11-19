@@ -29,7 +29,7 @@ const defaultDependencies: PhoneRouteDependencies = {
   authGuard: defaultAuthGuard,
 };
 
-function remoteIp(c: Context): string {
+function remoteIp(c: Context) {
   const forwarded = c.req
     .header("x-forwarded-for")
     ?.split(",")
@@ -45,7 +45,7 @@ export function registerPhoneRoutes(
   app: Hono<McpAuthVariables>,
   operations: PairingOperations,
   dependencies = defaultDependencies,
-): void {
+) {
   const { authGuard } = dependencies;
   app.use("/api/phone/*", authGuard);
   app.post("/api/phone/pairing-challenges/inspect", async (c) => {

@@ -3,7 +3,7 @@ import type { Frequency } from "@nutritual/protocol";
 import { FrequencyKind, ReminderOutcomes } from "@nutritual/protocol";
 import { describeFrequency, ReminderStatus } from "@/features/routines/model";
 
-export function dateLabel(date: Date): string {
+export function dateLabel(date: Date) {
   return date.toLocaleDateString("en-GB", {
     weekday: "long",
     day: "numeric",
@@ -11,11 +11,11 @@ export function dateLabel(date: Date): string {
   });
 }
 
-export function timeLabel(date: Date): string {
+export function timeLabel(date: Date) {
   return date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }
 
-export function frequencyLabel(frequency: Frequency): string {
+export function frequencyLabel(frequency: Frequency) {
   if (frequency.kind !== FrequencyKind.interval) return describeFrequency(frequency);
 
   const [year, month, day] = frequency.startDate.split("-").map(Number);
@@ -33,7 +33,7 @@ export function frequencyLabel(frequency: Frequency): string {
 
 export type RoutineScheduleDisplay = { label: string; time: string | null };
 
-export function routineScheduleDisplay(routine: Routine): RoutineScheduleDisplay {
+export function routineScheduleDisplay(routine: Routine) {
   const frequency = frequencyLabel(routine.frequency);
 
   if (routine.frequency.kind === FrequencyKind.asNeeded) {
@@ -45,7 +45,7 @@ export function routineScheduleDisplay(routine: Routine): RoutineScheduleDisplay
   return { label: `${time} · ${frequency}`, time };
 }
 
-export function reminderLabel(reminder?: ReminderState): string {
+export function reminderLabel(reminder?: ReminderState) {
   if (!reminder) return "Checking reminder…";
 
   if (reminder.message) return reminder.message;

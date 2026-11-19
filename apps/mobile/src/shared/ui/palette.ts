@@ -30,7 +30,7 @@ const darkPalette = {
 
 export type Palette = { [Key in keyof typeof lightPalette]: string };
 
-export function usePalette(): Palette {
+export function usePalette() {
   const scheme = useColorScheme();
 
   return scheme === "dark" ? darkPalette : lightPalette;

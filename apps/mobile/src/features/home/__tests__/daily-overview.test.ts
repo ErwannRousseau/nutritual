@@ -124,31 +124,31 @@ describe("selectDailyOverview", () => {
   });
 });
 
-function routine(
-  id: string,
-  time: string,
-  frequency: Routine["frequency"],
-  paused = false,
-): Routine {
-  return { id, productName: id, frequency, time, paused };
+function routine(id: string, time: string, frequency: Routine["frequency"], paused = false) {
+  return { id, productName: id, frequency, time, paused } satisfies Routine;
 }
 
-function intake(id: string, routineId: string, recordedAt: Date): Intake {
-  return { id, routineId, productName: routineId, recordedAt: recordedAt.toISOString() };
+function intake(id: string, routineId: string, recordedAt: Date) {
+  return {
+    id,
+    routineId,
+    productName: routineId,
+    recordedAt: recordedAt.toISOString(),
+  } satisfies Intake;
 }
 
-function weekdaysOn(date: Date): Routine["frequency"] {
-  return { kind: FrequencyKind.weekdays, days: [date.getDay()] };
+function weekdaysOn(date: Date) {
+  return { kind: FrequencyKind.weekdays, days: [date.getDay()] } satisfies Routine["frequency"];
 }
 
-function atLocalTime(date: Date, hour: number): Date {
+function atLocalTime(date: Date, hour: number) {
   const result = new Date(date);
   result.setHours(hour, 0, 0, 0);
 
   return result;
 }
 
-function shiftLocalDay(date: Date, amount: number): Date {
+function shiftLocalDay(date: Date, amount: number) {
   const result = new Date(date);
   result.setDate(result.getDate() + amount);
 

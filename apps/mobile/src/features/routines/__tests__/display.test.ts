@@ -4,14 +4,14 @@ import { FrequencyKind } from "@nutritual/protocol";
 import type { Routine } from "@/features/routines/model";
 import { frequencyLabel, routineScheduleDisplay } from "@/features/routines/display";
 
-function makeRoutine(frequency: Frequency, time = "08:30"): Routine {
+function makeRoutine(frequency: Frequency, time = "08:30") {
   return {
     id: "routine-1",
     productName: "Vitamine C",
     frequency,
     time,
     paused: false,
-  };
+  } satisfies Routine;
 }
 
 test("weekday schedule keeps its formatted time and frequency", () => {

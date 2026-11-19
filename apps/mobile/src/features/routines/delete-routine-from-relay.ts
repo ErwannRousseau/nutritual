@@ -21,10 +21,10 @@ export function deleteRoutineFromRelayHandler({
   onError,
   onDeleted,
   serialize,
-}: RelayCallbacks): (request: DeleteRoutineRequest) => Promise<DeleteRoutineResult> {
+}: RelayCallbacks) {
   const operations = new Map<string, { request: string; promise: Promise<DeleteRoutineResult> }>();
 
-  async function deleteOnce(request: DeleteRoutineRequest): Promise<DeleteRoutineResult> {
+  async function deleteOnce(request: DeleteRoutineRequest) {
     let committed:
       | {
           status: typeof DeleteRoutineStatus.deleted | typeof DeleteRoutineStatus.alreadyProcessed;
@@ -86,7 +86,7 @@ export function deleteRoutineFromRelayHandler({
         try {
           onDeleted(operation.routineId);
         } catch {
-          // The saved deletion result is independent of UI state updates.
+          // INFO: The saved deletion result is independent of UI state updates.
         }
       }
 
@@ -120,7 +120,7 @@ export function deleteRoutineFromRelayHandler({
     }
   }
 
-  return (request) => {
+  return (request: DeleteRoutineRequest) => {
     const requestJson = JSON.stringify({ expected: request.expected });
     const existing = operations.get(request.operationId);
 

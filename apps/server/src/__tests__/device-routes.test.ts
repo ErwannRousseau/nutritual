@@ -101,7 +101,6 @@ test("device route rejects missing and replayed tickets and relays the real phon
         once: true,
       });
     });
-    await new Promise((resolve) => setTimeout(resolve, 10));
 
     const request: CreateRoutineRequest = {
       operationId: "c6d611b7-b4a7-427a-bce1-50c3a2815d88",
@@ -160,7 +159,6 @@ test("device route relays an edit and accepts its acknowledgment only from the p
       phone.addEventListener("open", () => resolve(), { once: true });
       phone.addEventListener("error", () => reject(new Error("WebSocket failed.")), { once: true });
     });
-    await new Promise((resolve) => setTimeout(resolve, 10));
 
     const request: EditRoutineRequest = {
       operationId: "7a98fdf5-bc7a-4641-b7b7-f932f9ed8901",
@@ -223,7 +221,6 @@ test("device route relays a routine deletion and accepts the phone outcome", asy
       phone.addEventListener("open", () => resolve(), { once: true });
       phone.addEventListener("error", () => reject(new Error("WebSocket failed.")), { once: true });
     });
-    await new Promise((resolve) => setTimeout(resolve, 10));
 
     const request: DeleteRoutineRequest = {
       operationId: "7a98fdf5-bc7a-4641-b7b7-f932f9ed8901",
@@ -289,7 +286,7 @@ function socketFor(server: ReturnType<typeof Bun.serve>, ticket: string) {
   return new WebSocket(url);
 }
 
-function acknowledgeNextCommand(phone: WebSocket): Promise<void> {
+function acknowledgeNextCommand(phone: WebSocket) {
   return new Promise((resolve, reject) => {
     phone.addEventListener(
       "message",
@@ -445,7 +442,6 @@ test("device websocket validates list results and stops pending reads on disconn
         once: true,
       });
     });
-    await new Promise((resolve) => setTimeout(resolve, 10));
 
     const reply = new Promise<void>((resolve) => {
       phone.addEventListener(

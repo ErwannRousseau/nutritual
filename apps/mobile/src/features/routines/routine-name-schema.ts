@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export function formatAmount(amount: number): string {
+export function formatAmount(amount: number) {
   return new Intl.NumberFormat("en-US", {
     useGrouping: false,
     maximumSignificantDigits: 17,

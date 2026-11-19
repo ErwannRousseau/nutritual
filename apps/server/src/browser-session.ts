@@ -5,7 +5,7 @@ export function createBrowserSessionVerifier(authBaseUrl: string, getKey?: JWTVe
   const jwksUrl = new URL(`${authBaseUrl.replace(/\/+$/, "")}/.well-known/jwks.json`);
   const jwks = getKey ?? createRemoteJWKSet(jwksUrl);
 
-  return async (token: string): Promise<string> => {
+  return async (token: string) => {
     const { payload } = await jwtVerify(token, jwks, {
       issuer: authOrigin,
       audience: authOrigin,

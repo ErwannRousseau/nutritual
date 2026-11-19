@@ -32,7 +32,7 @@ export function registerDeleteIntakeRoutineTool(
   server: McpServer,
   relay: RoutineRelay,
   userId: string,
-): void {
+) {
   server.registerTool(
     "delete_intake_routine",
     {

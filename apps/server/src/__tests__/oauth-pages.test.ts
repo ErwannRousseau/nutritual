@@ -145,7 +145,7 @@ async function runLoginPage(
     },
 
     fetch: async (url: string, request?: { body?: string }) => {
-      // SAFETY: The test executes the page's JSON.stringify payloads and controls their values below.
+      // SAFETY: The test controls every serialized page request body.
       const body = request?.body ? (JSON.parse(request.body) as PageRequestBody) : undefined;
       calls.push({ url, body });
 
@@ -276,7 +276,7 @@ async function runConsentPage(
       },
     },
     fetch: async (url: string, request?: { body?: string }) => {
-      // SAFETY: This test parses JSON produced by the page and controls every response below.
+      // SAFETY: The test controls every serialized consent request body.
       const body = request?.body ? (JSON.parse(request.body) as ConsentBody) : undefined;
       calls.push({ url, body });
 

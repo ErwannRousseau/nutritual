@@ -7,7 +7,7 @@ const loginScript = new URL("../oauth-page-scripts/login.js", import.meta.url);
 const consentScript = new URL("../oauth-page-scripts/consent.js", import.meta.url);
 const scriptHeaders = { "Content-Type": "text/javascript; charset=utf-8" };
 
-export function registerOAuthPages(app: Hono<McpAuthVariables>): void {
+export function registerOAuthPages(app: Hono<McpAuthVariables>) {
   app.get("/oauth/scripts/login.js", (c) => c.body(Bun.file(loginScript), 200, scriptHeaders));
   app.get("/oauth/scripts/consent.js", (c) => c.body(Bun.file(consentScript), 200, scriptHeaders));
   app.get("/oauth/login", (c) =>
