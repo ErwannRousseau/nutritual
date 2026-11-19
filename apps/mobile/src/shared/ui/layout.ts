@@ -3,7 +3,7 @@ import { fillMaxWidth } from "@expo/ui/jetpack-compose/modifiers";
 import { containerRelativeFrame, frame } from "@expo/ui/swift-ui/modifiers";
 import { Platform } from "react-native";
 
-export const fillParent: UniversalDimension = "100%";
+export const fullWidth: UniversalDimension = "100%";
 export const sixtyPercent: UniversalDimension = "60%";
 
 export const fillAvailableWidth = Platform.select({

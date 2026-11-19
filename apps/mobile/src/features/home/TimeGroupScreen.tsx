@@ -11,7 +11,7 @@ import IconButton from "@/shared/ui/IconButton";
 import ProductBadge from "@/shared/ui/ProductBadge";
 import Screen from "@/shared/ui/Screen";
 import Text from "@/shared/ui/Text";
-import { fillParent } from "@/shared/ui/layout";
+import { fullWidth } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
 
 export default function TimeGroupScreen() {
@@ -169,7 +169,7 @@ function createStyles(colors: ReturnType<typeof usePalette>) {
       backgroundColor: colors.surface,
       borderRadius: 24,
       padding: 16,
-      width: fillParent,
+      width: fullWidth,
     },
     action: {
       backgroundColor: colors.upcoming,

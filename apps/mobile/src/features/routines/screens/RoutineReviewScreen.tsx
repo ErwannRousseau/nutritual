@@ -4,7 +4,7 @@ import { router, Stack, useLocalSearchParams } from "expo-router";
 import { StyleSheet } from "react-native";
 import ActionButton from "@/shared/ui/ActionButton";
 import Text from "@/shared/ui/Text";
-import { fillParent } from "@/shared/ui/layout";
+import { fullWidth } from "@/shared/ui/layout";
 import ProductBadge from "@/shared/ui/ProductBadge";
 import Screen from "@/shared/ui/Screen";
 import { usePalette } from "@/shared/ui/palette";
@@ -133,9 +133,9 @@ export default function RoutineReviewScreen() {
 
 function createStyles(colors: ReturnType<typeof usePalette>) {
   return StyleSheet.create({
-    hero: { width: fillParent, paddingTop: 12 },
+    hero: { width: fullWidth, paddingTop: 12 },
     summary: {
-      width: fillParent,
+      width: fullWidth,
       padding: 16,
       borderRadius: 24,
       backgroundColor: colors.grouped,

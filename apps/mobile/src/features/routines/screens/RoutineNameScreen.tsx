@@ -7,7 +7,7 @@ import { router, Stack, useLocalSearchParams } from "expo-router";
 import { StyleSheet, useWindowDimensions } from "react-native";
 import ActionButton from "@/shared/ui/ActionButton";
 import Text from "@/shared/ui/Text";
-import { fillAvailableWidth, fillContainerWidth, fillParent } from "@/shared/ui/layout";
+import { fillAvailableWidth, fillContainerWidth, fullWidth } from "@/shared/ui/layout";
 import ProductBadge from "@/shared/ui/ProductBadge";
 import Screen from "@/shared/ui/Screen";
 import { usePalette } from "@/shared/ui/palette";
@@ -296,8 +296,8 @@ function RoutineNameForm({ id, draft, setDraft, markDirty, error }: RoutineNameF
 
 function createStyles(colors: ReturnType<typeof usePalette>, fontScale: number) {
   return StyleSheet.create({
-    hero: { width: fillParent, paddingTop: 12 },
-    section: { width: fillParent },
+    hero: { width: fullWidth, paddingTop: 12 },
+    section: { width: fullWidth },
     input: {
       padding: 16,
       borderRadius: 28,

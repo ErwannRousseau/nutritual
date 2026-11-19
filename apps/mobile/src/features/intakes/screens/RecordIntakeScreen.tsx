@@ -7,7 +7,7 @@ import { StyleSheet } from "react-native";
 import ActionButton from "@/shared/ui/ActionButton";
 import AppSymbol from "@/shared/ui/AppSymbol";
 import Text from "@/shared/ui/Text";
-import { centerAvailableWidth, fillAvailableWidth, fillParent } from "@/shared/ui/layout";
+import { centerAvailableWidth, fillAvailableWidth, fullWidth } from "@/shared/ui/layout";
 import SheetHeader from "@/shared/ui/SheetHeader";
 import ProductBadge from "@/shared/ui/ProductBadge";
 import Screen from "@/shared/ui/Screen";
@@ -215,28 +215,28 @@ function RecordRoutineIntakeForm({
 
 function createStyles(colors: ReturnType<typeof usePalette>, isSelected: boolean) {
   return StyleSheet.create({
-    content: { width: fillParent },
+    content: { width: fullWidth },
     card: {
       backgroundColor: colors.surface,
       borderColor: colors.separator,
       borderRadius: 22,
       borderWidth: StyleSheet.hairlineWidth,
       padding: 20,
-      width: fillParent,
+      width: fullWidth,
     },
     selectButton: {
       backgroundColor: isSelected ? colors.upcoming : colors.grouped,
       borderRadius: 14,
       paddingVertical: 12,
       paddingHorizontal: 20,
-      width: fillParent,
+      width: fullWidth,
     },
     centeredText: { textAlign: "center" },
     input: {
       padding: 14,
       borderRadius: 18,
       backgroundColor: colors.grouped,
-      width: fillParent,
+      width: fullWidth,
     },
     inputText: { color: colors.text, fontSize: 17 },
   });

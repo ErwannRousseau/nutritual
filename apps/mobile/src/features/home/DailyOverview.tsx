@@ -5,9 +5,11 @@ import { StyleSheet } from "react-native";
 import Text from "@/shared/ui/Text";
 import AppSymbol from "@/shared/ui/AppSymbol";
 import ProductBadge from "@/shared/ui/ProductBadge";
+import Separator from "@/shared/ui/Separator";
 import Screen from "@/shared/ui/Screen";
-import { fillAvailableWidth, fillParent } from "@/shared/ui/layout";
+import { fillAvailableWidth, fillContainerWidth, fullWidth } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
+import ScheduledGroupButton from "@/features/home/components/ScheduledGroupButton";
 import IntakeRow from "@/features/home/components/IntakeRow";
 import RoutineRow from "@/features/home/components/RoutineRow";
 import { useDailyOverview } from "@/features/home/useDailyOverview";
@@ -69,42 +71,39 @@ export default function DailyOverview() {
                 const group = upcoming.filter((routine) => routine.time === time);
 
                 return (
-                  <Button
+                  <ScheduledGroupButton
                     key={time}
-                    style={styles.fullWidthButton}
-                    variant="text"
+                    backgroundColor={colors.grouped}
                     onPress={() => router.push({ pathname: "/routine-group", params: { time } })}
                   >
-                    <Column spacing={8} style={styles.group}>
-                      <Text variant="headline">{time}</Text>
-                      {group.map((routine) => {
-                        const reminder = reminders.find((item) => item.routineId === routine.id);
+                    <Text variant="headline">{time}</Text>
+                    {group.map((routine) => {
+                      const reminder = reminders.find((item) => item.routineId === routine.id);
 
-                        const warning =
-                          reminder?.status === ReminderOutcomes.denied ||
-                          reminder?.status === ReminderOutcomes.failed;
+                      const warning =
+                        reminder?.status === ReminderOutcomes.denied ||
+                        reminder?.status === ReminderOutcomes.failed;
 
-                        return (
-                          <Column key={routine.id} spacing={2}>
-                            <Text>{routine.productName}</Text>
-                            {routine.quantity ? (
-                              <Text variant="footnote" color={colors.secondary}>
-                                {routine.quantity.amount + " " + routine.quantity.unit}
-                              </Text>
-                            ) : null}
-                            {warning ? (
-                              <Text variant="footnote" color={colors.danger}>
-                                Reminder inactive
-                              </Text>
-                            ) : null}
-                          </Column>
-                        );
-                      })}
-                      <Text color={colors.blue}>
-                        {group.length + (group.length === 1 ? " supplement" : " supplements")}
-                      </Text>
-                    </Column>
-                  </Button>
+                      return (
+                        <Column key={routine.id} spacing={2}>
+                          <Text>{routine.productName}</Text>
+                          {routine.quantity ? (
+                            <Text variant="footnote" color={colors.secondary}>
+                              {routine.quantity.amount + " " + routine.quantity.unit}
+                            </Text>
+                          ) : null}
+                          {warning ? (
+                            <Text variant="footnote" color={colors.danger}>
+                              Reminder inactive
+                            </Text>
+                          ) : null}
+                        </Column>
+                      );
+                    })}
+                    <Text color={colors.blue}>
+                      {group.length + (group.length === 1 ? " supplement" : " supplements")}
+                    </Text>
+                  </ScheduledGroupButton>
                 );
               })}
               {upcoming.length === 0 && (
@@ -145,36 +144,36 @@ export default function DailyOverview() {
               )}
             </Column>
 
-            <Column spacing={4} style={styles.group}>
-              <Row alignment="center">
+            <Row modifiers={fillContainerWidth}>
+              <Column spacing={4} style={styles.group}>
                 <Text variant="title">Today's intakes</Text>
-              </Row>
-              {logged.length > 0 ? (
-                logged.map((intake) => (
-                  <IntakeRow
-                    key={intake.id}
-                    intake={intake}
-                    onPress={() =>
-                      router.push({ pathname: "/intake/[id]", params: { id: intake.id } })
-                    }
-                  />
-                ))
-              ) : (
-                <Text color={colors.secondary}>No intakes recorded today.</Text>
-              )}
-              <Column style={styles.separator} />
-              <Button
-                style={styles.fullWidthButton}
-                variant="text"
-                onPress={() => router.push("/history")}
-              >
-                <Row modifiers={fillAvailableWidth} alignment="center">
-                  <Text color={colors.blue}>View history</Text>
-                  <Spacer />
-                  <AppSymbol name="chevron.right" size={14} color={colors.blue} />
-                </Row>
-              </Button>
-            </Column>
+                {logged.length > 0 ? (
+                  logged.map((intake) => (
+                    <IntakeRow
+                      key={intake.id}
+                      intake={intake}
+                      onPress={() =>
+                        router.push({ pathname: "/intake/[id]", params: { id: intake.id } })
+                      }
+                    />
+                  ))
+                ) : (
+                  <Text color={colors.secondary}>No intakes recorded today.</Text>
+                )}
+                <Separator />
+                <Button
+                  style={styles.fullWidthButton}
+                  variant="text"
+                  onPress={() => router.push("/history")}
+                >
+                  <Row modifiers={fillAvailableWidth} alignment="center">
+                    <Text color={colors.blue}>View history</Text>
+                    <Spacer />
+                    <AppSymbol name="chevron.right" size={14} color={colors.blue} />
+                  </Row>
+                </Button>
+              </Column>
+            </Row>
 
             {routines.length > 0 && (
               <Column spacing={12}>
@@ -182,7 +181,7 @@ export default function DailyOverview() {
                 <Column style={styles.group} spacing={0}>
                   {routines.map((routine, index) => (
                     <Column key={routine.id} spacing={0}>
-                      {index > 0 && <Column style={styles.separator} />}
+                      {index > 0 && <Separator />}
                       <RoutineRow
                         routine={routine}
                         reminder={reminders.find((item) => item.routineId === routine.id)}
@@ -207,30 +206,25 @@ export default function DailyOverview() {
 
 function createStyles(colors: ReturnType<typeof usePalette>) {
   return StyleSheet.create({
-    date: { paddingTop: 16, paddingBottom: 12, width: fillParent },
+    date: { paddingTop: 16, paddingBottom: 12, width: fullWidth },
     centered: { textAlign: "center" },
-    fullWidthButton: { width: fillParent },
+    fullWidthButton: { width: fullWidth },
     group: {
       backgroundColor: colors.grouped,
       borderRadius: 28,
       padding: 16,
-      width: fillParent,
+      width: fullWidth,
     },
     needed: {
       backgroundColor: colors.upcoming,
       padding: 16,
       borderRadius: 28,
     },
-    separator: {
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: colors.separator,
-      width: fillParent,
-    },
     error: {
       backgroundColor: colors.grouped,
       borderRadius: 20,
       padding: 16,
-      width: fillParent,
+      width: fullWidth,
     },
   });
 }

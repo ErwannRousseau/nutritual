@@ -4,7 +4,7 @@ import type { PropsWithChildren, ReactNode } from "react";
 import { useHeaderHeight } from "expo-router/react-navigation";
 import { KeyboardAvoidingView, Platform, StyleSheet, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { fillParent } from "@/shared/ui/layout";
+import { fullWidth } from "@/shared/ui/layout";
 import { usePalette } from "@/shared/ui/palette";
 
 interface Props extends PropsWithChildren {
@@ -63,10 +63,10 @@ function createStyles(colors: ReturnType<typeof usePalette>, backgroundColor: st
   return StyleSheet.create({
     root: { backgroundColor, flex: 1 },
     keyboard: { flex: 1 },
-    main: { backgroundColor, flex: 1, paddingHorizontal: 20, width: fillParent },
-    host: { backgroundColor, flex: 1, width: fillParent },
-    scroll: { width: fillParent, height: fillParent },
-    content: { paddingBottom: 24, paddingTop: 20, width: fillParent },
+    main: { backgroundColor, flex: 1, paddingHorizontal: 20, width: fullWidth },
+    host: { backgroundColor, flex: 1, width: fullWidth },
+    scroll: { width: fullWidth, height: fullWidth },
+    content: { paddingBottom: 24, paddingTop: 20, width: fullWidth },
     footer: {
       backgroundColor: colors.surface,
       borderTopColor: colors.separator,
@@ -77,8 +77,8 @@ function createStyles(colors: ReturnType<typeof usePalette>, backgroundColor: st
     footerHost: {
       alignSelf: "stretch",
       backgroundColor: colors.surface,
-      width: fillParent,
+      width: fullWidth,
     },
-    footerContent: { width: fillParent, paddingBottom: 12 },
+    footerContent: { width: fullWidth, paddingBottom: 12 },
   });
 }

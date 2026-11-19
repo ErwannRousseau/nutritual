@@ -5,7 +5,7 @@ import { StyleSheet } from "react-native";
 import ActionButton from "@/shared/ui/ActionButton";
 import AppSymbol from "@/shared/ui/AppSymbol";
 import Text from "@/shared/ui/Text";
-import { centerAvailableWidth, fillParent } from "@/shared/ui/layout";
+import { centerAvailableWidth, fullWidth } from "@/shared/ui/layout";
 import ProductBadge from "@/shared/ui/ProductBadge";
 import Screen from "@/shared/ui/Screen";
 import SheetHeader from "@/shared/ui/SheetHeader";
@@ -124,7 +124,7 @@ export default function IntakeDetailScreen() {
 
 function createStyles(colors: ReturnType<typeof usePalette>) {
   return StyleSheet.create({
-    fullWidth: { width: fillParent },
+    fullWidth: { width: fullWidth },
     check: {
       backgroundColor: colors.upcoming,
       borderRadius: 48,
@@ -137,7 +137,7 @@ function createStyles(colors: ReturnType<typeof usePalette>) {
       borderRadius: 22,
       borderWidth: StyleSheet.hairlineWidth,
       padding: 20,
-      width: fillParent,
+      width: fullWidth,
     },
     centeredText: { textAlign: "center" },
   });
