@@ -15,7 +15,7 @@ export function registerMcpRoutes(
   app: Hono<McpAuthVariables>,
   relay: RoutineRelay,
   operations: PairingOperations,
-): void {
+) {
   app.use(honoMcp(mcpAuth, { path: "/mcp" }));
   app.all("/mcp", async (c) => {
     const userId = c.get("auth").sub;
@@ -25,7 +25,6 @@ export function registerMcpRoutes(
 
     const server = new McpServer({ name: "nutritual", version: "1.0.0" });
 
-    // Tools
     registerCreateIntakeRoutineTool(server, relay, userId);
     registerListIntakeRoutinesTool(server, relay, userId);
     registerEditIntakeRoutineTool(server, relay, userId);

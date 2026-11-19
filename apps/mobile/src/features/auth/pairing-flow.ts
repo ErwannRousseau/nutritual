@@ -19,27 +19,23 @@ export type PairingFlowServices = {
   navigateToSettings: () => void;
 };
 
-export function pairingDecisionCode(
-  input: string,
-  valid: boolean,
-  inspectedCode: string | null,
-): string | null {
+export function pairingDecisionCode(input: string, valid: boolean, inspectedCode: string | null) {
   const code = normalizePairCode(input);
 
   return code && valid && code === inspectedCode ? code : null;
 }
 
-export async function inspectPairingCode(
-  code: string,
-  services: PairingFlowServices,
-): Promise<{ details: PairingOAuthRequestDetails | null; notice: PairingNotice }> {
+export async function inspectPairingCode(code: string, services: PairingFlowServices) {
   try {
     const details = await services.inspect(code);
     await services.storePendingCode(code);
 
     return {
       details,
-      notice: { tone: "success", text: "Code accepted. Review the permissions below." },
+      notice: {
+        tone: "success",
+        text: "Code accepted. Review the permissions below.",
+      } satisfies PairingNotice,
     };
   } catch {
     return {
@@ -47,16 +43,12 @@ export async function inspectPairingCode(
       notice: {
         tone: "error",
         text: "The code is invalid, expired, or linked to another account. Check the account and try again.",
-      },
+      } satisfies PairingNotice,
     };
   }
 }
 
-export async function decidePairing(
-  code: string,
-  approve: boolean,
-  services: PairingFlowServices,
-): Promise<PairingNotice> {
+export async function decidePairing(code: string, approve: boolean, services: PairingFlowServices) {
   try {
     if (approve) {
       const device = await services.getDeviceCredentials();
@@ -68,10 +60,14 @@ export async function decidePairing(
     await services.deletePendingCode();
     services.schedule(() => services.navigateToSettings(), 700);
   } catch {
-    return { tone: "error", text: "Unable to process this pairing. Check the code and try again." };
+    return {
+      tone: "error",
+      text: "Unable to process this pairing. Check the code and try again.",
+    } satisfies PairingNotice;
   }
 
-  if (approve) return { tone: "success", text: "The app is paired with this phone." };
+  if (approve)
+    return { tone: "success", text: "The app is paired with this phone." } satisfies PairingNotice;
 
-  return { tone: "info", text: "Request declined." };
+  return { tone: "info", text: "Request declined." } satisfies PairingNotice;
 }

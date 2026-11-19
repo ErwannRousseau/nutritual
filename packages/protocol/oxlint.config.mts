@@ -1,11 +1,12 @@
 import { defineConfig } from "oxlint";
-import { antiSlopPlugin, antiSlopRules } from "@nutritual/oxlint-config";
+import { antiSlopPlugin, antiSlopRules, landminesConfig } from "@nutritual/oxlint-config";
 
 export default defineConfig({
+  extends: [landminesConfig],
   jsPlugins: [antiSlopPlugin],
   rules: {
     ...antiSlopRules,
-    // Runtime shape guards are the protocol's external-data parsing boundary.
+    // INFO: Protocol guards parse untrusted external data at runtime.
     "anti-slop/no-runtime-typeof": "off",
     "anti-slop/no-unsafe-dictionary-type": "off",
   },

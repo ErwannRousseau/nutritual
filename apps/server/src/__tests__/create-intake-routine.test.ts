@@ -12,7 +12,7 @@ const operationId = "c6d611b7-b4a7-427a-bce1-50c3a2815d88";
 async function withTool(
   createRoutine: RoutineRelay["createRoutine"],
   run: (client: Client) => Promise<void>,
-): Promise<void> {
+) {
   const server = new McpServer({ name: "test", version: "1.0.0" });
   const client = new Client({ name: "test-client", version: "1.0.0" });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();

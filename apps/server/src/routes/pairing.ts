@@ -27,14 +27,14 @@ const challengeStatusSchema = z.object({
   oauthQuery: z.string().min(1).max(8192),
 });
 
-function randomCode(): string {
+function randomCode() {
   const random = crypto.getRandomValues(new Uint8Array(8));
   const chars = [...random].map((value) => codeAlphabet[value % codeAlphabet.length]);
 
   return `${chars.slice(0, 4).join("")}-${chars.slice(4).join("")}`;
 }
 
-function remoteIp(c: Context): string {
+function remoteIp(c: Context) {
   const forwarded = c.req
     .header("x-forwarded-for")
     ?.split(",")
@@ -50,7 +50,7 @@ export function registerPairingRoutes(
   app: Hono<McpAuthVariables>,
   operations: PairingOperations,
   dependencies = defaultDependencies,
-): void {
+) {
   const { publicBaseUrl, verifyBrowserSession } = dependencies;
   app.post("/pairing/challenges", async (c) => {
     if (!(await operations.allowAttempt("challenge-create", remoteIp(c))))

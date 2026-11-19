@@ -1,4 +1,6 @@
 import { expect, mock, test } from "bun:test";
+import { http } from "msw";
+import { setupServer } from "msw/node";
 
 const tokenKey = "nutritual.oauth.tokens";
 const secureValues = new Map<string, string>();
@@ -35,19 +37,15 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
-function installFetch(implementation: (input: RequestInfo | URL) => Promise<Response>) {
-  const previous = Object.getOwnPropertyDescriptor(globalThis, "fetch");
+function installAuthServer(implementation: (input: string) => Promise<Response>) {
+  const server = setupServer(
+    http.get("*/.well-known/openid-configuration", ({ request }) => implementation(request.url)),
+    http.post("https://auth.example.test/token", ({ request }) => implementation(request.url)),
+  );
 
-  Object.defineProperty(globalThis, "fetch", {
-    configurable: true,
-    writable: true,
-    value: implementation,
-  });
+  server.listen({ onUnhandledRequest: "error" });
 
-  return () => {
-    if (previous) Object.defineProperty(globalThis, "fetch", previous);
-    else Reflect.deleteProperty(globalThis, "fetch");
-  };
+  return () => server.close();
 }
 
 const expiredSession = (refreshToken: string) => ({
@@ -93,7 +91,7 @@ test("a refresh response arriving after logout cannot restore the session", asyn
   const tokenResponse = deferred<Response>();
   const tokenRequestStarted = deferred<void>();
 
-  const restoreFetch = installFetch(async (input) => {
+  const closeServer = installAuthServer(async (input) => {
     if (String(input).includes(".well-known")) {
       return Response.json({ token_endpoint: "https://auth.example.test/token" });
     }
@@ -102,14 +100,6 @@ test("a refresh response arriving after logout cannot restore the session", asyn
 
     return tokenResponse.promise;
   });
-
-  const previousIssuer = process.env.EXPO_PUBLIC_NEON_AUTH_BASE_URL;
-  const previousServer = process.env.EXPO_PUBLIC_SERVER_URL;
-  const previousClient = process.env.EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID;
-
-  process.env.EXPO_PUBLIC_NEON_AUTH_BASE_URL = "https://auth.example.test";
-  process.env.EXPO_PUBLIC_SERVER_URL = "https://api.example.test";
-  process.env.EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID = "mobile-client";
 
   try {
     const refreshPromise = session.getUsableTokens();
@@ -127,16 +117,7 @@ test("a refresh response arriving after logout cannot restore the session", asyn
     expect(await session.readTokens()).toBeNull();
     expect(secureValues.has(tokenKey)).toBe(false);
   } finally {
-    restoreFetch();
-
-    if (previousIssuer === undefined) delete process.env.EXPO_PUBLIC_NEON_AUTH_BASE_URL;
-    else process.env.EXPO_PUBLIC_NEON_AUTH_BASE_URL = previousIssuer;
-
-    if (previousServer === undefined) delete process.env.EXPO_PUBLIC_SERVER_URL;
-    else process.env.EXPO_PUBLIC_SERVER_URL = previousServer;
-
-    if (previousClient === undefined) delete process.env.EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID;
-    else process.env.EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID = previousClient;
+    closeServer();
   }
 });
 
@@ -146,7 +127,7 @@ test("a retryable refresh failure preserves the credential for the next attempt"
   await session.saveTokens(original);
   let tokenRequests = 0;
 
-  const restoreFetch = installFetch(async (input) => {
+  const closeServer = installAuthServer(async (input) => {
     if (String(input).includes(".well-known")) {
       return Response.json({ token_endpoint: "https://auth.example.test/token" });
     }
@@ -163,14 +144,6 @@ test("a retryable refresh failure preserves the credential for the next attempt"
     });
   });
 
-  const previousIssuer = process.env.EXPO_PUBLIC_NEON_AUTH_BASE_URL;
-  const previousServer = process.env.EXPO_PUBLIC_SERVER_URL;
-  const previousClient = process.env.EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID;
-
-  process.env.EXPO_PUBLIC_NEON_AUTH_BASE_URL = "https://auth.example.test";
-  process.env.EXPO_PUBLIC_SERVER_URL = "https://api.example.test";
-  process.env.EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID = "mobile-client";
-
   try {
     expect(await session.getUsableTokens()).toBeNull();
     expect(await session.readTokens()).toEqual(original);
@@ -182,16 +155,7 @@ test("a retryable refresh failure preserves the credential for the next attempt"
     expect(recovered?.refreshToken).toBe("recovered-refresh");
     expect(tokenRequests).toBe(2);
   } finally {
-    restoreFetch();
-
-    if (previousIssuer === undefined) delete process.env.EXPO_PUBLIC_NEON_AUTH_BASE_URL;
-    else process.env.EXPO_PUBLIC_NEON_AUTH_BASE_URL = previousIssuer;
-
-    if (previousServer === undefined) delete process.env.EXPO_PUBLIC_SERVER_URL;
-    else process.env.EXPO_PUBLIC_SERVER_URL = previousServer;
-
-    if (previousClient === undefined) delete process.env.EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID;
-    else process.env.EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID = previousClient;
+    closeServer();
   }
 });
 
@@ -201,7 +165,7 @@ test("a refresh response cannot overwrite or return after a new account signs in
   const tokenResponse = deferred<Response>();
   const tokenRequestStarted = deferred<void>();
 
-  const restoreFetch = installFetch(async (input) => {
+  const closeServer = installAuthServer(async (input) => {
     if (String(input).includes(".well-known")) {
       return Response.json({ token_endpoint: "https://auth.example.test/token" });
     }
@@ -210,14 +174,6 @@ test("a refresh response cannot overwrite or return after a new account signs in
 
     return tokenResponse.promise;
   });
-
-  const previousIssuer = process.env.EXPO_PUBLIC_NEON_AUTH_BASE_URL;
-  const previousServer = process.env.EXPO_PUBLIC_SERVER_URL;
-  const previousClient = process.env.EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID;
-
-  process.env.EXPO_PUBLIC_NEON_AUTH_BASE_URL = "https://auth.example.test";
-  process.env.EXPO_PUBLIC_SERVER_URL = "https://api.example.test";
-  process.env.EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID = "mobile-client";
 
   try {
     const refreshPromise = session.getUsableTokens();
@@ -237,16 +193,7 @@ test("a refresh response cannot overwrite or return after a new account signs in
     expect(await session.readTokens()).toEqual(accountB);
     expect(JSON.parse(secureValues.get(tokenKey) ?? "null")).toEqual(accountB);
   } finally {
-    restoreFetch();
-
-    if (previousIssuer === undefined) delete process.env.EXPO_PUBLIC_NEON_AUTH_BASE_URL;
-    else process.env.EXPO_PUBLIC_NEON_AUTH_BASE_URL = previousIssuer;
-
-    if (previousServer === undefined) delete process.env.EXPO_PUBLIC_SERVER_URL;
-    else process.env.EXPO_PUBLIC_SERVER_URL = previousServer;
-
-    if (previousClient === undefined) delete process.env.EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID;
-    else process.env.EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID = previousClient;
+    closeServer();
   }
 });
 
@@ -262,7 +209,7 @@ test("a rotated refresh token without an expiry field receives a fresh 30-day li
 
   await session.saveTokens(old);
 
-  const restoreFetch = installFetch(async (input) =>
+  const closeServer = installAuthServer(async (input) =>
     String(input).includes(".well-known")
       ? Response.json({ token_endpoint: "https://auth.example.test/token" })
       : Response.json({
@@ -272,14 +219,6 @@ test("a rotated refresh token without an expiry field receives a fresh 30-day li
         }),
   );
 
-  const previousIssuer = process.env.EXPO_PUBLIC_NEON_AUTH_BASE_URL;
-  const previousServer = process.env.EXPO_PUBLIC_SERVER_URL;
-  const previousClient = process.env.EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID;
-
-  process.env.EXPO_PUBLIC_NEON_AUTH_BASE_URL = "https://auth.example.test";
-  process.env.EXPO_PUBLIC_SERVER_URL = "https://api.example.test";
-  process.env.EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID = "mobile-client";
-
   try {
     const refreshed = await session.getUsableTokens();
 
@@ -288,15 +227,6 @@ test("a rotated refresh token without an expiry field receives a fresh 30-day li
     expect(tokenUpdates.at(-1)).toEqual(refreshed);
   } finally {
     unsubscribe();
-    restoreFetch();
-
-    if (previousIssuer === undefined) delete process.env.EXPO_PUBLIC_NEON_AUTH_BASE_URL;
-    else process.env.EXPO_PUBLIC_NEON_AUTH_BASE_URL = previousIssuer;
-
-    if (previousServer === undefined) delete process.env.EXPO_PUBLIC_SERVER_URL;
-    else process.env.EXPO_PUBLIC_SERVER_URL = previousServer;
-
-    if (previousClient === undefined) delete process.env.EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID;
-    else process.env.EXPO_PUBLIC_MOBILE_OAUTH_CLIENT_ID = previousClient;
+    closeServer();
   }
 });

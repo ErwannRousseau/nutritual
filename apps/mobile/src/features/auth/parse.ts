@@ -8,7 +8,7 @@ export function isJsonObject(value: JsonValue): value is JsonObject {
   return value instanceof Object && !Array.isArray(value);
 }
 
-export function normalizePairCode(value: string | null | undefined): string | null {
+export function normalizePairCode(value: string | null | undefined) {
   const code = value?.trim().toUpperCase();
 
   return code && code.length <= 32 && /^[A-Z0-9-]+$/.test(code) ? code : null;

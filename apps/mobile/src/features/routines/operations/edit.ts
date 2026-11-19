@@ -25,20 +25,20 @@ export type EditRoutineOperationResult =
     }
   | { status: typeof EditRoutineStatus.conflict };
 
-function editRoutineRequestJson(request: EditRoutineRequest): string {
+function editRoutineRequestJson(request: EditRoutineRequest) {
   return JSON.stringify({
     expected: request.expected,
     changes: request.changes,
   });
 }
 
-function isPausedOnlyEdit(request: EditRoutineRequest): boolean {
+function isPausedOnlyEdit(request: EditRoutineRequest) {
   return (
     Object.keys(request.changes).length === 1 && request.changes.paused === request.expected.paused
   );
 }
 
-function sameRoutine(current: Routine, expected: ListedRoutine): boolean {
+function sameRoutine(current: Routine, expected: ListedRoutine) {
   return (
     current.id === expected.id &&
     current.productName === expected.productName &&
@@ -51,12 +51,10 @@ function sameRoutine(current: Routine, expected: ListedRoutine): boolean {
   );
 }
 
-export async function editRoutineOperation(
-  request: EditRoutineRequest,
-): Promise<EditRoutineOperationResult> {
+export async function editRoutineOperation(request: EditRoutineRequest) {
   const database = await getDatabase();
   const requestJson = editRoutineRequestJson(request);
-  let result: EditRoutineOperationResult = { status: EditRoutineStatus.conflict };
+  let result: EditRoutineOperationResult | undefined;
 
   await database.withExclusiveTransactionAsync(async (transaction) => {
     const existing = await transaction.getFirstAsync<RoutineOperationRow>(
@@ -134,5 +132,5 @@ export async function editRoutineOperation(
     result = { status: EditRoutineStatus.updated, routine };
   });
 
-  return result;
+  return result ?? { status: EditRoutineStatus.conflict };
 }

@@ -40,7 +40,7 @@ function fixture(options: { device?: Device; failApproval?: boolean } = {}) {
           : { rows: [], rowCount: 0 };
 
       if (sql.includes("INSERT INTO app_paired_devices")) {
-        // SAFETY: This SQL branch binds five string parameters in the declared order.
+        // SAFETY: The insert binds values in this declared field order.
         const [userSub, deviceId, secretHash, pairingId, clientId] = values as string[];
 
         if (devices.has(userSub)) return { rows: [], rowCount: 0 };
@@ -62,7 +62,7 @@ function fixture(options: { device?: Device; failApproval?: boolean } = {}) {
           "SELECT device_id, device_secret_hash, pairing_id, client_id FROM app_paired_devices",
         )
       ) {
-        // SAFETY: The SELECT branch binds the user subject as its first parameter.
+        // SAFETY: Both lookup queries bind user_sub as their first value.
         const device = devices.get(values[0] as string);
 
         return device ? { rows: [device], rowCount: 1 } : { rows: [], rowCount: 0 };
@@ -111,7 +111,7 @@ function fixture(options: { device?: Device; failApproval?: boolean } = {}) {
       }
 
       if (sql.includes("DELETE FROM app_paired_devices")) {
-        // SAFETY: This DELETE branch binds the owner, device ID, and stored hash in order.
+        // SAFETY: This delete binds the owner, device ID, and secret hash in order.
         const [userSub, deviceId, secretHash] = values as string[];
         const device = devices.get(userSub);
 
@@ -123,14 +123,14 @@ function fixture(options: { device?: Device; failApproval?: boolean } = {}) {
       }
 
       if (sql.includes("DELETE FROM app_device_tickets")) {
-        // SAFETY: This DELETE branch binds the user subject before the pairing ID.
+        // SAFETY: This delete binds its pairing ID as the second value.
         deletedTicketsPairingId = values[1] as string;
 
         return { rows: [], rowCount: 0 };
       }
 
       if (sql.includes("SELECT client_id FROM app_paired_devices")) {
-        // SAFETY: This SELECT branch binds the user subject as its first parameter.
+        // SAFETY: Both lookup queries bind user_sub as their first value.
         const device = devices.get(values[0] as string);
 
         return device

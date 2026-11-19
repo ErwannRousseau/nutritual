@@ -9,15 +9,13 @@ export async function pauseRoutine(
   busy: boolean,
   pause: (id: string) => Promise<boolean>,
   setFeedback: FeedbackSetter,
-): Promise<boolean> {
+) {
   if (busy) return false;
   setFeedback(null);
 
   try {
     if (await pause(id)) return true;
-  } catch {
-    // Keep the screen's existing failure message for provider errors.
-  }
+  } catch {}
 
   setFeedback("Unable to update the routine. Try again.");
 
@@ -29,15 +27,13 @@ export async function removeRoutine(
   busy: boolean,
   remove: (id: string) => Promise<boolean>,
   setFeedback: FeedbackSetter,
-): Promise<boolean> {
+) {
   if (busy) return false;
   setFeedback(null);
 
   try {
     if (await remove(id)) return true;
-  } catch {
-    // Keep the screen's existing failure message for provider errors.
-  }
+  } catch {}
 
   setFeedback("Unable to delete the routine. Try again.");
 
@@ -53,7 +49,7 @@ export async function saveRoutineDraft(
   finish: () => void,
   setSaving: BooleanSetter,
   setSaveError: FeedbackSetter,
-): Promise<void> {
+) {
   if (!draft || busy) return;
 
   const validation = validateRoutine(draft);

@@ -1,7 +1,27 @@
+import recommended from "@interfere/landmines/configs/recommended.json" with { type: "json" };
+import type { DummyRuleMap, ExternalPluginEntry, OxlintConfig } from "oxlint";
+
 export const antiSlopPlugin = {
   name: "anti-slop",
   specifier: "@nutritual/oxlint-config/anti-slop",
-};
+} satisfies ExternalPluginEntry;
+
+export const landminesConfig = {
+  jsPlugins: recommended.jsPlugins.map((plugin) => ({
+    ...plugin,
+    specifier: import.meta.resolve(plugin.specifier),
+  })),
+  rules: {
+    ...(recommended.rules as DummyRuleMap),
+    "landmines-style/no-comments": ["error", { allow: ["WARNING", "SAFETY", "INFO", "DOCS"] }],
+  },
+  overrides: [
+    {
+      files: ["**/__tests__/**"],
+      rules: { "landmines-structure/test-file-names": "off" },
+    },
+  ],
+} satisfies OxlintConfig;
 
 export const antiSlopRules = {
   "oxc/no-accumulating-spread": "error",
@@ -23,4 +43,4 @@ export const antiSlopRules = {
   "anti-slop/no-widen-then-assert": "error",
   "anti-slop/require-readable-spacing": "error",
   "anti-slop/require-safety-comment-for-type-assertion": "error",
-} as const;
+} satisfies DummyRuleMap;

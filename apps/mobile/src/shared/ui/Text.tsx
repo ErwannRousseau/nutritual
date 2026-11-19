@@ -34,7 +34,7 @@ function createTextStyle(
   textStyle: UniversalTextStyle | undefined,
   defaultColor: string,
   fontScale: number,
-): UniversalTextStyle {
+) {
   const baseStyle = typography[variant === "largeTitle" && fontScale > 1.3 ? "title" : variant];
   const fontSize = textStyle?.fontSize ?? baseStyle.fontSize ?? 17;
 

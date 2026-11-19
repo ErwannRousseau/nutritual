@@ -17,7 +17,7 @@ export function createActionQueue(onBusyChange: (busy: boolean) => void) {
       finish();
       finishLoading();
     },
-    run<T>(action: () => Promise<T>): Promise<T> {
+    run<T>(action: () => Promise<T>) {
       pending += 1;
       onBusyChange(true);
       const result = tail.then(action);

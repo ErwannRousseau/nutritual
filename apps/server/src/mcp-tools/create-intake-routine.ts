@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { RoutineRelay } from "../routine-relay.ts";
 import { prompt } from "./prompt.ts";
 
-export function isRoutineToolError(status: string): boolean {
+export function isRoutineToolError(status: string) {
   return status !== CreateRoutineStatus.created && status !== CreateRoutineStatus.alreadyProcessed;
 }
 
@@ -64,7 +64,7 @@ export function registerCreateIntakeRoutineTool(
   server: McpServer,
   relay: RoutineRelay,
   userId: string,
-): void {
+) {
   server.registerTool(
     "create_intake_routine",
     {

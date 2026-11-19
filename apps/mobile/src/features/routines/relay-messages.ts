@@ -31,7 +31,7 @@ export function handleRelayMessage(
       | EditRoutineResultMessage
       | ListRoutinesResultMessage,
   ) => void,
-): void {
+) {
   let message: unknown;
 
   try {

@@ -7,7 +7,7 @@ export type RoutineOperationRow = {
   reminder_outcome: string | null;
 };
 
-export function parseReminderOutcome(value: string | null): ReminderOutcome {
+export function parseReminderOutcome(value: string | null) {
   if (value === null) return ReminderOutcomes.unconfirmed;
 
   if (!isReminderOutcome(value)) throw new Error("Unreadable routine operation.");
@@ -18,7 +18,7 @@ export function parseReminderOutcome(value: string | null): ReminderOutcome {
 export async function updateRoutineOperationReminder(
   operationId: string,
   reminder: ReminderOutcome,
-): Promise<void> {
+) {
   const database = await getDatabase();
   await database.runAsync(
     "UPDATE routine_operations SET reminder_outcome = ? WHERE operation_id = ?",

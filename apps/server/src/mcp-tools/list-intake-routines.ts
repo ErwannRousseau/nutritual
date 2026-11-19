@@ -7,7 +7,7 @@ export function registerListIntakeRoutinesTool(
   server: McpServer,
   relay: RoutineRelay,
   userId: string,
-): void {
+) {
   server.registerTool(
     "list_intake_routines",
     {

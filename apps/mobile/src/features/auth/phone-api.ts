@@ -15,7 +15,7 @@ export async function phoneRequest<T extends JsonValue>(
   path: string,
   body: PhoneRequestBody | undefined,
   responseGuard: (value: JsonValue) => value is T,
-): Promise<T> {
+) {
   const tokens = await getUsableTokens();
 
   if (!tokens) throw new Error("Sign in again to continue.");

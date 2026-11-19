@@ -9,7 +9,7 @@ const deviceCredentialsSchema = z.object({
   deviceSecret: z.uuidv4(),
 });
 
-export async function getDeviceCredentials(): Promise<{ deviceId: string; deviceSecret: string }> {
+export async function getDeviceCredentials() {
   const existing = await SecureStore.getItemAsync(DEVICE_KEY);
 
   if (existing) {

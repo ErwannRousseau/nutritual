@@ -24,10 +24,10 @@ export function editRoutineFromRelayHandler({
   onError,
   onReminder,
   serialize,
-}: RelayCallbacks): (request: EditRoutineRequest) => Promise<EditRoutineResult> {
+}: RelayCallbacks) {
   const operations = new Map<string, { request: string; promise: Promise<EditRoutineResult> }>();
 
-  async function editOnce(request: EditRoutineRequest): Promise<EditRoutineResult> {
+  async function editOnce(request: EditRoutineRequest) {
     let committedRoutine: Routine | undefined;
 
     try {
@@ -106,7 +106,7 @@ export function editRoutineFromRelayHandler({
     }
   }
 
-  return (request) => {
+  return (request: EditRoutineRequest) => {
     const requestJson = JSON.stringify({ expected: request.expected, changes: request.changes });
     const existing = operations.get(request.operationId);
 

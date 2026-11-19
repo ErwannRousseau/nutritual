@@ -9,7 +9,7 @@ import { getDatabase } from "../database";
 import { routineValues, saveRoutineDetails } from "../storage";
 import { parseReminderOutcome, type RoutineOperationRow } from "./shared";
 
-export function createRoutineRequestJson(request: CreateRoutineRequest): string {
+export function createRoutineRequestJson(request: CreateRoutineRequest) {
   const { frequency } = request;
   let frequencyJson: CreateRoutineRequest["frequency"];
 
@@ -47,13 +47,10 @@ export type RoutineOperationResult =
     }
   | { status: typeof CreateRoutineStatus.conflict };
 
-export async function createRoutineOperation(
-  request: CreateRoutineRequest,
-  routine: Routine,
-): Promise<RoutineOperationResult> {
+export async function createRoutineOperation(request: CreateRoutineRequest, routine: Routine) {
   const database = await getDatabase();
   const requestJson = createRoutineRequestJson(request);
-  let result: RoutineOperationResult = { status: CreateRoutineStatus.conflict };
+  let result: RoutineOperationResult | undefined;
 
   await database.withExclusiveTransactionAsync(async (transaction) => {
     const existing = await transaction.getFirstAsync<RoutineOperationRow>(
@@ -87,5 +84,5 @@ export async function createRoutineOperation(
     result = { status: CreateRoutineStatus.created, routine };
   });
 
-  return result;
+  return result ?? { status: CreateRoutineStatus.conflict };
 }

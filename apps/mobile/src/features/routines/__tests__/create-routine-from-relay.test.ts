@@ -54,7 +54,7 @@ let notificationPermission: "granted" | "denied" = "granted";
 let failNextSchedule = false;
 let failNextCancel = false;
 
-function bindings(parameters: TestBinding[]): SQLQueryBindings[] {
+function bindings(parameters: TestBinding[]) {
   const values: SQLQueryBindings[] = [];
 
   for (const parameter of parameters) {
@@ -69,12 +69,12 @@ const sqlite: TestSqlite = {
   async execAsync(sql) {
     database.exec(sql);
   },
-  async getFirstAsync<T>(sql: string, ...parameters: TestBinding[]): Promise<T | null> {
-    // SAFETY: The storage caller's row type matches this SELECT's columns.
+  async getFirstAsync<T>(sql: string, ...parameters: TestBinding[]) {
+    // SAFETY: The caller's row type must match the selected columns.
     return database.query(sql).get(...bindings(parameters)) as T | null;
   },
-  async getAllAsync<T>(sql: string, ...parameters: TestBinding[]): Promise<T[]> {
-    // SAFETY: The storage caller's row type matches this SELECT's columns.
+  async getAllAsync<T>(sql: string, ...parameters: TestBinding[]) {
+    // SAFETY: The caller's row type must match the selected columns.
     return database.query(sql).all(...bindings(parameters)) as T[];
   },
   async runAsync(sql, ...parameters) {
@@ -371,7 +371,6 @@ test("relay creation deduplicates on SQLite and serializes reminder restoration"
   const duplicatePromise = handler(request);
   const routines = (await storage.loadData()).routines;
   const restoration = restoreReminders(routines);
-  await new Promise<void>((resolve) => setTimeout(resolve, 0));
   scheduleGate.release();
 
   const [created, duplicate] = await Promise.all([createdPromise, duplicatePromise]);
@@ -652,51 +651,67 @@ test("device relay reconnects after the server closes its socket", async () => {
   mock.module("@/features/auth/phone-responses", () => ({
     phoneResponses: { ticket: () => true },
   }));
+  const sockets: Bun.ServerWebSocket<undefined>[] = [];
+  const messages: string[] = [];
+  let firstOpen!: () => void;
+  let secondOpen!: () => void;
+  let firstMessage!: () => void;
+  let allMessages!: () => void;
+
+  const opened = new Promise<void>((resolve) => {
+    firstOpen = resolve;
+  });
+
+  const reconnected = new Promise<void>((resolve) => {
+    secondOpen = resolve;
+  });
+
+  const receivedFirst = new Promise<void>((resolve) => {
+    firstMessage = resolve;
+  });
+
+  const receivedAll = new Promise<void>((resolve) => {
+    allMessages = resolve;
+  });
+
+  const tickets: string[] = [];
+
+  const server = Bun.serve<undefined>({
+    hostname: "127.0.0.1",
+    port: 0,
+    fetch(request, server) {
+      tickets.push(new URL(request.url).searchParams.get("ticket") ?? "");
+
+      if (server.upgrade(request)) return;
+
+      return new Response(null, { status: 400 });
+    },
+    websocket: {
+      open(socket) {
+        sockets.push(socket);
+
+        if (sockets.length === 1) firstOpen();
+
+        if (sockets.length === 2) secondOpen();
+      },
+      message(_socket, message) {
+        messages.push(String(message));
+
+        if (messages.length === 1) firstMessage();
+
+        if (messages.length === 5) allMessages();
+      },
+    },
+  });
+
   mock.module("@/features/auth/relay-url", () => ({
-    deviceWebSocketUrl: (serverUrl: string, ticket: string) =>
-      `${serverUrl}/device?ticket=${ticket}`,
+    deviceWebSocketUrl: (_serverUrl: string, ticket: string) =>
+      `ws://127.0.0.1:${server.port}/device?ticket=${ticket}`,
   }));
   const { connectToDeviceRelay } = await import("../relay");
-  const { EXPO_PUBLIC_SERVER_URL } = await import("@/env");
-
-  class FakeWebSocket {
-    static OPEN = 1;
-    static instances: FakeWebSocket[] = [];
-    sent: string[] = [];
-
-    readyState = FakeWebSocket.OPEN;
-    onopen: (() => void) | null = null;
-    onmessage: ((event: { data: string }) => void) | null = null;
-    onclose: (() => void) | null = null;
-    onerror: (() => void) | null = null;
-    url: string;
-
-    constructor(url: string) {
-      this.url = url;
-      FakeWebSocket.instances.push(this);
-    }
-
-    send(message: string) {
-      this.sent.push(message);
-    }
-
-    close() {
-      this.readyState = 3;
-    }
-
-    drop() {
-      this.readyState = 3;
-      this.onclose?.();
-    }
-  }
-
-  const previousWebSocket = Object.getOwnPropertyDescriptor(globalThis, "WebSocket");
-  Object.defineProperty(globalThis, "WebSocket", { configurable: true, value: FakeWebSocket });
   let disconnect: (() => void) | undefined;
 
   try {
-    FakeWebSocket.instances = [];
-
     disconnect = connectToDeviceRelay(
       async (request) => ({
         status: CreateRoutineStatus.failed,
@@ -719,17 +734,14 @@ test("device relay reconnects after the server closes its socket", async () => {
       }),
     );
 
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
-    const [firstSocket] = FakeWebSocket.instances;
+    await opened;
+    const [firstSocket] = sockets;
 
     if (!firstSocket) throw new Error("Initial socket was not opened.");
 
-    firstSocket.onopen?.();
-    firstSocket.onmessage?.({
-      data: JSON.stringify({ type: "list_routines", requestId: "list-request" }),
-    });
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
-    expect(firstSocket.sent).toEqual([
+    firstSocket.send(JSON.stringify({ type: "list_routines", requestId: "list-request" }));
+    await receivedFirst;
+    expect(messages).toEqual([
       JSON.stringify({
         type: "list_routines_result",
         requestId: "list-request",
@@ -739,10 +751,10 @@ test("device relay reconnects after the server closes its socket", async () => {
         },
       }),
     ]);
-    firstSocket.onmessage?.({ data: "not json" });
-    firstSocket.onmessage?.({ data: JSON.stringify({ type: "create_routine", requestId: "bad" }) });
-    firstSocket.onmessage?.({
-      data: JSON.stringify({
+    firstSocket.send("not json");
+    firstSocket.send(JSON.stringify({ type: "create_routine", requestId: "bad" }));
+    firstSocket.send(
+      JSON.stringify({
         type: "create_routine",
         requestId: "invalid-create",
         command: {
@@ -752,16 +764,16 @@ test("device relay reconnects after the server closes its socket", async () => {
           time: "",
         },
       }),
-    });
-    firstSocket.onmessage?.({
-      data: JSON.stringify({
+    );
+    firstSocket.send(
+      JSON.stringify({
         type: "delete_routine",
         requestId: "invalid-delete",
         command: { operationId: "invalid", expected: { id: "routine-id" } },
       }),
-    });
-    firstSocket.onmessage?.({
-      data: JSON.stringify({
+    );
+    firstSocket.send(
+      JSON.stringify({
         type: "create_routine",
         requestId: "create-request",
         command: {
@@ -771,9 +783,9 @@ test("device relay reconnects after the server closes its socket", async () => {
           time: "",
         },
       }),
-    });
-    firstSocket.onmessage?.({
-      data: JSON.stringify({
+    );
+    firstSocket.send(
+      JSON.stringify({
         type: "edit_routine",
         requestId: "error-request",
         command: {
@@ -788,9 +800,9 @@ test("device relay reconnects after the server closes its socket", async () => {
           changes: { productName: "Zinc" },
         },
       }),
-    });
-    firstSocket.onmessage?.({
-      data: JSON.stringify({
+    );
+    firstSocket.send(
+      JSON.stringify({
         type: "delete_routine",
         requestId: "delete-request",
         command: {
@@ -804,9 +816,9 @@ test("device relay reconnects after the server closes its socket", async () => {
           },
         },
       }),
-    });
-    firstSocket.onmessage?.({
-      data: JSON.stringify({
+    );
+    firstSocket.send(
+      JSON.stringify({
         type: "edit_routine",
         requestId: "edit-request",
         command: {
@@ -821,10 +833,10 @@ test("device relay reconnects after the server closes its socket", async () => {
           changes: { productName: "Zinc" },
         },
       }),
-    });
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    );
+    await receivedAll;
     expect(
-      firstSocket.sent
+      messages
         .slice(1)
         .map((value) => JSON.parse(value))
         .sort((a, b) => a.requestId.localeCompare(b.requestId)),
@@ -858,21 +870,15 @@ test("device relay reconnects after the server closes its socket", async () => {
         },
       },
     ]);
-    firstSocket.drop();
-    await new Promise<void>((resolve) => setTimeout(resolve, 1_100));
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    firstSocket.close();
+    await reconnected;
 
-    expect(FakeWebSocket.instances).toHaveLength(2);
+    expect(sockets).toHaveLength(2);
     expect(ticketRequests).toBe(2);
-    expect(FakeWebSocket.instances.map((socket) => socket.url)).toEqual([
-      `${EXPO_PUBLIC_SERVER_URL}/device?ticket=ticket-1`,
-      `${EXPO_PUBLIC_SERVER_URL}/device?ticket=ticket-2`,
-    ]);
+    expect(tickets).toEqual(["ticket-1", "ticket-2"]);
   } finally {
     disconnect?.();
-
-    if (previousWebSocket) Object.defineProperty(globalThis, "WebSocket", previousWebSocket);
-    else Reflect.deleteProperty(globalThis, "WebSocket");
+    server.stop(true);
   }
 });
 
@@ -1447,7 +1453,6 @@ test("creation and editing wait for each other through the shared action queue",
     changes: { productName: "After" },
   });
 
-  await new Promise<void>((resolve) => setTimeout(resolve, 0));
   expect((await storage.loadData()).routines.find(({ id }) => id === routine.id)).toEqual(routine);
   release();
   expect((await creation).status).toBe(CreateRoutineStatus.created);
@@ -1496,7 +1501,20 @@ test("listing reads current, distinct routines and reports storage failures", as
     quantity: second.quantity,
   };
 
-  expect(await listRoutinesFromRelay()).toEqual({ status: "ok", routines: [first, listedSecond] });
+  const listedFirst = {
+    id: first.id,
+    productName: first.productName,
+    frequency: first.frequency,
+    time: first.time,
+    paused: first.paused,
+    form: undefined,
+    quantity: undefined,
+  };
+
+  expect(await listRoutinesFromRelay()).toEqual({
+    status: "ok",
+    routines: [listedFirst, listedSecond],
+  });
   await storage.saveRoutine({ ...second, time: "09:30" });
   await storage.deleteRoutine(first.id);
   expect(await listRoutinesFromRelay()).toEqual({
@@ -1707,5 +1725,7 @@ test("relay creates, lists, edits and clears details with conflict-safe retries"
     frequency: input.frequency,
     time: "",
     paused: false,
+    form: undefined,
+    quantity: undefined,
   });
 });

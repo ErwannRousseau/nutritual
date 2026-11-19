@@ -45,7 +45,7 @@ export type RoutineDraft = RoutineInput & RoutineDetails;
 const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const maxIntervalDays = 36_500;
 
-function dayOrdinal(year: number, month: number, day: number): number {
+function dayOrdinal(year: number, month: number, day: number) {
   const date = new Date(0);
   date.setUTCHours(0, 0, 0, 0);
   date.setUTCFullYear(year, month, day);
@@ -53,7 +53,7 @@ function dayOrdinal(year: number, month: number, day: number): number {
   return date.getTime() / 86_400_000;
 }
 
-function localCalendarDate(year: number, month: number, day: number, hours = 0, minutes = 0): Date {
+function localCalendarDate(year: number, month: number, day: number, hours = 0, minutes = 0) {
   const date = new Date(0);
   date.setHours(hours, minutes, 0, 0);
   date.setFullYear(year, month, day);
@@ -61,14 +61,14 @@ function localCalendarDate(year: number, month: number, day: number, hours = 0, 
   return date;
 }
 
-function dateParts(value: string): [number, number, number] | null {
+function dateParts(value: string) {
   if (!isValidDateString(value)) return null;
   const [year, month, day] = value.split("-").map(Number);
 
   return [year, month - 1, day];
 }
 
-export function localDate(date: Date): string {
+export function localDate(date: Date) {
   const year = String(date.getFullYear()).padStart(4, "0");
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
@@ -76,7 +76,7 @@ export function localDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-export function validateRoutine(draft: RoutineDraft): string | null {
+export function validateRoutine(draft: RoutineDraft) {
   const inputError = validateRoutineInput(draft);
 
   if (inputError) return inputError;
@@ -84,7 +84,7 @@ export function validateRoutine(draft: RoutineDraft): string | null {
   return null;
 }
 
-export function isDueOn(routine: Routine, date: Date): boolean {
+export function isDueOn(routine: Routine, date: Date) {
   if (routine.paused || Number.isNaN(date.getTime())) return false;
   const frequency = routine.frequency;
 
@@ -107,7 +107,7 @@ export function isDueOn(routine: Routine, date: Date): boolean {
   return ordinal >= startOrdinal && (ordinal - startOrdinal) % frequency.every === 0;
 }
 
-export function nextOccurrence(routine: Routine, after: Date): Date | null {
+export function nextOccurrence(routine: Routine, after: Date) {
   if (
     routine.paused ||
     Number.isNaN(after.getTime()) ||
@@ -146,7 +146,6 @@ export function nextOccurrence(routine: Routine, after: Date): Date | null {
     const remainder = (baseOrdinal - startOrdinal) % frequency.every;
     const firstOffset = (frequency.every - remainder) % frequency.every;
 
-    // Today can be past, followed by a date whose local time does not exist at the spring clock change.
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const dayOffset = baseOrdinal - afterOrdinal + firstOffset + attempt * frequency.every;
 
@@ -209,7 +208,7 @@ export function nextOccurrence(routine: Routine, after: Date): Date | null {
   return null;
 }
 
-export function describeFrequency(frequency: Frequency): string {
+export function describeFrequency(frequency: Frequency) {
   if (frequency.kind === FrequencyKind.asNeeded) return "As needed";
 
   if (frequency.kind === FrequencyKind.interval)

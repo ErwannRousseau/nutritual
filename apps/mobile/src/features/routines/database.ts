@@ -3,7 +3,7 @@ import { FrequencyKind, ReminderOutcomes } from "@nutritual/protocol";
 
 let databasePromise: Promise<SQLite.SQLiteDatabase> | undefined;
 
-export function getDatabase(): Promise<SQLite.SQLiteDatabase> {
+export function getDatabase() {
   databasePromise ??= SQLite.openDatabaseAsync("nutritual.db")
     .then(async (database) => {
       await database.execAsync(`

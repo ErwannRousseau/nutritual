@@ -160,8 +160,8 @@ test("decline posts only the validated code and never requests device credential
   expect(events).toEqual(["decline:AAAA-AAAA", "delete", "schedule:700"]);
 });
 
-function createServices(overrides: Partial<PairingFlowServices> = {}): PairingFlowServices {
-  return {
+function createServices(overrides: Partial<PairingFlowServices> = {}) {
+  const services = {
     inspect: async () => details,
     approve: async () => {},
     decline: async () => {},
@@ -171,5 +171,7 @@ function createServices(overrides: Partial<PairingFlowServices> = {}): PairingFl
     schedule: () => {},
     navigateToSettings: () => {},
     ...overrides,
-  };
+  } satisfies PairingFlowServices;
+
+  return services;
 }

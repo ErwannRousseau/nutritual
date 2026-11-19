@@ -32,14 +32,15 @@ export default function ProductBadge({ size = 40 }: Props) {
 }
 
 function createStyles(colors: ReturnType<typeof usePalette>, size: Props["size"]) {
-  const badge = (diameter: number, backgroundColor: string): ViewStyle => ({
-    alignItems: "center",
-    backgroundColor,
-    borderRadius: diameter / 2,
-    height: diameter,
-    justifyContent: "center",
-    width: diameter,
-  });
+  const badge = (diameter: number, backgroundColor: string) =>
+    ({
+      alignItems: "center",
+      backgroundColor,
+      borderRadius: diameter / 2,
+      height: diameter,
+      justifyContent: "center",
+      width: diameter,
+    }) satisfies ViewStyle;
 
   return StyleSheet.create({
     small: badge(40, colors.badge),

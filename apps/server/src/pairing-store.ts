@@ -3,13 +3,13 @@ import { DATABASE_URL } from "./env.ts";
 
 export const database = new Pool({ connectionString: DATABASE_URL, max: 5 });
 
-export function digest(value: string): string {
+export function digest(value: string) {
   return new Bun.CryptoHasher("sha256").update(value).digest("hex");
 }
 
 let lastCleanupAt = 0;
 
-export async function rateLimit(key: string): Promise<boolean> {
+export async function rateLimit(key: string) {
   if (Date.now() - lastCleanupAt > 60 * 60_000) {
     lastCleanupAt = Date.now();
     await cleanExpired();
@@ -30,7 +30,7 @@ export async function rateLimit(key: string): Promise<boolean> {
   return result.rows[0]?.allowed ?? false;
 }
 
-export async function cleanExpired(): Promise<void> {
+export async function cleanExpired() {
   await database.query("DELETE FROM app_pairing_challenges WHERE expires_at <= now()");
   await database.query(
     "DELETE FROM app_device_tickets WHERE expires_at <= now() OR consumed_at IS NOT NULL",
@@ -165,7 +165,7 @@ export function createPairingStore(options: StoreOptions = {}) {
 
     async withApprovalTransaction<T>(
       run: (transaction: ApprovalTransaction) => Promise<{ commit: boolean; value: T }>,
-    ): Promise<T> {
+    ) {
       const client = await pool.connect();
 
       try {

@@ -210,7 +210,7 @@ export default function RoutineScheduleScreen() {
   );
 }
 
-function dateWithTime(dateValue: string, timeValue: string): Date {
+function dateWithTime(dateValue: string, timeValue: string) {
   const [year, month, day] = dateValue.split("-").map(Number);
   const [hours, minutes] = timeValue.split(":").map(Number);
   const date = new Date(0);

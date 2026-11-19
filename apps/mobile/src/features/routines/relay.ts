@@ -17,7 +17,7 @@ export function connectToDeviceRelay(
   createRoutine: (request: CreateRoutineRequest) => Promise<CreateRoutineResult>,
   editRoutine: (request: EditRoutineRequest) => Promise<EditRoutineResult>,
   deleteRoutine: (request: DeleteRoutineRequest) => Promise<DeleteRoutineResult>,
-): () => void {
+) {
   let disposed = false;
   let retryDelay = 1_000;
   let retryTimer: ReturnType<typeof setTimeout> | undefined;
@@ -58,7 +58,7 @@ export function connectToDeviceRelay(
           try {
             nextSocket.send(JSON.stringify(message));
           } catch {
-            // The server reports a missing response.
+            // INFO: The server reports a missing response.
           }
         });
       };
