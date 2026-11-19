@@ -246,7 +246,7 @@ test("OAuth pages preserve raw provider query and bridge callback values unchang
 
   expect(callback.status).toBe(302);
   expect(callback.headers.get("location")).toBe(
-    "com.erwannrousseau.nutritual:/oauth/callback?code=abc%2B123&state=state%2Fok",
+    "com.erwannrousseau.nutritual:///oauth/callback?code=abc%2B123&state=state%2Fok",
   );
 
   const bridge = await app.request("/pair?code=ABCD-2345");

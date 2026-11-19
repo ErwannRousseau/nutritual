@@ -17,7 +17,7 @@ export function registerOAuthPages(app: Hono<McpAuthVariables>) {
     c.html(renderOAuthConsentPage(config.authBaseUrl, config.mobileClientId)),
   );
   app.get("/oauth/mobile/callback", (c) => {
-    const native = new URL("com.erwannrousseau.nutritual:/oauth/callback");
+    const native = new URL("com.erwannrousseau.nutritual:///oauth/callback");
     const originalQuery = new URL(c.req.url).search;
 
     return c.redirect(`${native.toString()}${originalQuery}`, 302);

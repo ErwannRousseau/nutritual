@@ -48,7 +48,7 @@ export function useOAuthSignIn(onError: (message: string) => void) {
       const authUrl = await request.makeAuthUrlAsync(discovery);
 
       const nativeReturn = AuthSession.makeRedirectUri({
-        native: "com.erwannrousseau.nutritual:/oauth/callback",
+        native: "com.erwannrousseau.nutritual:///oauth/callback",
       });
 
       const browser = await WebBrowser.openAuthSessionAsync(authUrl, nativeReturn);
